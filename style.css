@@ -569,7 +569,7 @@ html.inner-scroll body { overflow-y: auto; -webkit-overflow-scrolling: touch; ov
   .thread.framed:not(.searching) { padding: 0 8px; }
   .t-when { display: none; }
   .thread.searching { min-height: 0; }
-  .tg-when.t-when-phone { display: block; padding-top: 10px; margin: 0 0 -12px; } /* (placed as the dates in Archive: 10px under the dotted line, 4px over the thumbnail) */ /* the date above the thumbnail, as in Archive (no longer under the tags) */
+  .tg-when.t-when-phone { display: block; padding-top: 10px; margin: 0 0 -4px; } /* (placed as the dates in Archive: 10px under the dotted line, 12px over the thumbnail) */ /* the date above the thumbnail, as in Archive (no longer under the tags) */
   .t-date.only-date:empty { display: none; }
   #menu a[data-view="genres"] { display: none; } /* (no Genres in the phone's menu) */
 }
@@ -1470,7 +1470,7 @@ body.side-open .tag-panel { visibility: hidden; }
 .tp-page-head { max-width: none; }
 .tagpage-thread { border-bottom: 0; }
 @media (max-width: 640px) {
-  .tg-head { display: grid; gap: 4px; } /* (the letters close over the search field) */
+  .tg-head { display: grid; gap: 4px; margin-top: -4px; } /* (the letters close over the search field, and a little closer to the top bar) */
   .tg-jumps { font-size: 15px; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); justify-items: center; gap: 2px 0; overflow: visible; } /* A–Z, 0–9 and # on two even lines */
   .tg-jumps .tg-jump { padding: 2px 0; white-space: nowrap; } /* (0–9 on one line) */
   .tg-head .tp-search { max-width: none; }
