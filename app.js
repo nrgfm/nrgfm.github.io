@@ -1316,9 +1316,21 @@ function renderMore(count = PAGE) {
   const frag = document.createDocumentFragment();
   const end = Math.min(shown.length, rendered + count);
   for (; rendered < end; rendered++) frag.append(threadNode(shown[rendered]));
+  const added = [...frag.children];
   $("#threads").append(frag);
   markPlaying();
   requestAnimationFrame(fadeAll);
+  if (phone() && view === "tagged") requestAnimationFrame(() => fitTitles(added));
+}
+/* phone, Archive: a title longer than its two lines gets smaller until all of it fits (down to 10px);
+   one that still doesn't fit gets a third line, and as big a size as fits there */
+function fitTitles(nodes) {
+  for (const n of nodes) for (const t of n.querySelectorAll(".tr-title")) {
+    const start = parseFloat(getComputedStyle(t).fontSize);
+    const shrink = () => { let fs = start; t.style.fontSize = ""; while (t.scrollHeight > t.clientHeight + 1 && fs > 10) { fs -= 0.5; t.style.fontSize = fs + "px"; } };
+    shrink();
+    if (t.scrollHeight > t.clientHeight + 1) { t.style.webkitLineClamp = "3"; shrink(); } // (as big as it can be on three lines)
+  }
 }
 
 new IntersectionObserver((e) => { if (e[0].isIntersecting && rendered < shown.length) renderMore(); }, { rootMargin: "1200px" }).observe($("#more"));
