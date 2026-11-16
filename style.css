@@ -1471,8 +1471,8 @@ body.side-open .tag-panel { visibility: hidden; }
 .tagpage-thread { border-bottom: 0; }
 @media (max-width: 640px) {
   .tg-head { display: grid; }
-  .tg-jumps { font-size: 15px; display: grid; grid-template-columns: repeat(14, 1fr); justify-items: center; gap: 6px 0; overflow: visible; } /* A–Z, 0–9 and # on two even lines */
-  .tg-jumps .tg-jump { padding: 2px 0; }
+  .tg-jumps { font-size: 15px; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); justify-items: center; gap: 6px 0; overflow: visible; } /* A–Z, 0–9 and # on two even lines */
+  .tg-jumps .tg-jump { padding: 2px 0; white-space: nowrap; } /* (0–9 on one line) */
   .tg-head .tp-search { max-width: none; }
   .tpg-row1 { flex-wrap: wrap; gap: 6px 16px; }
   .tpg-years { width: 100%; }
