@@ -554,7 +554,7 @@ img.broken { visibility: hidden; }
 .t-when { position: absolute; z-index: 3; left: 8px; top: 110px; width: 160px; display: grid; justify-items: center; gap: 6px; color: var(--muted); font-size: 13px; line-height: 18px; }
 .t-when.in-search { justify-items: center; }
 .thread.searching { min-height: 168px; }
-.t-date-phone, .t-date.only-date { display: none; }
+.t-date-phone, .t-date.only-date, .t-when-phone { display: none; }
 .when-link { all: unset; cursor: pointer; color: var(--muted); text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .when-link:hover { color: var(--text); }
 /* the list is as wide as the space left of the video player (laptop) */
@@ -569,9 +569,9 @@ html.inner-scroll body { overflow-y: auto; -webkit-overflow-scrolling: touch; ov
   .thread.framed:not(.searching) { padding: 0 8px; }
   .t-when { display: none; }
   .thread.searching { min-height: 0; }
-  .t-date-phone { display: inline; }
-  .t-date.only-date { display: block; }
+  .t-when-phone { display: block; } /* the date above the thumbnail, as in Archive (no longer under the tags) */
   .t-date.only-date:empty { display: none; }
+  #menu a[data-view="genres"] { display: none; } /* (no Genres in the phone's menu) */
 }
 
 /* a thread whose box scrolls is selected first (click in it, play from it, Expand); the frame lights up */
@@ -1412,6 +1412,7 @@ body.side-open .tag-panel { visibility: hidden; }
 .tagged-thread { list-style: none; padding: 10px 0; border-bottom: 1px dotted var(--dots, var(--line-strong)); }
 .tg-when { font-size: 13px; margin: 0 0 4px; }
 .tg-when .when-link { color: var(--muted); }
+.tg-when .when-link:hover { color: var(--text); } /* (lights up as the dates in Threads do) */
 .tg-tracks { list-style: none; margin: 0; padding: 0; }
 .tagged-thread .track { grid-template-columns: 112px 1fr auto; }
 .tagged-thread .track .chip { width: 112px; height: 63px; }
@@ -1470,7 +1471,8 @@ body.side-open .tag-panel { visibility: hidden; }
 .tagpage-thread { border-bottom: 0; }
 @media (max-width: 640px) {
   .tg-head { display: grid; }
-  .tg-jumps { font-size: 15px; overflow-x: auto; scrollbar-width: none; }
+  .tg-jumps { font-size: 15px; display: grid; grid-template-columns: repeat(14, 1fr); justify-items: center; gap: 6px 0; overflow: visible; } /* A–Z, 0–9 and # on two even lines */
+  .tg-jumps .tg-jump { padding: 2px 0; }
   .tg-head .tp-search { max-width: none; }
   .tpg-row1 { flex-wrap: wrap; gap: 6px 16px; }
   .tpg-years { width: 100%; }
@@ -1500,3 +1502,10 @@ body.side-open .tag-panel { visibility: hidden; }
 .act-what { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .act-more { color: var(--muted); font-size: 13px; text-align: right; }
 .act-gone { padding: 4px 0 4px 52px; opacity: .6; } /* (in line with the titles that have a picture) */
+/* phone, with the key: holding a track down opens the quick tag field (no text selection or link menu while holding) */
+@media (max-width: 640px) {
+  body.can-add #threads .track .play, body.can-add #threads .head-row .thread-head, body.can-add #threads .month-play { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .quick-tag { min-width: 0; width: 100%; max-width: none; box-sizing: border-box; }
+  .quick-input { font-size: 16px; } /* (16px: the iPhone doesn't zoom in on the field) */
+  .quick-drop { max-width: calc(100vw - 32px); }
+}

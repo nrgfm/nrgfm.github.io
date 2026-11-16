@@ -1250,6 +1250,7 @@ function threadNode({ t, hits }) {
     // (phone: the counter and Expand only on top)
   }
   const li = el("li", { class: "thread" + (side ? " long framed" : "") + (open ? " expanded" : "") + (hits ? " searching" : "") + (t.id === activeId ? " active" : ""), id: "th-" + t.id },
+    hits ? null : el("div", { class: "tg-when t-when-phone" }, el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, day)), // phone: the date above the thumbnail (as in Archive)
     el("div", { class: ["head-row", hi.dead && "dead", hits && hits.has(0) && "hit", ].filter(Boolean).join(" "), "data-k": `${t.id}:0` },
       el("button", { class: "thread-head", onclick: () => play(t, 0), "aria-label": `Play ${hi.title}` },
         el("span", { class: "thumb" }, img(hi.thumb, "thumb-img"), hi.thumb ? null : el("span", { class: "ph" }, PLATFORM[head.platform] || "")),
@@ -3066,7 +3067,7 @@ function drawTagPanel(show, page) {
   const head = el("div", { class: "tp-p-head" },
     page ? el("h2", { class: "tp-p-title tp-page-title" }, showTag(g))
       : el("button", { class: "tp-p-title tp-title-link", onclick: (e) => openTagPage(g, e) }, showTag(g)), // (the tag's own page; Cmd+click: a new tab)
-    phone() ? el("button", { class: "when-link tp-close", onclick: hideTagPanel }, "Close") : null);
+    phone() && !page ? el("button", { class: "when-link tp-close", onclick: hideTagPanel }, "Close") : null); // (Close: the panel over the Tags page on a phone, not a tag's own page)
   // year range: two handles on one line
   let slider = null;
   const span = ys.length ? [ys[0], ys[ys.length - 1]] : null;
@@ -3118,7 +3119,7 @@ function drawTagPanel(show, page) {
     const parts = [el("div", { class: "tpg-row1" }, head, slider ? el("div", { class: "tpg-years" }, slider) : null), descBox,
       el("div", { class: "tp-btns tpg-row2" }, orderBtn("newest", "Newest added"), orderBtn("oldest", "Oldest added"), orderBtn("shuffle", "Shuffle"),
         longBtns.length ? el("span", { class: "tpg-long" }, longBtns) : null,
-        key ? el("span", { class: "tpg-edit" }, el("button", { class: "when-link", onclick: editDesc }, desc ? "Edit description" : "Add description"),
+        key && !phone() ? el("span", { class: "tpg-edit" }, el("button", { class: "when-link", onclick: editDesc }, desc ? "Edit description" : "Add description"),
           !isAutoTag(g) ? el("button", { class: "when-link", onclick: rename }, "Rename") : null) : null)].filter(Boolean);
     if (desc) descBox.addEventListener("dblclick", () => key && editDesc());
     return parts;
@@ -3616,8 +3617,8 @@ function closeQuick() {
    tags out, and nothing is saved until Enter on the empty field (or Shift+Enter at any time). Esc: nothing changes.
    Left/Right step through the tags already in the field (the side space shows the one you are on);
    Backspace once marks the tag before the cursor, twice takes it out. */
-function openQuick(row, at) {
-  if (!getToken() || phone()) return;
+function openQuick(row, at, touch) {
+  if (!getToken() || (phone() && !touch)) return; // (phone: only by holding a track down)
   closeQuick();
   const { tr } = at;
   if (row) { // a track low on the screen comes up a little, so the field and its suggestions fit
@@ -3719,7 +3720,7 @@ function openQuick(row, at) {
   if (row && anchor) {
     if (getComputedStyle(row).position === "static") row.style.position = "relative";
     const a = anchor.getBoundingClientRect(), r0 = row.getBoundingClientRect();
-    box.style.left = a.left - r0.left + "px";
+    box.style.left = (touch ? 0 : a.left - r0.left) + "px"; // (phone: the whole width of the track)
     box.style.top = (wrap ? a.top - r0.top - 3 : a.bottom - r0.top + 2) + "px";
     if (wrap) wrap.style.visibility = "hidden";
     row.append(box);
@@ -3737,6 +3738,25 @@ document.addEventListener("click", (e) => {
   e.preventDefault(); e.stopPropagation();
   openQuick(row, at);
 }, true);
+/* phone (with the key): holding a track down opens the quick tag field for it */
+{
+  let hold = null, swallow = false;
+  const SEL = "#threads .track .play, #threads .head-row .thread-head, #threads .month-play";
+  const cancel = () => { if (hold) { clearTimeout(hold.timer); hold = null; } };
+  document.addEventListener("touchstart", (e) => {
+    cancel();
+    if (!phone() || !getToken() || e.touches.length !== 1) return;
+    const hit = e.target.closest && e.target.closest(SEL); if (!hit) return;
+    const row = hit.closest("[data-k]"), at = row && trackAt(row.dataset.k); if (!at) return;
+    const { clientX: x, clientY: y } = e.touches[0];
+    hold = { x, y, timer: setTimeout(() => { hold = null; swallow = true; setTimeout(() => { swallow = false; }, 800); if (navigator.vibrate) navigator.vibrate(10); openQuick(row, at, true); }, 500) };
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => { if (hold && Math.hypot(e.touches[0].clientX - hold.x, e.touches[0].clientY - hold.y) > 10) cancel(); }, { passive: true });
+  document.addEventListener("touchend", (e) => { cancel(); if (swallow) e.preventDefault(); }, { passive: false }); // (the lift after holding doesn't play the track)
+  document.addEventListener("touchcancel", cancel, { passive: true });
+  document.addEventListener("click", (e) => { if (swallow && e.target.closest && e.target.closest(SEL)) { e.preventDefault(); e.stopPropagation(); } }, true);
+  document.addEventListener("contextmenu", (e) => { if (phone() && getToken() && e.target.closest && e.target.closest(SEL)) e.preventDefault(); });
+}
 /* Cmd+E (Ctrl+E), or Cmd+click on the player's title: the playing track */
 function quickPlaying() {
   if (!playing) return;
