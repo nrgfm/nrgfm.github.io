@@ -3329,8 +3329,7 @@ function drawActHead() {
     owners.map((d) => el("button", { class: "when-link" + (act.who === d.who ? " on" : ""), onclick: go(() => { act.who = d.who; }) }, deviceLabel(d))),
     cur && !cur.owner ? el("button", { class: "when-link on", onclick: go(() => { act.who = null; }) }, deviceLabel(cur) + " ×") : null,
     el("span", { class: "act-sep" }),
-    el("button", { class: "when-link act-flag-filter" + (act.flagged ? " on" : ""), onclick: go(() => { act.flagged = !act.flagged; }) }, FLAG_SVG(act.flagged), "Flagged"),
-    el("button", { class: "when-link" + (act.full ? " on" : ""), onclick: go(() => { act.full = !act.full; }) }, "Full plays"));
+    el("button", { class: "when-link act-flag-filter" + (act.flagged ? " on" : ""), onclick: go(() => { act.flagged = !act.flagged; }) }, FLAG_SVG(act.flagged), "Flagged"));
   // this device: give it a name (once)
   let naming = null;
   if (!myName()) {
