@@ -6,10 +6,20 @@
    GET  /top      (key)  the tracks played most in one of them (?group=&p=2026-10&min=&who=)
    GET  /devices  (key)  every device/guest that played
    POST /name     (key)  give a device a name {who, name}
+   POST /login    (anyone) {password, who}: level 2 or 3 for 12 hours → {token, level, exp}. 5 wrong passwords in an hour lock
+                  the logins for an hour. Every login, wrong password and refusal is kept (GET /logins)
+   POST /logout   {token}
+   POST /inbox    (level 2 token, Authorization: Session …) {item, kind}: adds, edits and tag changes, saved to the
+                  repository's inbox/ with the key in the secret GH_WRITE (a level-2 browser never sees a GitHub key)
+   POST /passwords (key)  {level2, level3}: set (or "" to turn off) the passwords
+   GET  /passwords (key)  which are set
+   GET  /logins   (key)  the logins (?days=)
    "key": the site's GitHub key (Authorization: Bearer …), accepted when it can write to the nrgfm repository. */
 const REPO = "nrgproduct/nrgfm";
 const ORIGINS = ["https://nrgproduct.github.io", "http://localhost:8765", "http://127.0.0.1:8765"];
 const YEAR = 365 * 86400;
+const SESSION = 12 * 3600;  // a password login lasts 12 hours
+const LEVEL2 = new Set(["", "edit", "tag"]); // what a level-2 login may save: new tracks, edits, tag changes
 const okKeys = new Map(); // key hash -> time it was checked (checked again after 10 minutes)
 
 function cors(req) {
@@ -38,6 +48,20 @@ async function isOwner(req) {
   return true;
 }
 
+
+async function pbkdf2(pw, salt) {
+  const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  const b = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode(salt), iterations: 100000 }, k, 256);
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+const rand = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => x.toString(16).padStart(2, "0")).join("");
+async function session(req, env) {
+  const t = (req.headers.get("Authorization") || "").replace(/^Session\s+/i, "").trim();
+  if (!t) return null;
+  const row = await env.DB.prepare("SELECT level, who, exp FROM sessions WHERE h = ?1").bind(await sha(t)).first();
+  return row && row.exp > Math.floor(Date.now() / 1000) ? row : null;
+}
+const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
@@ -62,7 +86,77 @@ export default {
         ]);
         return json(req, { ok: true });
       }
+      if (path === "/login" && req.method === "POST") {
+        const p = await req.json().catch(() => ({}));
+        const now = Math.floor(Date.now() / 1000), cf = req.cf || {}, who = str(p.who, 64);
+        const log = (level, ok) => env.DB.prepare("INSERT INTO logins (ts, who, level, ok, city, country) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
+          .bind(now, who, level, ok, cf.city || null, cf.country || null).run();
+        const bad = await env.DB.prepare("SELECT COUNT(*) AS n, MAX(ts) AS last FROM logins WHERE ok = 0 AND ts > ?1").bind(now - 3600).first();
+        if (bad.n >= 5) { await log(null, -1); return json(req, { error: "locked", until: bad.last + 3600 }, 429); }
+        const pw = str(p.password, 200) || "";
+        const rows = (await env.DB.prepare("SELECT k, v FROM settings WHERE k IN ('pw2', 'pw3')").all()).results;
+        let level = null;
+        for (const r of rows) { const [salt, h] = (r.v || "").split(":"); if (salt && h && pw && (await pbkdf2(pw, salt)) === h) level = r.k === "pw2" ? 2 : 3; }
+        if (!level) { await log(null, 0); return json(req, { error: "wrong" }, 401); }
+        const token = rand(), exp = now + SESSION;
+        await env.DB.batch([
+          env.DB.prepare("INSERT INTO sessions (h, level, who, exp) VALUES (?1, ?2, ?3, ?4)").bind(await sha(token), level, who, exp),
+          env.DB.prepare("DELETE FROM sessions WHERE exp < ?1").bind(now),
+        ]);
+        await log(level, 1);
+        return json(req, { token, level, exp });
+      }
+      if (path === "/logout" && req.method === "POST") {
+        const p = await req.json().catch(() => ({}));
+        const t = str(p.token, 100);
+        if (t) {
+          const h = await sha(t), row = await env.DB.prepare("SELECT level, who FROM sessions WHERE h = ?1").bind(h).first();
+          if (row) {
+            const cf = req.cf || {};
+            await env.DB.batch([env.DB.prepare("DELETE FROM sessions WHERE h = ?1").bind(h),
+              env.DB.prepare("INSERT INTO logins (ts, who, level, ok, city, country) VALUES (?1, ?2, ?3, 2, ?4, ?5)").bind(Math.floor(Date.now() / 1000), row.who, row.level, cf.city || null, cf.country || null)]);
+          }
+        }
+        return json(req, { ok: true });
+      }
+      if (path === "/inbox" && req.method === "POST") {
+        const s = await session(req, env);
+        if (!s || s.level !== 2) return json(req, { error: "login needed" }, 401);
+        if (!env.GH_WRITE) return json(req, { error: "no GitHub key on the server (secret NRGFM_WRITE_TOKEN)" }, 503);
+        const p = await req.json().catch(() => ({}));
+        const kind = typeof p.kind === "string" ? p.kind : "", item = p.item;
+        if (!item || typeof item !== "object" || !LEVEL2.has(kind) || !LEVEL2.has(item.action || "")) return json(req, { error: "not allowed with this login" }, 403);
+        if ((item.action || "") !== kind) return json(req, { error: "not allowed with this login" }, 403);
+        const text = JSON.stringify({ ...item, via: "password" }, null, 2) + "\n";
+        if (text.length > 20000) return json(req, { error: "too big" }, 413);
+        const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/inbox/${name}`, { method: "PUT",
+          headers: { Authorization: `Bearer ${env.GH_WRITE}`, "User-Agent": "nrgfm-activity", Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify({ message: (kind ? kind[0].toUpperCase() + kind.slice(1) : "Add") + " track (password login)", content: b64(text) }) });
+        return r.ok ? json(req, { ok: true }) : json(req, { error: "GitHub answered " + r.status }, 502);
+      }
       if (!(await isOwner(req))) return json(req, { error: "key needed" }, 401);
+      if (path === "/passwords") {
+        if (req.method === "POST") {
+          const p = await req.json().catch(() => ({}));
+          for (const [k, lv] of [["pw2", "level2"], ["pw3", "level3"]]) {
+            if (typeof p[lv] !== "string") continue;
+            const pw = p[lv].slice(0, 200);
+            if (!pw) await env.DB.prepare("DELETE FROM settings WHERE k = ?1").bind(k).run();
+            else { const salt = rand(16); await env.DB.prepare("INSERT INTO settings (k, v) VALUES (?1, ?2) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(k, salt + ":" + (await pbkdf2(pw, salt))).run(); }
+            await env.DB.prepare("DELETE FROM sessions WHERE level = ?1").bind(k === "pw2" ? 2 : 3).run(); // a new password logs everyone at that level out
+          }
+          return json(req, { ok: true });
+        }
+        const { results } = await env.DB.prepare("SELECT k FROM settings WHERE k IN ('pw2', 'pw3')").all();
+        return json(req, { level2: results.some((r) => r.k === "pw2"), level3: results.some((r) => r.k === "pw3") });
+      }
+      if (path === "/logins") {
+        const days = Math.max(1, Math.min(400, Math.round(+url.searchParams.get("days") || 365)));
+        const { results } = await env.DB.prepare(`SELECT l.*, d.name FROM logins l LEFT JOIN devices d ON d.who = l.who WHERE l.ts > ?1 ORDER BY l.ts DESC LIMIT 2000`)
+          .bind(Math.floor(Date.now() / 1000) - days * 86400).all();
+        return json(req, results);
+      }
       const tz = Math.max(-840, Math.min(840, Math.round(+url.searchParams.get("tz") || 0))) * 60; // the viewer's offset from UTC
       const who = url.searchParams.get("who");
       const since = Math.floor(Date.now() / 1000) - YEAR;
@@ -124,5 +218,7 @@ export default {
     const cut = Math.floor(Date.now() / 1000) - YEAR;
     await env.DB.prepare("DELETE FROM plays WHERE ts < ?1").bind(cut).run();
     await env.DB.prepare("DELETE FROM devices WHERE last < ?1").bind(cut).run();
+    await env.DB.prepare("DELETE FROM logins WHERE ts < ?1").bind(cut).run();
+    await env.DB.prepare("DELETE FROM sessions WHERE exp < ?1").bind(Math.floor(Date.now() / 1000)).run();
   },
 };

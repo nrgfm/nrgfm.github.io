@@ -191,7 +191,7 @@ html, body { overflow-anchor: none; } /* the site places threads itself when the
 .saved-tag { color: var(--jade); font-weight: 700; margin-right: 8px; }
 .row-links { display: inline-flex; align-items: center; gap: 4px; }
 .linkbtn.edit-btn { font-size: 13px; line-height: normal; text-decoration: none; padding: 4px; }
-body:not(.can-add) .edit-btn { display: none; }
+body:not(.key) .edit-btn { display: none; } /* (level 2 edits with Cmd+I only) */
 .btn.ghost.danger { color: var(--red); border-color: var(--red); }
 .btn.ghost.danger:hover { background: color-mix(in srgb, var(--red) 12%, transparent); }
 .btn.ghost.danger[data-confirm="1"] { background: var(--red); color: var(--bg); }
@@ -723,7 +723,7 @@ button.tag-chip.in { font-size: 13px; line-height: 24px; padding: 0 6px; color: 
 .more-info-btn.btn.ghost { color: var(--muted); }
 .af-more .move-panel { border-top: 0; padding-top: 0; }
 #editBtn { margin-left: 10px; }
-body:not(.can-add) #editBtn { display: none; }
+body:not(.key) #editBtn { display: none; }
 @media (max-width: 640px) { #editBtn { display: none; } }
 /* selected boxes (search, tags, genres): the edit card stays clear of the frame */
 .thread.framed .edit-wrap > .add-form, .thread.searching.active .edit-wrap > .add-form { margin-right: 8px; }
@@ -923,7 +923,7 @@ body[data-view="genres"] #more { display: none; }
   .ctrlrow { grid-template-columns: auto 1fr auto auto !important; grid-template-areas: "title title title title" "transport thread flag source" "opts opts opts opts" !important; }
   #flagBtn { grid-area: flag; margin-left: 0; }
 }
-body:not(.can-add) #flagBtn { display: none; }
+body:not(.key) #flagBtn { display: none; }
 /* Promote: the three choices take its place and the search field makes room */
 .af-more > *, .move-panel, .move-row { min-width: 0; }
 .move-row input { min-width: 80px; }
@@ -1262,7 +1262,7 @@ html.inner-scroll { color-scheme: dark; }
 .thread.active .scroll-list.open { overscroll-behavior: auto !important; }
 
 /* Activity (only with the key): the days with plays, the devices, then one row per play */
-body:not(.can-add) .owner-only { display: none; }
+body:not(.key) .owner-only, body:not(.key) .key-only { display: none !important; }
 .view-activity { position: sticky; top: var(--top-h, 60px); z-index: 4; background: var(--bg); border-bottom: 1px dotted var(--dots, var(--line-strong)); padding-bottom: 10px; }
 .act-days { justify-content: flex-start; gap: 0 18px; overflow-x: auto; scrollbar-width: none; font-size: 15px; }
 .act-days::-webkit-scrollbar { display: none; }
@@ -1515,3 +1515,42 @@ body.side-open .tag-panel { visibility: hidden; }
 #resultInfo button.result-n:hover, #resultInfo button.result-n.on { color: var(--jade); }
 #resultInfo button.result-n.on:hover { color: var(--text); }
 @media (min-width: 641px) { #resultInfo button.result-n { min-width: 9.5em; font-variant-numeric: tabular-nums; } }
+
+/* access levels (see level() in app.js): what each one doesn't see. Pages left open after logging out keep their
+   content, with the tags hidden by these rules */
+body.lv-3 .tag-pl, body.lv-4 .tag-pl, body.lv-3 .tag-auto, body.lv-4 .tag-auto { display: none; }
+body.lv-4 .tag-wrap, body.lv-4 .tp-back-arrow { display: none; }
+body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body.lv-4 #menu a[data-view="history"] { display: none; }
+.lv-4 .tp-back-title { cursor: default; } .lv-4 .tp-back-title:hover { color: inherit; }
+/* the lock (log in with a password): top right of the header, above the side panel. Round, quiet; logged in: the play
+   button's double ring in the Add-track blue, the lock open. The password field slides out to its left */
+.lock { position: absolute; right: 24px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; }
+#lockBtn { all: unset; box-sizing: border-box; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: color .15s, border-color .15s; }
+#lockBtn svg { width: 18px; height: 18px; }
+#lockBtn:hover { color: var(--text); border-color: var(--muted); }
+#lockBtn:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+.lock.on #lockBtn { border-color: transparent; color: var(--seek, #6f9ecb); box-shadow: inset 0 0 0 2px var(--seek, #6f9ecb), inset 0 0 0 4px var(--bg); }
+.lock.on #lockBtn:hover { color: var(--text); }
+#lockPw { box-sizing: border-box; height: 40px; width: 0; padding: 0; margin-right: 0; opacity: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; transition: width .2s ease, opacity .2s ease, padding .2s ease, margin .2s ease; pointer-events: none; }
+.lock.open #lockPw { width: 220px; padding: 0 12px; margin-right: 8px; opacity: 1; pointer-events: auto; }
+#lockPw::placeholder { color: var(--muted); }
+#lockPw:focus { outline: none; border-color: var(--jade); }
+.lock.shake #lockPw { animation: lock-shake .3s; }
+@keyframes lock-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (max-width: 640px) {
+  .lock { position: static; transform: none; order: 3; margin-left: auto; } /* (phone: at the end of the header's line) */
+  .lock { position: relative; right: auto; top: auto; }
+  #lockPw { position: absolute; right: 50px; top: 0; z-index: 2; }
+  .lock.open #lockPw { width: calc(100vw - 171px); margin-right: 0; } /* (over the search field) */
+}
+/* Activity → Logins: the two passwords */
+.act-logs { display: inline-flex; gap: 18px; }
+.lg-panel { max-width: 640px; padding: 18px 0; display: grid; gap: 26px; }
+.lg-name { font-size: 16px; margin-bottom: 8px; }
+.lg-note { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.lg-line { display: flex; gap: 12px; align-items: center; }
+.lg-input { flex: 1; height: 40px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font: inherit; padding: 0 12px; }
+.lg-input:focus { outline: none; border-color: var(--jade); }
+.lg-msg { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 1em; }
+.lg-foot { color: var(--muted); font-size: 13px; margin: 0; }
+.act-login { padding: 4px 0 4px 52px; }

@@ -98,7 +98,7 @@ function haystack(t) {
     const named = t.title || m.title || m.wb_title;
     t._f = {
       title: j([t.title, m.title, m.wb_title, named ? "" : slugTitle(t), named ? info(t).title : ""]), // the link's words only when there is no title; and the title as shown (with the artist put in front)
-      notes: j([t.notes]),
+      notes: level() <= 2 ? j([t.notes]) : "", // (notes are searched from level 2 up)
       tags: j(shownTags(t)),
       genres: j(x.g || []),
       year: j([x.y, decadeOf(x.y)]),
@@ -350,7 +350,7 @@ const newestFirst = (a, b) => b.ts - a.ts;
 function viewItems() {
   if (view === "tagsold") return threads.filter((t) => t.kind === "tag").sort((a, b) => b.last - a.last); // (#/tagsold: the Tags page as it was in Oct 2026, kept as a backup)
   if (tagsView()) return []; // drawn by renderTagsPage
-  if (view === "tag") { const t = !getToken() && isAutoTag(tagPageName || "") ? null : tagThreadOf(tagPageName); /* (an automatic tag's page: only with the key) */ if (t) expanded.add(t.id); return t ? [tagPlaylist(t)] : []; } // (opened out: all its tracks)
+  if (view === "tag") { const t = !tagVisible(tagPageName || "") ? null : tagThreadOf(tagPageName); /* (a tag's page: only when its tag is seen at this level) */ if (t) expanded.add(t.id); return t ? [tagPlaylist(t)] : []; } // (opened out: all its tracks)
   if (view === "mixes") return mixThreads();
   if (view === "genres") return gSel.length ? [genreMix()] : []; // no playlist until a genre is picked
   if (view === "genreboxes") return genreThreads(); // the earlier Genres page (#/genreboxes), kept as a backup
@@ -729,6 +729,7 @@ function setView(v, keepHash) {
   }
   const from = view;
   view = VIEW_NAMES[v] ? v : "threads";
+  if (!viewAllowed(view)) view = "threads"; // (a page this level can't open)
   setTimeout(updateTitle, 0);
   if (view === "tags" && from !== "tags") { // Index: a fresh start, unless coming back from a tag's page opened from it
     const back = from === "tag" && tp.returnTo;
@@ -781,11 +782,17 @@ const img = (src, cls) => src
 
 /* tags under a title; clicking one searches for it */
 const HIDDEN_TAGS = new Set(); // (none now: "mix" is an ordinary tag again)
-const shownTags = (tr) => Object.keys(tr.tags || {}).filter((g) => !HIDDEN_TAGS.has(g) && (!isAutoTag(g) || getToken())); // (the automatic tags only with the key)
+/* which tags this visitor sees (see level()): 1 and 2 all; 3 no playlists and no automatic tags; 4 none */
+function tagVisible(g, lv = level()) {
+  if (HIDDEN_TAGS.has(g) || lv >= 4) return false;
+  if (isAutoTag(g) || isPlaylist(g)) return lv <= 2;
+  return true;
+}
+const shownTags = (tr) => Object.keys(tr.tags || {}).filter((g) => tagVisible(g));
 function tagLine(tr, extra, list) {
-  const all = list || shownTags(tr), tags = all.filter((g) => !isPlaylist(g) && !/ characters$/.test(g) && (!isAutoTag(g) || getToken())); // (the "… characters" tags: only on the Tags page, with the key)
+  const all = list || shownTags(tr), tags = all.filter((g) => !isPlaylist(g) && !/ characters$/.test(g)); // (the "… characters" tags: only on the Tags page)
   const pl = !list && all.some(isPlaylist); // in a playlist: only PL_MARK under the track (the names show in the Edit card)
-  return [el("span", { class: "tag-wrap" }, tags.map((g) => el("span", { class: g === "duplicate" ? "tag tag-dup" : "tag" }, g)), pl ? el("span", { class: "tag tag-pl" }, PL_MARK) : null), extra ? el("span", { class: "sub-note" }, extra) : null];
+  return [el("span", { class: "tag-wrap" }, tags.map((g) => el("span", { class: "tag" + (g === "duplicate" ? " tag-dup" : "") + (isAutoTag(g) ? " tag-auto" : "") }, g)), pl ? el("span", { class: "tag tag-pl" }, PL_MARK) : null), extra ? el("span", { class: "sub-note" }, extra) : null];
 }
 /* phone search: touching the page outside a result that scrolls makes it stop scrolling (the page scrolls again) */
 document.addEventListener("touchmove", (e) => {
@@ -1814,8 +1821,88 @@ new ResizeObserver(syncDockSpace).observe($("#dock"));
    It lives in this browser's storage for this site only. Without it, adding is hidden. */
 const TOKEN_KEY = "nrgfm-token";
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } };
-function updateCanAdd() { document.body.classList.toggle("can-add", !!getToken()); }
-updateCanAdd();
+/* ---------- access levels ----------
+   1: the GitHub key (Setup) — everything.  2: my password — tags, playlists, automatic tags, notes in search; adds and
+   edits tracks and tags (Cmd+I, no Edit buttons), through the Activity server; no deleting or moving.  3: friends'
+   password — tags (no playlists, no automatic ones), Archive, Tags, Genres, History.  4: no password — Threads, Genres,
+   Random. A password login lasts 12 hours. Levels 2–4 only change what is shown (the data itself is public). */
+const SESSION_KEY = "nrgfm-session";
+function session() { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); return s && s.exp * 1000 > Date.now() ? s : null; } catch { return null; } }
+function level() { return getToken() ? 1 : (session() || {}).level || 4; }
+const canEdit = () => level() <= 2;
+const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
+const viewAllowed = (v, lv = level()) => lv <= (VIEW_LEVEL[v] || 4);
+let shownLevel = null, levelTimer = null;
+function updateCanAdd() {
+  const lv = level(), b = document.body.classList;
+  b.toggle("can-add", lv <= 2); b.toggle("key", lv === 1);
+  for (const k of [1, 2, 3, 4]) b.toggle("lv-" + k, lv === k);
+  clearTimeout(levelTimer);
+  const s = !getToken() && session();
+  if (s) levelTimer = setTimeout(applyLevel, Math.min(2 ** 31 - 1, s.exp * 1000 - Date.now() + 500)); // the 12 hours run out: back to level 4 by itself
+  if (typeof drawLock === "function") drawLock();
+  return lv;
+}
+/* after logging in or out: what's on screen follows the new level, without reloading (what plays keeps playing) */
+function applyLevel() {
+  const before = shownLevel, lv = updateCanAdd();
+  shownLevel = lv;
+  if (before === null || before === lv) return;
+  for (const t of threads) for (const tr of t.tracks) { tr._hay = null; tr._f = null; } // (search reads tags and notes again)
+  refreshTags();
+  if (!viewAllowed(view)) return; // a page this level can't open stays as it is (its tags hidden) until you go elsewhere
+  const y = scroller() === window ? scrollY : document.body.scrollTop;
+  if (view === "tag" && !tagVisible(tagPageName || "")) { $("#threads").querySelectorAll(".tag-wrap").forEach((w) => w.replaceChildren()); document.querySelectorAll(".tp-back-arrow").forEach((a) => a.remove()); return; }
+  runSearch();
+  while (rendered < shown.length && $("#threads").getBoundingClientRect().height < y + innerHeight * 2) renderMore();
+  pageScrollTo(y);
+}
+/* the lock at the top right: logged out, a click slides the password field out to its left; logged in (2 or 3), a click
+   logs out; with the key (1) it shows as logged in */
+const LOCK_SVG = (open) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="${open ? "M8 11V7a4 4 0 0 1 7.8-1.2" : "M8 11V7a4 4 0 0 1 8 0v4"}"/></svg>`;
+function drawLock() {
+  const b = $("#lockBtn"); if (!b) return;
+  const lv = level(), on = lv <= 3;
+  b.innerHTML = LOCK_SVG(on);
+  $("#lock").classList.toggle("on", on);
+  b.setAttribute("aria-label", lv === 1 ? "Logged in with the key" : on ? "Log out" : "Log in");
+}
+function closeLock() { $("#lock").classList.remove("open"); $("#lockPw").value = ""; $("#lockPw").placeholder = "Password"; $("#lockPw").tabIndex = -1; $("#lockPw").blur(); }
+$("#lockBtn").addEventListener("click", async () => {
+  const lv = level();
+  if (lv === 1) return; // (the key: logging out is in Setup)
+  if (lv <= 3) { // log out, quietly: only what's shown changes
+    const s = session();
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    applyLevel();
+    if (s && ACT_URL) fetch(ACT_URL + "/logout", { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ token: s.token }) }).catch(() => {});
+    return;
+  }
+  const box = $("#lock");
+  if (box.classList.contains("open")) { closeLock(); return; }
+  box.classList.add("open"); $("#lockPw").tabIndex = 0; $("#lockPw").focus();
+});
+$("#lockPw").addEventListener("keydown", async (e) => {
+  if (e.key === "Escape") { closeLock(); return; }
+  if (e.key !== "Enter") return;
+  const inp = e.currentTarget, pw = inp.value;
+  if (!pw || !ACT_URL) return;
+  inp.disabled = true;
+  try {
+    const r = await fetch(ACT_URL + "/login", { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ password: pw, who: DEVICE_ID }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.token) {
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: d.token, level: d.level, exp: d.exp })); } catch {}
+      closeLock(); applyLevel();
+    } else {
+      inp.value = ""; inp.placeholder = d.error === "locked" ? `Locked for ${Math.max(1, Math.ceil((d.until * 1000 - Date.now()) / 60000))} min` : "Wrong password";
+      $("#lock").classList.remove("shake"); void $("#lock").offsetWidth; $("#lock").classList.add("shake");
+    }
+  } catch { inp.value = ""; inp.placeholder = "No connection"; }
+  inp.disabled = false; inp.focus();
+});
+document.addEventListener("mousedown", (e) => { if ($("#lock").classList.contains("open") && !e.target.closest("#lock")) closeLock(); });
+shownLevel = updateCanAdd();
 
 async function gh(path, opts = {}) {
   const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
@@ -1982,7 +2069,7 @@ function addForm(thread, edit, row) {
 
       edit ? arrow : null,
       el("span", { class: "af-msg hint", role: "status" }),
-      edit ? el("button", { type: "button", class: "btn ghost danger", onclick: (e) => deleteTrack(form, edit, e.currentTarget) }, "Delete") : null,
+      edit ? el("button", { type: "button", class: "btn ghost danger key-only", onclick: (e) => deleteTrack(form, edit, e.currentTarget) }, "Delete") : null,
       edit ? null : arrow,
       el("button", { type: "submit", class: "btn" }, "Save")),
     more);
@@ -2012,7 +2099,7 @@ function moreInfo(tr, edit, tags) {
       el("div", { class: "notes-row" }, notes, edit && edit.t.tracks.length > 1 ? el("div", { class: "order-btns" },
         orderBtn(true, () => reorderTrack(box.closest("form"), edit, -1), edit.i === 0),
         orderBtn(false, () => reorderTrack(box.closest("form"), edit, 1), edit.i === edit.t.tracks.length - 1)) : null)),
-    edit ? movePanel(() => box.closest("form"), edit) : null);
+    edit ? keyOnly(movePanel(() => box.closest("form"), edit)) : null);
   if (edit && edit.i === 0) {
     const date = el("input", { name: "date", type: "hidden" }); // YYYY-MM-DD, sent with Save
     date.value = tr.shown_date || tr.date;
@@ -2134,12 +2221,12 @@ function closeAddForm(form, opts = {}) {
 /* only one add/edit card open at a time */
 function closeAllCards() { document.querySelectorAll(".add-form").forEach((f) => closeAddForm(f, { quiet: true })); }
 function openAdd(thread) {
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   if (thread) toggleAddForm(thread, document.getElementById("th-" + thread.id));
   else toggleHeaderForm();
 }
 function toggleHeaderForm() {
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   const panel = $("#addPanel");
   if (!panel.hidden) { closeAddForm(panel.querySelector("form")); return; }
   if (!$("#menu").hidden) toggleMenu(false); // stays on this page
@@ -2149,7 +2236,7 @@ function toggleHeaderForm() {
   panel.querySelector("input").focus();
 }
 function toggleAddForm(thread, li) {
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   if (!li) return;
   const open = li.querySelector(":scope > .add-form");
   if (open) { closeAddForm(open); return; }
@@ -2162,7 +2249,7 @@ function toggleAddForm(thread, li) {
 $("#addBtn").onclick = toggleHeaderForm;
 
 function toggleEditForm(t, i, row) {
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   const next = row.nextElementSibling;
   if (next && next.classList.contains("edit-wrap")) { closeAddForm(next.querySelector(".add-form")); return; }
   closeAllCards();
@@ -2186,6 +2273,14 @@ function toggleEditForm(t, i, row) {
 }
 
 async function writeInbox(item, kind) {
+  if (!getToken() && level() === 2) { // level 2: saved through the Activity server (which holds a GitHub key of its own)
+    const r = await fetch(ACT_URL + "/inbox", { method: "POST", headers: { Authorization: "Session " + session().token, "Content-Type": "text/plain" }, body: JSON.stringify({ item, kind: kind || "" }) });
+    if (r.ok) return;
+    const why = (await r.json().catch(() => ({}))).error || "";
+    if (r.status === 401) throw new Error("The login ran out. Log in again with the lock at the top right. Nothing was saved.");
+    if (r.status === 403) throw new Error("This can only be done with the key. Nothing was saved.");
+    throw new Error(`The server answered ${r.status}${why ? " (" + why + ")" : ""}. Nothing was saved; try again.`);
+  }
   const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
   const r = await gh(`/contents/inbox/${name}`, {
     method: "PUT",
@@ -2451,6 +2546,7 @@ function setYear(tr) {
   x.ys = [x.y0, ...(x.ys || [])].filter((y, k, all) => y && y !== x.y && all.indexOf(y) === k);
   tr._hay = null; gIndex = null;
 }
+const keyOnly = (n) => { if (n) n.classList.add("key-only"); return n; }; // (deleting and moving: only with the key)
 function movePanel(formOf, edit) {
   const input = el("input", { type: "search", placeholder: "Search a track in the thread you want to move it to", autocomplete: "off", spellcheck: "false" });
   // the matches open in a box of their own over the page (three at a time; scroll it for the rest)
@@ -2726,7 +2822,7 @@ addEventListener("keydown", (e) => {
     return;
   }
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   const edit = (row) => { const b = row && row.querySelector(".edit-btn"); if (!b) return false; b.click(); const w = row.nextElementSibling; (w && w.classList.contains("edit-wrap") ? w : row).scrollIntoView({ block: "center" }); return true; };
   if (edit([...document.querySelectorAll(".playing")].find((r) => r.offsetParent && r.querySelector(".edit-btn")))) return;
   const tr = playing.thread.tracks[playing.index], home = homeOf(tr);
@@ -2856,7 +2952,7 @@ function tagGridHead() {
 function renderTagsGrid() {
   const list = $("#threads");
   const words = [...tp.terms, ...(tp.q.trim() ? [tp.q.trim()] : [])];
-  const all = threads.filter((t) => t.kind === "tag" && (getToken() || !isAutoTag(t.name)) && (!words.length || words.some((w) => tagMatches(t.name, w.replace(/^#/, "")) || tagMatches(t.name, w))))
+  const all = threads.filter((t) => t.kind === "tag" && tagVisible(t.name) && (!words.length || words.some((w) => tagMatches(t.name, w.replace(/^#/, "")) || tagMatches(t.name, w))))
     .sort((a, b) => a.name.replace(/^#/, "").localeCompare(b.name.replace(/^#/, "")));
   if (!all.length) { list.replaceChildren(el("p", { class: "view-note tp-none" }, "No tags match.")); hideTagPanel(); return; }
   const groups = new Map(SECTION_ORDER.map((k) => [k, []]));
@@ -2896,7 +2992,7 @@ const tagMode = () => (phone() ? tagPref("phone", "shelves") : tagZoom() > 1 ? "
 const ZOOM_GRID = { "-1": [3, 3], 0: [2, 3], 1: [2, 2] }; // rows, tracks per row (2×2 by default)
 /* Cmd+click (Ctrl+click on Windows) on a track of the Tags page or its panel: the quick tag field for it */
 function quickClick(e, t, tr) {
-  if (!(e.metaKey || e.ctrlKey) || !getToken() || phone()) return false;
+  if (!(e.metaKey || e.ctrlKey) || !canEdit() || phone()) return false;
   e.preventDefault();
   openQuick(null, { t, i: t.tracks.indexOf(tr), tr });
   return true;
@@ -3142,7 +3238,7 @@ function drawTagPanel(show, page) {
       const title = head.querySelector(".tp-page-title");
       title.classList.add("tp-back-title"); title.setAttribute("role", "link"); title.setAttribute("aria-label", "Back to Tags");
       title.prepend(el("span", { class: "tp-back-arrow", "aria-hidden": "true" }, "‹"));
-      title.addEventListener("click", () => setView("tags"));
+      title.addEventListener("click", () => { if (viewAllowed("tags")) setView("tags"); }); // (logged out meanwhile: nothing to go back to)
     }
     const parts = [el("div", { class: "tpg-row1" }, head, slider ? el("div", { class: "tpg-years" }, slider) : null), descBox,
       el("div", { class: "tp-btns tpg-row2" }, orderBtn("newest", "Newest added"), orderBtn("oldest", "Oldest added"), orderBtn("shuffle", "Shuffle"),
@@ -3279,7 +3375,13 @@ async function renderActivity() {
   if (!getToken()) { act.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, "Activity is only shown on a device with the key.")); return; }
   if (!ACT_URL) { act.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, "The Activity server isn't set up yet.")); return; }
   list.replaceChildren(el("p", { class: "view-note" }, "Loading…"));
-  if (act.mode === "logs" && phone()) act.mode = "plays";
+  if ((act.mode === "logs" || act.mode === "logins") && phone()) act.mode = "plays";
+  if (act.mode === "logins") { // Logins: the two passwords
+    let set = null;
+    try { set = await actApi("/passwords"); } catch {}
+    if (token !== act.token) return;
+    drawActHead(); drawLoginsPanel(set); return;
+  }
   if (act.mode === "logs") { // Logs: everything changed on the site (data/changes.jsonl), laptop only
     try { await loadLogs(); } catch { if (token === act.token) list.replaceChildren(el("p", { class: "view-note" }, "The log couldn't be loaded.")); return; }
     if (token !== act.token) return;
@@ -3323,8 +3425,8 @@ async function drawTopList(token) {
 }
 function drawActHead() {
   const go = (fn) => () => { fn(); renderActivity(); };
-  const top = act.mode === "top", logs = act.mode === "logs";
-  const dayRow = el("div", { class: "hist-years act-days" }, logs
+  const top = act.mode === "top", logs = act.mode === "logs", logins = act.mode === "logins";
+  const dayRow = el("div", { class: "hist-years act-days" }, logins ? [] : logs
     ? act.logDays.map((d) => el("button", { class: "when-link" + (d.day === act.day ? " on" : ""), onclick: go(() => { act.day = d.day; }) }, actDayName(d.day), el("span", { class: "gi-n" }, d.n)))
     : top
     ? act.periods.map((d) => el("button", { class: "when-link" + (d.p === act.period ? " on" : ""), onclick: go(() => { act.period = d.p; }) }, actPeriodName(d.p), el("span", { class: "gi-n" }, d.n)))
@@ -3332,15 +3434,17 @@ function drawActHead() {
       onclick: go(() => { act.day = d.day; act.flagged = false; }) }, actDayName(d.day), el("span", { class: "gi-n" }, d.n))));
   const setMode = (m) => { act.mode = m; try { localStorage.setItem("nrgfm-act-mode", m); } catch {} };
   const views = el("div", { class: "act-views" },
-    el("button", { class: "when-link" + (!top && !logs ? " on" : ""), onclick: go(() => setMode("plays")) }, "Plays"),
+    el("button", { class: "when-link" + (!top && !logs && !logins ? " on" : ""), onclick: go(() => setMode("plays")) }, "Plays"),
     el("button", { class: "when-link" + (top ? " on" : ""), onclick: go(() => setMode("top")) }, "Most played"));
   const edgeFade = () => { dayRow.classList.toggle("fade-l", dayRow.scrollLeft > 2); dayRow.classList.toggle("fade-r", dayRow.scrollLeft + dayRow.clientWidth < dayRow.scrollWidth - 2); };
   dayRow.addEventListener("scroll", edgeFade, { passive: true }); requestAnimationFrame(edgeFade);
   dayRow.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && dayRow.scrollWidth > dayRow.clientWidth) { e.preventDefault(); dayRow.scrollLeft += e.deltaY; } }, { passive: false });
   const owners = act.devices.filter((d) => d.owner && d.n);
   const cur = act.who && act.devices.find((d) => d.who === act.who);
-  const logsBtn = phone() ? null : el("button", { class: "when-link act-logs" + (logs ? " on" : ""), onclick: go(() => setMode(logs ? "plays" : "logs")) }, "Logs");
-  const chips = logs ? el("div", { class: "hist-months act-filters" }) : el("div", { class: "hist-months act-filters" },
+  const logsBtn = phone() ? null : el("span", { class: "act-logs" },
+    el("button", { class: "when-link" + (logins ? " on" : ""), onclick: go(() => setMode(logins ? "plays" : "logins")) }, "Logins"),
+    el("button", { class: "when-link" + (logs ? " on" : ""), onclick: go(() => setMode(logs ? "plays" : "logs")) }, "Logs"));
+  const chips = logs || logins ? el("div", { class: "hist-months act-filters" }) : el("div", { class: "hist-months act-filters" },
     el("button", { class: "when-link" + (!act.who ? " on" : ""), onclick: go(() => { act.who = null; }) }, "All devices"),
     owners.map((d) => el("button", { class: "when-link" + (act.who === d.who ? " on" : ""), onclick: go(() => { act.who = d.who; }) }, deviceLabel(d))),
     cur && !cur.owner ? el("button", { class: "when-link on", onclick: go(() => { act.who = null; }) }, deviceLabel(cur) + " ×") : null,
@@ -3406,10 +3510,38 @@ async function drawActList(token) {
   }
   list.replaceChildren(el("ul", { class: "act-list" }, out));
 }
+/* Logins: set (or change, or turn off) the two passwords. Level 2: mine; level 3: friends'. Every login shows in Logs */
+function drawLoginsPanel(set) {
+  const list = $("#threads");
+  const field = (lv, name, note) => {
+    const inp = el("input", { type: "text", class: "lg-input", placeholder: set && set["level" + lv] ? "Set — type a new one to change it" : "Not set", autocomplete: "off", spellcheck: "false", "aria-label": name });
+    const msg = el("span", { class: "lg-msg" });
+    const save = async (pw) => {
+      msg.textContent = "Saving…";
+      try {
+        const r = await fetch(ACT_URL + "/passwords", { method: "POST", headers: { Authorization: "Bearer " + getToken(), "Content-Type": "text/plain" }, body: JSON.stringify({ ["level" + lv]: pw }) });
+        if (!r.ok) throw new Error("The server answered " + r.status);
+        inp.value = ""; inp.placeholder = pw ? "Set — type a new one to change it" : "Not set";
+        msg.textContent = pw ? "Saved. Anyone logged in at this level was logged out." : "Turned off.";
+      } catch (e) { msg.textContent = e.message || "Not saved."; }
+    };
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && inp.value.trim()) save(inp.value.trim()); });
+    return el("div", { class: "lg-row" }, el("div", { class: "lg-name" }, name, el("span", { class: "lg-note" }, note)),
+      el("div", { class: "lg-line" }, inp, el("button", { class: "btn", onclick: () => inp.value.trim() && save(inp.value.trim()) }, "Save"),
+        el("button", { class: "when-link", onclick: () => save("") }, "Turn off")), msg);
+  };
+  list.replaceChildren(el("div", { class: "lg-panel" },
+    set ? null : el("p", { class: "view-note" }, "The Activity server didn't answer; the passwords can't be shown or changed right now."),
+    field(2, "Level 2 password", "yours: playlists, automatic tags, notes in search; adding and editing tracks and tags"),
+    field(3, "Level 3 password", "for friends: tags (no playlists or automatic tags), Archive, Tags, Genres, History"),
+    el("p", { class: "lg-foot" }, "A login lasts 12 hours. After 5 wrong passwords within an hour, logging in is locked for an hour. Every login, wrong password and logout is in Logs.")));
+}
 /* Logs: every change made on the site, newest first (the same list the data is rebuilt from) */
 async function loadLogs() {
   const text = await fetch("data/changes.jsonl?v=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; return r.text(); });
-  act.logs = text.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((c) => c && c.ts).sort((a, b) => b.ts - a.ts);
+  act.logs = text.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((c) => c && c.ts);
+  try { for (const l of await actApi("/logins")) act.logs.push({ ...l, action: "login" }); } catch {} // (password logins, from the Activity server)
+  act.logs.sort((a, b) => b.ts - a.ts);
   const n = new Map();
   for (const c of act.logs) { const d = new Date(c.ts * 1000).toLocaleDateString("sv-SE"); n.set(d, (n.get(d) || 0) + 1); }
   act.logDays = [...n].map(([day, k]) => ({ day, n: k }));
@@ -3442,6 +3574,11 @@ function drawLogList() {
       track = ids.length === 1 ? trackBtn(byId(ids[0]), titles.get(ids[0])) : el("span", { class: "act-text" }, el("span", { class: "tr-title" }, ids.length + " tracks"));
       if (c.add && c.add.length) more.push("+ " + tagList(c.add)); if (c.remove && c.remove.length) more.push("− " + tagList(c.remove));
     }
+    else if (a === "login") {
+      what = { 1: "Logged in", 0: "Wrong password", "-1": "Login refused", 2: "Logged out" }[c.ok] || "Login";
+      track = el("span", { class: "act-text act-login" + (c.ok === 1 || c.ok === 2 ? "" : " act-gone") }, el("span", { class: "tr-title" }, c.level ? `Level ${c.level}` : c.ok === -1 ? "locked: 5 wrong passwords within an hour" : ""));
+      more.push(c.name || "Unnamed device" + (c.city ? " · " + c.city : c.country ? " · " + c.country : ""));
+    }
     else if (a === "tagrename") { what = "Renamed a tag"; track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, showTag(c.from) + " → " + showTag(c.to))); }
     else if (a === "split") { what = "Split a post"; track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, (c.groups || []).length + " parts")); }
     else if (a === "regroup") { what = "Regrouped posts"; track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, (c.threads || []).length + " posts")); }
@@ -3458,7 +3595,7 @@ function drawLogList() {
 $("#editBtn").onclick = () => editPlaying(false);
 /* Cmd+Enter (Ctrl+Enter on Windows) while a track plays: open its edit card (on a device with a key) */
 document.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !playing || !getToken()) return;
+  if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !playing || !canEdit()) return;
   const t = e.target;
   if (t.closest && t.closest("input, textarea, select, [contenteditable]") && !t.closest(".edit-form")) return;
   e.preventDefault();
@@ -3468,7 +3605,7 @@ document.addEventListener("keydown", (e) => {
    already open: Cmd+Enter opens (or closes) its More info, the player's "edit" closes it */
 function editPlaying(more) {
   if (!playing) return;
-  if (!getToken()) { openSetup(); return; }
+  if (!canEdit()) { openSetup(); return; }
   const tr = playing.thread.tracks[playing.index], home = homeOf(tr);
   if (!home) return;
   const i = home.tracks.indexOf(tr);
@@ -3645,7 +3782,7 @@ function closeQuick() {
    Left/Right step through the tags already in the field (the side space shows the one you are on);
    Backspace once marks the tag before the cursor, twice takes it out. */
 function openQuick(row, at, touch) {
-  if (!getToken() || (phone() && !touch)) return; // (phone: only by holding a track down)
+  if (!canEdit() || (phone() && !touch)) return; // (phone: only by holding a track down)
   closeQuick();
   const { tr } = at;
   if (row) { // a track low on the screen comes up a little, so the field and its suggestions fit
@@ -3767,7 +3904,7 @@ function openQuick(row, at, touch) {
 /* a click outside an open field with unsaved changes: it stays (Esc or Enter decides) */
 /* Cmd+click (Ctrl+click) on a track */
 document.addEventListener("click", (e) => {
-  if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !getToken() || phone()) return;
+  if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !canEdit() || phone()) return;
   const hit = e.target.closest && e.target.closest("#threads .track .play, #threads .head-row .thread-head, #threads .month-play");
   if (!hit) return;
   const row = hit.closest("[data-k]"), at = row && trackAt(row.dataset.k);
@@ -3782,7 +3919,7 @@ document.addEventListener("click", (e) => {
   const cancel = () => { if (hold) { clearTimeout(hold.timer); hold = null; } };
   document.addEventListener("touchstart", (e) => {
     cancel();
-    if (!phone() || !getToken() || e.touches.length !== 1) return;
+    if (!phone() || !canEdit() || e.touches.length !== 1) return;
     const hit = e.target.closest && e.target.closest(SEL); if (!hit) return;
     const row = hit.closest("[data-k]"), at = row && trackAt(row.dataset.k); if (!at) return;
     const { clientX: x, clientY: y } = e.touches[0];
@@ -3792,7 +3929,7 @@ document.addEventListener("click", (e) => {
   document.addEventListener("touchend", (e) => { cancel(); if (swallow) e.preventDefault(); }, { passive: false }); // (the lift after holding doesn't play the track)
   document.addEventListener("touchcancel", cancel, { passive: true });
   document.addEventListener("click", (e) => { if (swallow && e.target.closest && e.target.closest(SEL)) { e.preventDefault(); e.stopPropagation(); } }, true);
-  document.addEventListener("contextmenu", (e) => { if (phone() && getToken() && e.target.closest && e.target.closest(SEL)) e.preventDefault(); });
+  document.addEventListener("contextmenu", (e) => { if (phone() && canEdit() && e.target.closest && e.target.closest(SEL)) e.preventDefault(); });
 }
 /* Cmd+E (Ctrl+E), or Cmd+click on the player's title: the playing track */
 function quickPlaying() {
@@ -3803,11 +3940,11 @@ function quickPlaying() {
   openQuick(row, { tr });
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() !== "e" || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !playing || !getToken() || phone()) return;
+  if (e.key.toLowerCase() !== "e" || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !playing || !canEdit() || phone()) return;
   e.preventDefault();
   quick ? closeQuick() : quickPlaying();
 });
-$("#nowTitle").addEventListener("click", (e) => { if ((e.metaKey || e.ctrlKey) && getToken()) { e.stopImmediatePropagation(); quickPlaying(); } }, true);
+$("#nowTitle").addEventListener("click", (e) => { if ((e.metaKey || e.ctrlKey) && canEdit()) { e.stopImmediatePropagation(); quickPlaying(); } }, true);
 
 /* "Please fill in this field" and the like: our own note (the browser's can't take the site's colours) */
 const invalidBox = el("div", { class: "invalid-note", hidden: true }, el("span", { class: "invalid-i", "aria-hidden": "true" }, "!"), el("span", { class: "invalid-msg" }));

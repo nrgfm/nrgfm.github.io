@@ -17,3 +17,15 @@ CREATE TABLE IF NOT EXISTS devices (
   city TEXT, country TEXT,
   first INTEGER, last INTEGER
 );
+-- passwords (levels 2 and 3), logins and the sessions they give (12 hours)
+CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS logins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL,
+  who TEXT,                 -- the browser (as for plays)
+  level INTEGER,            -- 2 or 3; NULL: a wrong password
+  ok INTEGER NOT NULL,      -- 1 logged in, 0 wrong password, -1 refused (locked after 5 wrong in an hour), 2 logged out
+  city TEXT, country TEXT
+);
+CREATE INDEX IF NOT EXISTS logins_ts ON logins(ts);
+CREATE TABLE IF NOT EXISTS sessions (h TEXT PRIMARY KEY, level INTEGER NOT NULL, who TEXT, exp INTEGER NOT NULL);
