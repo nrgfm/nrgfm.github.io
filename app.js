@@ -97,7 +97,7 @@ function haystack(t) {
     const j = (a) => " " + fold(a.filter(Boolean).join(" ")); // words start after a space: matching is by word start
     const named = t.title || m.title || m.wb_title;
     t._f = {
-      title: j([t.title, m.title, m.wb_title, named ? "" : slugTitle(t)]), // the link's words only when there is no title
+      title: j([t.title, m.title, m.wb_title, named ? "" : slugTitle(t), named ? info(t).title : ""]), // the link's words only when there is no title; and the title as shown (with the artist put in front)
       notes: j([t.notes]),
       tags: j(shownTags(t)),
       genres: j(x.g || []),
@@ -245,10 +245,12 @@ function runSearch() {
         }
         for (const [k] of FIELDS) if (terms.some((w) => has(f[k], w))) perField.set(k, (perField.get(k) || 0) + 1); // (also for parts switched off)
       });
-      if (hits.size) shown.push({ t, hits, rank });
+      if (hits.size) shown.push({ t, hits, rank, tagged: [...hits].some((i) => userTagged(t.tracks[i])), main: hits.has(0) });
     }
-    // best matches first (title, then notes, tags…), newest first within each; or simply newest first
-    shown.sort((x, y) => (byNewest ? 0 : x.rank - y.rank) || activity(y.t) - activity(x.t));
+    // best matches first: by where the words were found (title, then notes, tags…); within each, a found track with tags
+    // of its own first (whoever is looking), then one that is the main track of its post, then the closest match, then
+    // the newest; or simply newest first
+    shown.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || activity(y.t) - activity(x.t));
     const tagHits = shown.filter((s) => s.tag).length, trackThreads = shown.length - tagHits;
     const n = shown.reduce((a, s) => a + (s.hits ? s.hits.size : 0), 0);
     const parts = [];
