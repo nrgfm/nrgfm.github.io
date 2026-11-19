@@ -1509,3 +1509,9 @@ body.side-open .tag-panel { visibility: hidden; }
   .quick-input { font-size: 16px; } /* (16px: the iPhone doesn't zoom in on the field) */
   .quick-drop { max-width: calc(100vw - 32px); }
 }
+/* search: "6 results" switches the results to one list (as in Archive). Off: white, blue on hover (as the filters);
+   on: blue, white on hover */
+#resultInfo button.result-n { all: unset; cursor: pointer; font-size: 16px; color: var(--text); margin-right: 4px; }
+#resultInfo button.result-n:hover, #resultInfo button.result-n.on { color: var(--jade); }
+#resultInfo button.result-n.on:hover { color: var(--text); }
+@media (min-width: 641px) { #resultInfo button.result-n { min-width: 9.5em; font-variant-numeric: tabular-nums; } }

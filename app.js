@@ -139,6 +139,7 @@ function titleCloseness(tr, terms) {
   return best;
 }
 let byNewest = false; // "Best match" each time
+let resultList = false; // search: the found tracks as one list (as in Archive) instead of in their posts ("6 results" switches)
 
 const fmtDate = (d) => {
   const [y, mo] = d.split("-");
@@ -223,7 +224,7 @@ function runSearch() {
   const terms = query.split(" ").filter(Boolean);
   $("#viewHead").hidden = true;
   if (!terms.length) {
-    searchOff.clear(); byNewest = false; // leaving search: the next one starts fresh
+    searchOff.clear(); byNewest = false; resultList = false; // leaving search: the next one starts fresh
     shown = viewItems().map((t) => ({ t, hits: null }));
     $("#resultInfo").hidden = true;
     drawViewHead();
@@ -252,13 +253,20 @@ function runSearch() {
     // the newest; or simply newest first
     shown.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || activity(y.t) - activity(x.t));
     const tagHits = shown.filter((s) => s.tag).length, trackThreads = shown.length - tagHits;
+    if (resultList) { // one item per found track, best first by the same rules (where found, tags, main track, closeness), or newest
+      const flat = [];
+      for (const s of shown) for (const i of s.hits) { const tr = s.t.tracks[i]; flat.push({ t: s.t, hits: new Set([i]), one: i, rank: forcedRank(s, tr, terms), tagged: userTagged(tr), main: i === 0 }); }
+      flat.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || (y.t.tracks[y.one].ts || 0) - (x.t.tracks[x.one].ts || 0));
+      shown = flat;
+    }
     const n = shown.reduce((a, s) => a + (s.hits ? s.hits.size : 0), 0);
     const parts = [];
     if (tagHits) parts.push(`${tagHits} ${tagHits === 1 ? "tag" : "tags"}`);
     if (n) parts.push(`${n} ${n === 1 ? "track" : "tracks"} in ${trackThreads} ${trackThreads === 1 ? "thread" : "threads"}`);
     $("#resultInfo").hidden = false;
     $("#resultInfo").replaceChildren(
-      el("span", { class: "result-n" }, n ? `${n} ${n === 1 ? "result" : "results"}` : `Nothing matches “${$("#q").value.trim()}”.`),
+      n ? el("button", { class: "result-n" + (resultList ? " on" : ""), "aria-pressed": String(resultList), onclick: () => { resultList = !resultList; runSearch(); } }, `${n} ${n === 1 ? "result" : "results"}`)
+        : el("span", { class: "result-n" }, `Nothing matches “${$("#q").value.trim()}”.`),
       el("button", { class: "sf sf-order", "aria-pressed": String(byNewest), onclick: () => { byNewest = !byNewest; runSearch(); } },
         el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, byNewest ? "Newest first" : "Best match"), " ▾"),
       el("span", { class: "search-fields" }, FIELDS.filter(([k]) => used.has(k) || searchOff.has(k)).map(([k, name]) => el("button", {
@@ -1169,6 +1177,13 @@ function searchRows(t, hits) {
 }
 const range = (a, b) => Array.from({ length: Math.max(0, b - a) }, (_, k) => a + k);
 
+/* search as a list: one found track, laid out as in Archive (bigger thumbnail, the post's date over it) */
+function resultItemNode(t, i) {
+  return el("li", { class: "thread tagged-thread result-item", id: "th-" + t.id + "-" + i },
+    el("div", { class: "tg-when" }, el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, fmtDay(t.tracks[0].shown_date || t.tracks[0].date))),
+    el("ol", { class: "tracks tg-tracks" }, trackRow(t, t.tracks[i], i, null)));
+}
+const forcedRank = (s, tr, terms) => (dupFilter && dupFilter.q === query ? 0 : matchRank(tr, terms));
 /* a track with one of the group's own tags (the automatic ones don't count) */
 const userTagged = (tr) => shownTags(tr).some((g) => !isAutoTag(g));
 /* Tagged: a thread as only its tagged tracks (bigger thumbnails) */
@@ -1183,7 +1198,8 @@ function taggedNode(t) {
     el("div", { class: "tg-when" }, el("button", { class: "when-link", "data-thread": t.id, onclick: () => { setView("threads"); setTimeout(() => goToThread(t), 0); } }, fmtDay(head.shown_date || head.date))),
     el("ol", { class: "tracks tg-tracks" }, rows));
 }
-function threadNode({ t, hits }) {
+function threadNode({ t, hits, one }) {
+  if (one != null) return resultItemNode(t, one); // search as a list: one found track, as in Archive
   if ((view === "tagged" && !hits && t.kind === "thread") || (view === "tag" && !hits && t.kind === "tag")) return taggedNode(t);
   if (t.kind === "month") return monthNode({ t });
   if (t.mix) return genreMixNode(t);
@@ -1219,9 +1235,7 @@ function threadNode({ t, hits }) {
   let side = null, foot = null, after = null;
   // under the thumbnail: the post date; in search results it leads to the thread, with the track count under it
   const when = el("div", { class: "t-when" + (hits ? " in-search" : "") },
-    el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, day), // (Cmd/Ctrl+click: the thread in a new tab)
-    // "4 matches": selects the result, then each press brings the next match to the top of its box
-    hits && hits.size > 1 ? el("button", { class: "when-link", title: "Next match", onclick: (e) => nextMatch(e.currentTarget.closest(".thread")) }, `${hits.size} matches`) : null);
+    el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, day)); // (Cmd/Ctrl+click: the thread in a new tab)
   if (hits && !mobile) {
     // laptop search: "175 tracks" under the tracks, centred, shows the whole thread (no Collapse)
     if (searching) foot = el("div", { class: "search-foot" }, el("span", {}),
@@ -1322,7 +1336,7 @@ function renderMore(count = PAGE) {
   $("#threads").append(frag);
   markPlaying();
   requestAnimationFrame(fadeAll);
-  if (phone() && view === "tagged") requestAnimationFrame(() => fitTitles(added));
+  if (phone() && (view === "tagged" || (resultList && query))) requestAnimationFrame(() => fitTitles(added));
 }
 /* phone, Archive: a title longer than its two lines gets smaller until all of it fits (down to 10px);
    one that still doesn't fit gets a third line, and as big a size as fits there */
@@ -3640,6 +3654,16 @@ function openQuick(row, at, touch) {
   }
   const wrap = row && row.querySelector(".tag-wrap");
   const input = el("input", { type: "text", class: "quick-input", autocomplete: "off", spellcheck: "false", "aria-label": "Add a tag" });
+  if (touch) { // phone: when the keyboard comes up, the page moves so the field (and its suggestions) stay in view above it
+    const keepInView = () => {
+      const vv = window.visualViewport; if (!vv || !input.isConnected) return;
+      const box = input.closest(".quick-tag") || input, r = box.getBoundingClientRect();
+      const drop = box.querySelector(".quick-drop"), bottom = Math.max(r.bottom, drop && !drop.hidden ? drop.getBoundingClientRect().bottom : 0);
+      const visibleBottom = vv.offsetTop + vv.height - 8, visibleTop = vv.offsetTop + headerBottom() + 8;
+      if (bottom > visibleBottom) pageScrollBy(Math.min(bottom - visibleBottom, r.top - visibleTop));
+    };
+    input.addEventListener("focus", () => { setTimeout(keepInView, 350); if (window.visualViewport) visualViewport.addEventListener("resize", keepInView, { once: true }); });
+  }
   const chips = el("span", { class: "quick-chips" });
   const drop = el("ul", { class: "quick-drop", hidden: true });
   const box = el("span", { class: "quick-tag" }, chips, input);
