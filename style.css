@@ -1510,10 +1510,10 @@ body.side-open .tag-panel { visibility: hidden; }
   .quick-drop { max-width: calc(100vw - 32px); }
 }
 /* search: "6 results" switches the results to one list (as in Archive). Off: white, blue on hover (as the filters);
-   on: blue, white on hover */
+   on: blue */
 #resultInfo button.result-n { all: unset; cursor: pointer; font-size: 16px; color: var(--text) !important; margin-right: 4px; }
 #resultInfo button.result-n:hover, #resultInfo button.result-n.on { color: var(--jade) !important; }
-#resultInfo button.result-n.on:hover { color: var(--text) !important; }
+#resultInfo button.result-n.on:hover { color: var(--jade) !important; } /* (on: blue, also under the pointer) */
 @media (min-width: 641px) { #resultInfo button.result-n { min-width: 9.5em; font-variant-numeric: tabular-nums; } }
 
 /* access levels (see level() in app.js): what each one doesn't see. Pages left open after logging out keep their
@@ -1554,3 +1554,8 @@ body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body
 .lg-msg { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 1em; }
 .lg-foot { color: var(--muted); font-size: 13px; margin: 0; }
 .act-login { padding: 4px 0 4px 52px; }
+/* close the player: a small circle, the × grey as the lock until the pointer is on it */
+.btn.ghost.close-x { width: 26px; height: 26px; border-radius: 50%; background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.btn.ghost.close-x:hover { color: var(--text); border-color: var(--muted); }
+.btn.ghost.close-x svg { width: 10px; height: 10px; }
+@media (max-width: 640px) { .btn.ghost.close-x { width: 34px; height: 34px; } .btn.ghost.close-x svg { width: 12px; height: 12px; } }

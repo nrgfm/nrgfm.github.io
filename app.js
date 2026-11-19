@@ -1822,13 +1822,14 @@ new ResizeObserver(syncDockSpace).observe($("#dock"));
 const TOKEN_KEY = "nrgfm-token";
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } };
 /* ---------- access levels ----------
-   1: the GitHub key (Setup) — everything.  2: my password — tags, playlists, automatic tags, notes in search; adds and
+   1: the GitHub key (Setup) — everything (its lock can hide all that, as level 4, and show it again).  2: my password — tags, playlists, automatic tags, notes in search; adds and
    edits tracks and tags (Cmd+I, no Edit buttons), through the Activity server; no deleting or moving.  3: friends'
    password — tags (no playlists, no automatic ones), Archive, Tags, Genres, History.  4: no password — Threads, Genres,
    Random. A password login lasts 12 hours. Levels 2–4 only change what is shown (the data itself is public). */
 const SESSION_KEY = "nrgfm-session";
 function session() { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); return s && s.exp * 1000 > Date.now() ? s : null; } catch { return null; } }
-function level() { return getToken() ? 1 : (session() || {}).level || 4; }
+const keyHidden = () => { try { return !!getToken() && localStorage.getItem("nrgfm-key-hidden") === "1"; } catch { return false; } }; // the key's lock "closed": seen as without a password
+function level() { return getToken() ? (keyHidden() ? 4 : 1) : (session() || {}).level || 4; }
 const canEdit = () => level() <= 2;
 const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
 const viewAllowed = (v, lv = level()) => lv <= (VIEW_LEVEL[v] || 4);
@@ -1865,12 +1866,15 @@ function drawLock() {
   const lv = level(), on = lv <= 3;
   b.innerHTML = LOCK_SVG(on);
   $("#lock").classList.toggle("on", on);
-  b.setAttribute("aria-label", lv === 1 ? "Logged in with the key" : on ? "Log out" : "Log in");
+  b.setAttribute("aria-label", getToken() ? (on ? "Hide (as without a password)" : "Show everything again") : on ? "Log out" : "Log in");
 }
 function closeLock() { $("#lock").classList.remove("open"); $("#lockPw").value = ""; $("#lockPw").placeholder = "Password"; $("#lockPw").tabIndex = -1; $("#lockPw").blur(); }
 $("#lockBtn").addEventListener("click", async () => {
   const lv = level();
-  if (lv === 1) return; // (the key: logging out is in Setup)
+  if (getToken()) { // the key: the lock only switches between everything and what a visitor without a password sees
+    try { localStorage.setItem("nrgfm-key-hidden", lv === 1 ? "1" : "0"); } catch {}
+    applyLevel(); return;
+  }
   if (lv <= 3) { // log out, quietly: only what's shown changes
     const s = session();
     try { localStorage.removeItem(SESSION_KEY); } catch {}
@@ -3153,7 +3157,7 @@ function drawTagPanel(show, page) {
   if (page) { if (!t) return [el("p", { class: "view-note" }, "There's no tag called that.")]; }
   else if (!tagsView() || !t || (!phone() && innerWidth < 966) || (phone() && !show && box.hidden)) { hideTagPanel(); return; }
   const redraw = () => (page ? runSearch() : drawTagPanel(true));
-  const g = t.name, ys = tagYears(t), key = !!getToken();
+  const g = t.name, ys = tagYears(t), key = level() === 1;
   const pl = tagPlaylist(t);
   const desc = tagInfo.desc[g] || "";
   const descBox = el("div", { class: "tp-desc" + (desc ? "" : " empty") }, desc || (key ? "" : ""));
