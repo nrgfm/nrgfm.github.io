@@ -1824,14 +1824,14 @@ const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } c
 /* ---------- access levels ----------
    1: the GitHub key (Setup) — everything (its lock can hide all that, as level 4, and show it again).  2: my password — tags, playlists, automatic tags, notes in search; adds and
    edits tracks and tags (Cmd+I, no Edit buttons), through the Activity server; no deleting or moving.  3: friends'
-   password — tags (no playlists, no automatic ones), Archive, Tags, Genres, History.  4: no password — Threads, Genres,
+   password — tags (no playlists, no automatic ones), Archive, Tags, Genres, History.  4: no password — Threads and
    Random. A password login lasts 12 hours. Levels 2–4 only change what is shown (the data itself is public). */
 const SESSION_KEY = "nrgfm-session";
 function session() { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); return s && s.exp * 1000 > Date.now() ? s : null; } catch { return null; } }
 const keyHidden = () => { try { return !!getToken() && localStorage.getItem("nrgfm-key-hidden") === "1"; } catch { return false; } }; // the key's lock "closed": seen as without a password
 function level() { return getToken() ? (keyHidden() ? 4 : 1) : (session() || {}).level || 4; }
 const canEdit = () => level() <= 2;
-const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
+const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, genres: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
 const viewAllowed = (v, lv = level()) => lv <= (VIEW_LEVEL[v] || 4);
 let shownLevel = null, levelTimer = null;
 function updateCanAdd() {

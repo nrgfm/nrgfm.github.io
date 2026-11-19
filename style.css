@@ -1554,8 +1554,11 @@ body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body
 .lg-msg { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 1em; }
 .lg-foot { color: var(--muted); font-size: 13px; margin: 0; }
 .act-login { padding: 4px 0 4px 52px; }
-/* close the player: a small circle, the × grey as the lock until the pointer is on it */
-.btn.ghost.close-x { width: 26px; height: 26px; border-radius: 50%; background: transparent; border: 1px solid var(--line); color: var(--muted); }
+/* close the player: a small square, the × grey as the lock until the pointer is on it; pressed: the square fills
+   light blue and the × takes the page's dark blue */
+.btn.ghost.close-x { width: 26px; height: 26px; color: var(--muted); }
 .btn.ghost.close-x:hover { color: var(--text); border-color: var(--muted); }
-.btn.ghost.close-x svg { width: 10px; height: 10px; }
-@media (max-width: 640px) { .btn.ghost.close-x { width: 34px; height: 34px; } .btn.ghost.close-x svg { width: 12px; height: 12px; } }
+.btn.ghost.close-x svg { width: 11px; height: 11px; }
+.btn.ghost.close-x:active { background: var(--jade); border-color: var(--jade); color: var(--bg); }
+@media (max-width: 640px) { .btn.ghost.close-x { width: 34px; height: 34px; } .btn.ghost.close-x svg { width: 13px; height: 13px; } }
+body.lv-4 #menu a[data-view="genres"] { display: none; } /* (level 4: no Genres either) */
