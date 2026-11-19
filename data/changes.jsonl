@@ -2073,3 +2073,4 @@
 {"action": "tag", "ids": ["t8791620997521213_0"], "add": ["atmospheric jungle"], "remove": [], "ts": 1795115010}
 {"action": "promote", "thread": "p8791715320845114", "id": "t8791717457511567_0", "to": "original", "ts": 1795115073}
 {"action": "tag", "ids": ["t8791717457511567_0"], "add": ["synth pop"], "remove": [], "ts": 1795115129}
+{"action": "tag", "ids": ["t8791717457511567_0"], "add": ["art pop"], "remove": [], "ts": 1795115140}
