@@ -1822,14 +1822,14 @@ new ResizeObserver(syncDockSpace).observe($("#dock"));
 const TOKEN_KEY = "nrgfm-token";
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } };
 /* ---------- access levels ----------
-   1: the GitHub key (Setup) — everything (its lock can hide all that, as level 4, and show it again).  2: my password — tags, playlists, automatic tags, notes in search; adds and
+   1: the GitHub key (Setup) — everything (its lock hides and shows the tags under the tracks).  2: my password — tags, playlists, automatic tags, notes in search; adds and
    edits tracks and tags (Cmd+I, no Edit buttons), through the Activity server; no deleting or moving.  3: friends'
    password — tags (no playlists, no automatic ones), Archive, Tags, Genres, History.  4: no password — Threads and
    Random. A password login lasts 12 hours. Levels 2–4 only change what is shown (the data itself is public). */
 const SESSION_KEY = "nrgfm-session";
 function session() { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); return s && s.exp * 1000 > Date.now() ? s : null; } catch { return null; } }
-const keyHidden = () => { try { return !!getToken() && localStorage.getItem("nrgfm-key-hidden") === "1"; } catch { return false; } }; // the key's lock "closed": seen as without a password
-function level() { return getToken() ? (keyHidden() ? 4 : 1) : (session() || {}).level || 4; }
+const keyHidden = () => { try { return !!getToken() && localStorage.getItem("nrgfm-key-hidden") === "1"; } catch { return false; } }; // the key's lock "closed": no tags under the tracks (all else stays)
+function level() { return getToken() ? 1 : (session() || {}).level || 4; }
 const canEdit = () => level() <= 2;
 const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, genres: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
 const viewAllowed = (v, lv = level()) => lv <= (VIEW_LEVEL[v] || 4);
@@ -1863,17 +1863,18 @@ function applyLevel() {
 const LOCK_SVG = (open) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="${open ? "M8 11V7a4 4 0 0 1 7.8-1.2" : "M8 11V7a4 4 0 0 1 8 0v4"}"/></svg>`;
 function drawLock() {
   const b = $("#lockBtn"); if (!b) return;
-  const lv = level(), on = lv <= 3;
+  const lv = level(), on = lv <= 3 && !keyHidden();
   b.innerHTML = LOCK_SVG(on);
   $("#lock").classList.toggle("on", on);
-  b.setAttribute("aria-label", getToken() ? (on ? "Hide (as without a password)" : "Show everything again") : on ? "Log out" : "Log in");
+  document.body.classList.toggle("tags-off", keyHidden());
+  b.setAttribute("aria-label", getToken() ? (on ? "Hide the tags under the tracks" : "Show the tags under the tracks") : on ? "Log out" : "Log in");
 }
 function closeLock() { $("#lock").classList.remove("open"); $("#lockPw").value = ""; $("#lockPw").placeholder = "Password"; $("#lockPw").tabIndex = -1; $("#lockPw").blur(); }
 $("#lockBtn").addEventListener("click", async () => {
   const lv = level();
-  if (getToken()) { // the key: the lock only switches between everything and what a visitor without a password sees
-    try { localStorage.setItem("nrgfm-key-hidden", lv === 1 ? "1" : "0"); } catch {}
-    applyLevel(); return;
+  if (getToken()) { // the key: the lock only hides (and shows again) the tags under the tracks; everything else stays
+    try { localStorage.setItem("nrgfm-key-hidden", keyHidden() ? "0" : "1"); } catch {}
+    drawLock(); return;
   }
   if (lv <= 3) { // log out, quietly: only what's shown changes
     const s = session();
@@ -2948,7 +2949,7 @@ const tagSection = (g) => {
 const SECTION_ORDER = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0–9", "#", "Automatic"];
 function tagGridHead() {
   const have = new Set(threads.filter((t) => t.kind === "tag").map((t) => tagSection(t.name)));
-  const jumps = SECTION_ORDER.filter((k) => k !== "Automatic").map((k) => el("button", {
+  const jumps = SECTION_ORDER.filter((k) => k !== "Automatic" && (k !== "#" || level() <= 2)).map((k) => el("button", {
     class: "when-link tg-jump" + (have.has(k) ? "" : " none"), disabled: !have.has(k) || null,
     onclick: () => { const h = document.getElementById("tl-" + k); if (h) pageScrollTo(Math.max(0, (scroller() === window ? scrollY : document.body.scrollTop) + h.getBoundingClientRect().top - contentTop() - 8)); } }, k === "0–9" ? "0\u2060–\u20609" : k)); // (word joiners: 0–9 never breaks)
   return el("div", { class: "tp-head tg-head" }, el("div", { class: "tg-jumps" }, jumps), tagSearchField());
