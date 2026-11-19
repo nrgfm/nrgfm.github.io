@@ -9,7 +9,9 @@ name: Daily backup
 # Kept: the last 14 days, plus every Sunday's backup for good (and the weekly ones from before 19 Nov 2026).
 # Older daily ones are deleted in both places.
 # Cloudflare needs the secrets CLOUDFLARE_API_TOKEN (with R2 edit access) and CLOUDFLARE_ACCOUNT_ID;
-# if R2 can't be reached the GitHub copy is still made and the run says why.
+# the GitHub copy is made first, so it's saved even when the R2 step fails (the run then shows as failed).
+# R2's free plan: 10 GB stored, 1 million writes and 10 million reads a month. These backups use a few
+# hundred MB and about 150 writes a month; above 8 GB stored nothing more is saved there (see below).
 on:
   schedule:
     - cron: "17 3 * * *"
@@ -63,7 +65,6 @@ jobs:
         with:
           node-version: "22"
       - name: Cloudflare — save to R2 (and delete old daily backups there)
-        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -72,12 +73,16 @@ jobs:
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "No Cloudflare secrets: only the GitHub copy."; exit 0; fi
           W="npx --yes wrangler@4"
           $W r2 bucket list 2>&1 | grep -q "name:\s*$BUCKET" || $W r2 bucket create "$BUCKET"
+          # stay well inside R2's free 10 GB: above 8 GB nothing new is saved, and the run fails (GitHub emails about failed runs)
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$BUCKET/objects"
+          used=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api?per_page=1000" | jq '[.result[].size] | add // 0')
+          echo "R2 in use: $((used / 1048576)) MB of the free 10240 MB"
+          if [ "$used" -gt $((8 * 1024 * 1024 * 1024)) ]; then echo "::error::R2 holds over 8 GB: today's backup was not saved there, to stay inside the free plan."; exit 1; fi
           for f in "nrgfm-files-$D.zip" "nrgfm-history-$D.bundle"; do
             $W r2 object put "$BUCKET/$D/$f" --file "$f" --remote
           done
           echo "Saved to R2: $BUCKET/$D/"
           cut=$(date -u -d "$KEEP_DAYS days ago" +%F)
-          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$BUCKET/objects"
           curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api?per_page=1000" | jq -r '.result[].key' | while read k; do
             d=${k%%/*}
             [[ "$d" < "$cut" ]] || continue
