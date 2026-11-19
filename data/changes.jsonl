@@ -2074,3 +2074,4 @@
 {"action": "promote", "thread": "p8791715320845114", "id": "t8791717457511567_0", "to": "original", "ts": 1795115073}
 {"action": "tag", "ids": ["t8791717457511567_0"], "add": ["synth pop"], "remove": [], "ts": 1795115129}
 {"action": "tag", "ids": ["t8791717457511567_0"], "add": ["art pop"], "remove": [], "ts": 1795115140}
+{"action": "tag", "ids": ["t4216370731712952_0"], "add": ["downtempo"], "remove": [], "ts": 1795115593}
