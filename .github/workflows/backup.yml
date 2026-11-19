@@ -72,7 +72,9 @@ jobs:
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "No Cloudflare secrets: only the GitHub copy."; exit 0; fi
           W="npx --yes wrangler@4"
-          $W r2 bucket list 2>&1 | grep -q "name:\s*$BUCKET" || $W r2 bucket create "$BUCKET"
+          list=$($W r2 bucket list 2>&1 || true)
+          if echo "$list" | grep -qi "enable R2"; then echo "::warning::R2 isn't switched on in the Cloudflare dashboard yet: only the GitHub copy was made."; exit 0; fi
+          echo "$list" | grep -q "name:\s*$BUCKET" || $W r2 bucket create "$BUCKET"
           # stay well inside R2's free 10 GB: above 8 GB nothing new is saved, and the run fails (GitHub emails about failed runs)
           api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$BUCKET/objects"
           used=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api?per_page=1000" | jq '[.result[].size] | add // 0')
