@@ -14,10 +14,10 @@
    POST /passwords (key)  {level2, level3}: set (or "" to turn off) the passwords
    GET  /passwords (key)  which are set
    GET  /logins   (key)  the logins (?days=)
-   POST /lookup/up   (key, or the phone's upload key: Authorization: Upload …) one image (the body itself, or form
-                  fields "file"): saved in R2 (bucket nrgfm-lookup); the artist and title in it are read by Gemini
-   GET  /lookup      (key)  the saved images, newest first
-   GET  /lookup/img  (key)  one image (?id=)
+   POST /lookup/up   (key, or the phone's upload key: Authorization: Upload …) one image or video (the body itself, or
+                  form fields "file"): saved in R2 (bucket nrgfm-lookup); the artist and title in it are read by Gemini
+   GET  /lookup      (key)  the saved images and videos, newest first, each with a link (src) that works for two days
+   GET  /lookup/img  (that link: ?id=&e=&s=) one image or video (videos: in parts, as the browser asks)
    POST /lookup/set  (key)  {id, done} or {id, songs} (corrected by hand)
    POST /lookup/read (key)  {id}: read it again
    POST /lookup/del  (key)  {id}: deleted for good (the image too)
@@ -28,7 +28,7 @@ const ORIGINS = ["https://nrgproduct.github.io", "http://localhost:8765", "http:
 const YEAR = 365 * 86400;
 const SESSION = 12 * 3600;  // a password login lasts 12 hours
 const LEVEL2 = new Set(["", "edit", "tag"]); // what a level-2 login may save: new tracks, edits, tag changes
-const LOOKUP_MAX = 2 * 1024 ** 3; // the Lookup images stay under 2 GB (R2's free plan: 10 GB, shared with the backups)
+const LOOKUP_MAX = 6 * 1024 ** 3; // Lookup stays under 6 GB (R2's free plan: 10 GB, shared with the backups, which use well under 1 GB)
 const okKeys = new Map(); // key hash -> time it was checked (checked again after 10 minutes)
 
 function cors(req) {
@@ -82,12 +82,12 @@ async function geminiModels(env) {
   if (!names.length) throw new Error("no Gemini Flash model for this key");
   return (models = [...new Set(names)].sort((a, b) => parseFloat(b.match(/\d+(\.\d+)?/)[0]) - parseFloat(a.match(/\d+(\.\d+)?/)[0])));
 }
-const READ_PROMPT = `This is a screenshot or a photo someone took to remember a song: usually an Instagram post or reel, or a
+const READ_PROMPT = `This is a screenshot, a screen recording or a photo someone took to remember a song: usually an Instagram post or reel, or a
 screen playing YouTube, Spotify, SoundCloud, Shazam or similar. Find every song shown in it.
 On Instagram the song is the line with a music note under the account name or at the bottom, written "Artist · Title"
 (it scrolls, so it may be cut off: give what is visible). "Original audio" / "Originalton" means the account's own sound:
 then give the account name as the artist and leave the title empty. On YouTube the video title usually holds artist and title.
-Only give what can be read in the image; do not guess a song from the picture alone.
+Only give what can be read on screen (in a video: anywhere in it); do not guess a song from the picture or the sound alone.
 Answer JSON only: {"songs": [{"artist": "...", "title": "..."}], "text": "other words in the image that would help find it (account name, caption words), at most 120 characters"}
 "songs" is empty when there is no song in it.`;
 async function readImage(env, id) {
@@ -96,16 +96,25 @@ async function readImage(env, id) {
     if (!env.GEMINI_KEY) throw new Error("no Gemini key on the server");
     const obj = await env.SHOTS.get(id);
     if (!obj) throw new Error("image not found");
-    const buf = await obj.arrayBuffer(), type = (obj.httpMetadata && obj.httpMetadata.contentType) || "image/jpeg";
+    const size = obj.size, type = await typeOf(env, id, obj);
     // the image goes to Gemini's file store as it is (turning it into text here would use more of the Worker's CPU time than the free plan gives)
     const start = await fetch(GEMINI.replace("/v1beta/", "/upload/v1beta/files"), { method: "POST", headers: { "x-goog-api-key": env.GEMINI_KEY,
-      "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": String(buf.byteLength),
+      "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": String(size),
       "X-Goog-Upload-Header-Content-Type": type, "Content-Type": "application/json" }, body: JSON.stringify({ file: { display_name: "nrgfm-lookup-" + id } }) });
     const to = start.ok && start.headers.get("x-goog-upload-url");
     if (!to) throw new Error("Gemini didn't take the image (" + start.status + ")");
-    const up = await fetch(to, { method: "POST", headers: { "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize" }, body: buf });
-    const file = up.ok ? (await up.json()).file : null;
-    if (!file || !file.uri) throw new Error("Gemini didn't take the image (" + up.status + ")");
+    const { readable, writable } = new FixedLengthStream(size); // (passed straight through: a video doesn't fit in the Worker's memory)
+    obj.body.pipeTo(writable);
+    const up = await fetch(to, { method: "POST", headers: { "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize" }, body: readable });
+    let file = up.ok ? (await up.json()).file : null;
+    if (!file || !file.uri) throw new Error("Gemini didn't take it (" + up.status + ")");
+    for (let k = 0; file.state === "PROCESSING" && k < 12; k++) { // a video is looked through first (about a second per few seconds of video)
+      await new Promise((r) => setTimeout(r, 2000));
+      const f = await fetch(GEMINI + file.name, { headers: { "x-goog-api-key": env.GEMINI_KEY } });
+      if (f.ok) file = await f.json();
+    }
+    if (file.state === "PROCESSING") throw new Error("the video took too long to read: try Read again");
+    if (file.state === "FAILED") throw new Error("Gemini couldn't open it");
     let last = null;
     for (const m of await geminiModels(env)) {
       const r = await fetch(GEMINI + `models/${m}:generateContent`, { method: "POST", headers: { "x-goog-api-key": env.GEMINI_KEY, "Content-Type": "application/json" },
@@ -126,37 +135,75 @@ async function readImage(env, id) {
     await env.DB.prepare("UPDATE lookup SET read_ts = ?2, read_err = ?3 WHERE id = ?1").bind(id, now(), String(e && e.message || e).slice(0, 200)).run();
   }
 }
-const IMAGE_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic", "image/heif": "heif", "image/webp": "webp", "image/gif": "gif" };
-async function saveImages(req, env, ctx, src) {
-  const files = [];
-  const ct = (req.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
-  if (ct === "multipart/form-data") {
-    const f = await req.formData();
-    for (const v of f.getAll("file")) if (v && typeof v === "object") files.push({ type: (v.type || "").toLowerCase(), buf: await v.arrayBuffer() });
-  } else files.push({ type: ct, buf: await req.arrayBuffer() });
-  const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM lookup").first()).n;
-  let total = used;
-  const ids = [];
-  for (const f of files) {
-    let type = f.type;
-    if (!IMAGE_TYPES[type]) { // (the phone may send no type: look at the first bytes)
-      const b = new Uint8Array(f.buf.slice(0, 12));
-      type = b[0] === 0xff && b[1] === 0xd8 ? "image/jpeg" : b[0] === 0x89 && b[1] === 0x50 ? "image/png"
-        : String.fromCharCode(...b.slice(4, 12)).match(/ftyp(heic|heix|mif1|heif)/) ? "image/heic" : null;
-    }
-    if (!type) return { error: "not an image", status: 415 };
-    if (!f.buf.byteLength || f.buf.byteLength > 25 * 1024 ** 2) return { error: "image too big (25 MB at most)", status: 413 };
-    if (total + f.buf.byteLength > LOOKUP_MAX) return { error: "Lookup is full (2 GB): delete some images first", status: 507 };
-    total += f.buf.byteLength;
-    const id = Date.now().toString(36) + "-" + rand(4) + "." + IMAGE_TYPES[type];
-    await env.SHOTS.put(id, f.buf, { httpMetadata: { contentType: type } });
-    await env.DB.prepare("INSERT INTO lookup (id, ts, type, size, src) VALUES (?1, ?2, ?3, ?4, ?5)")
-      .bind(id, Math.floor(Date.now() / 1000), type, f.buf.byteLength, src).run();
-    ctx.waitUntil(readImage(env, id));
-    ids.push(id);
-  }
-  return { ids };
+const TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic", "image/heif": "heif", "image/webp": "webp", "image/gif": "gif",
+  "video/mp4": "mp4", "video/quicktime": "mov", "video/x-m4v": "m4v", "video/webm": "webm" };
+const MAX_IMAGE = 25 * 1024 ** 2, MAX_VIDEO = 95 * 1024 ** 2; // (Cloudflare takes at most 100 MB in one request)
+function sniff(b) { // the type from the first bytes (the phone may send none)
+  const tag = String.fromCharCode(...b.slice(4, 12));
+  return b[0] === 0xff && b[1] === 0xd8 ? "image/jpeg" : b[0] === 0x89 && b[1] === 0x50 ? "image/png"
+    : /ftyp(heic|heix|mif1|heif)/.test(tag) ? "image/heic" : /ftypqt/.test(tag) ? "video/quicktime" : /ftyp/.test(tag) ? "video/mp4" : null;
 }
+async function saveImages(req, env, ctx, src) {
+  const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM lookup").first()).n;
+  const store = async (type, size, body) => {
+    if (!TYPES[type]) return { error: "not an image or a video", status: 415 };
+    if (!size) return { error: "empty", status: 400 };
+    if (size > (type.startsWith("video/") ? MAX_VIDEO : MAX_IMAGE)) return { error: type.startsWith("video/") ? "video too big (95 MB at most)" : "image too big (25 MB at most)", status: 413 };
+    if (used + size > LOOKUP_MAX) return { error: "Lookup is full (6 GB): delete some first", status: 507 };
+    const id = Date.now().toString(36) + "-" + rand(4) + "." + TYPES[type];
+    await env.SHOTS.put(id, body, { httpMetadata: { contentType: type } });
+    await env.DB.prepare("INSERT INTO lookup (id, ts, type, size, src) VALUES (?1, ?2, ?3, ?4, ?5)")
+      .bind(id, Math.floor(Date.now() / 1000), type, size, src).run();
+    ctx.waitUntil(readImage(env, id));
+    return { id };
+  };
+  const ct = (req.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+  const len = +req.headers.get("Content-Length") || 0;
+  if (ct === "multipart/form-data") { // (several images in one request)
+    const f = await req.formData(), ids = [];
+    for (const v of f.getAll("file")) {
+      if (!v || typeof v !== "object") continue;
+      const buf = await v.arrayBuffer(), type = TYPES[(v.type || "").toLowerCase()] ? v.type.toLowerCase() : sniff(new Uint8Array(buf.slice(0, 12)));
+      const r = await store(type, buf.byteLength, buf);
+      if (r.error) return r;
+      ids.push(r.id);
+    }
+    return { ids };
+  }
+  if (TYPES[ct] && len) { // the type and size are known: straight into R2 (a video never sits in the Worker's memory)
+    if (len > (ct.startsWith("video/") ? MAX_VIDEO : MAX_IMAGE)) return store(ct, len, null);
+    const r = await store(ct, len, req.body);
+    return r.error ? r : { ids: [r.id] };
+  }
+  if (len > MAX_IMAGE) { // a big file without its type: into R2 first, then its first bytes say what it is
+    if (len > MAX_VIDEO) return { error: "video too big (95 MB at most)", status: 413 };
+    if (used + len > LOOKUP_MAX) return { error: "Lookup is full (6 GB): delete some first", status: 507 };
+    const id = Date.now().toString(36) + "-" + rand(4);
+    await env.SHOTS.put(id, req.body);
+    const head = await env.SHOTS.get(id, { range: { offset: 0, length: 12 } });
+    const type = head ? sniff(new Uint8Array(await head.arrayBuffer())) : null;
+    if (!type) { await env.SHOTS.delete(id); return { error: "not an image or a video", status: 415 }; }
+    await env.DB.prepare("INSERT INTO lookup (id, ts, type, size, src) VALUES (?1, ?2, ?3, ?4, ?5)").bind(id, Math.floor(Date.now() / 1000), type, len, src).run();
+    ctx.waitUntil(readImage(env, id));
+    return { ids: [id] };
+  }
+  const buf = await req.arrayBuffer();
+  const r = await store(TYPES[ct] ? ct : sniff(new Uint8Array(buf.slice(0, 12))), buf.byteLength, buf);
+  return r.error ? r : { ids: [r.id] };
+}
+async function typeOf(env, id, obj) {
+  const t = obj.httpMetadata && obj.httpMetadata.contentType;
+  if (TYPES[t]) return t;
+  const row = await env.DB.prepare("SELECT type FROM lookup WHERE id = ?1").bind(id).first();
+  return (row && row.type) || "image/jpeg";
+}
+/* links to the images that work for two days (an <img> or <video> can't send the key) */
+async function linkSecret(env) {
+  let row = await env.DB.prepare("SELECT v FROM settings WHERE k = 'linksecret'").first();
+  if (!row) { await env.DB.prepare("INSERT OR IGNORE INTO settings (k, v) VALUES ('linksecret', ?1)").bind(rand(32)).run(); row = await env.DB.prepare("SELECT v FROM settings WHERE k = 'linksecret'").first(); }
+  return row.v;
+}
+const linkSig = async (secret, id, e) => (await sha(secret + "|" + id + "|" + e)).slice(0, 32);
 const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 export default {
   async fetch(req, env, ctx) {
@@ -243,6 +290,19 @@ export default {
         const r = await saveImages(req, env, ctx, src);
         return r.error ? json(req, { error: r.error }, r.status) : json(req, { ok: true, ids: r.ids });
       }
+      if (path === "/lookup/img" && env.SHOTS) { // (by link: see GET /lookup)
+        const id = url.searchParams.get("id") || "", e = +url.searchParams.get("e") || 0, sig = url.searchParams.get("s") || "";
+        if (!/^[\w.-]+$/.test(id) || e < Date.now() / 1000 || sig !== (await linkSig(await linkSecret(env), id, e))) return json(req, { error: "link expired" }, 403);
+        const obj = await env.SHOTS.get(id, { range: req.headers });
+        if (!obj) return json(req, { error: "not found" }, 404);
+        const h = { "Content-Type": await typeOf(env, id, obj), "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=172800", ...cors(req) };
+        if (obj.range && req.headers.has("Range")) {
+          const off = obj.range.offset ?? (obj.range.suffix != null ? obj.size - obj.range.suffix : 0);
+          const n = obj.range.length ?? (obj.range.suffix != null ? obj.range.suffix : obj.size - off);
+          return new Response(obj.body, { status: 206, headers: { ...h, "Content-Range": `bytes ${off}-${off + n - 1}/${obj.size}`, "Content-Length": String(n) } });
+        }
+        return new Response(obj.body, { headers: { ...h, "Content-Length": String(obj.size) } });
+      }
       if (!(await isOwner(req))) return json(req, { error: "key needed" }, 401);
       if (path.startsWith("/lookup")) {
         if (!env.SHOTS) return json(req, { error: "no image storage on the server yet" }, 503);
@@ -250,12 +310,10 @@ export default {
           const { results } = await env.DB.prepare("SELECT * FROM lookup ORDER BY ts DESC LIMIT 2000").all();
           const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM lookup").first()).n;
           const key = await env.DB.prepare("SELECT 1 FROM settings WHERE k = 'upkey'").first();
-          return json(req, { items: results.map((r) => ({ ...r, songs: r.songs ? JSON.parse(r.songs) : null })), used, max: LOOKUP_MAX, phoneKey: !!key, reads: !!env.GEMINI_KEY });
-        }
-        if (path === "/lookup/img") {
-          const id = url.searchParams.get("id") || "", obj = /^[\w.-]+$/.test(id) ? await env.SHOTS.get(id) : null;
-          if (!obj) return json(req, { error: "not found" }, 404);
-          return new Response(obj.body, { headers: { "Content-Type": (obj.httpMetadata && obj.httpMetadata.contentType) || "image/jpeg", "Cache-Control": "private, max-age=31536000, immutable", ...cors(req) } });
+          const secret = await linkSecret(env), e = (Math.floor(Date.now() / 86400000) + 2) * 86400; // (the same link all day, so the browser keeps the images)
+          const items = await Promise.all(results.map(async (r) => ({ ...r, from: r.src, songs: r.songs ? JSON.parse(r.songs) : null,
+            src: `${url.origin}/lookup/img?id=${encodeURIComponent(r.id)}&e=${e}&s=${await linkSig(secret, r.id, e)}` })));
+          return json(req, { items, used, max: LOOKUP_MAX, phoneKey: !!key, reads: !!env.GEMINI_KEY });
         }
         if (req.method !== "POST") return json(req, { error: "not found" }, 404);
         if (path === "/lookup/key") {

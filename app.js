@@ -742,7 +742,7 @@ function setView(v, keepHash) {
   if (!tagsView()) hideTagPanel();
   tp.focused = false; // (opening Tags puts the cursor in its search field)
   if (!keepHash) history.replaceState(null, "", view === "threads" ? location.pathname : view === "tag" ? "#/tag/" + encodeURIComponent(tagPageName) : "#/" + view);
-  document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view)));
+  document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view || (view === "lookup" && b.dataset.view === "activity"))));
   $("#q").value = ""; syncClear();
   runSearch(); pageScrollTo(0);
   if (view === "tags" && tp.restoreY != null) { const y = tp.restoreY; tp.restoreY = null; requestAnimationFrame(() => pageScrollTo(y)); }
@@ -3449,9 +3449,10 @@ function drawActHead() {
   dayRow.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && dayRow.scrollWidth > dayRow.clientWidth) { e.preventDefault(); dayRow.scrollLeft += e.deltaY; } }, { passive: false });
   const owners = act.devices.filter((d) => d.owner && d.n);
   const cur = act.who && act.devices.find((d) => d.who === act.who);
-  const logsBtn = phone() ? null : el("span", { class: "act-logs" },
-    el("button", { class: "when-link" + (logins ? " on" : ""), onclick: go(() => setMode(logins ? "plays" : "logins")) }, "Logins"),
-    el("button", { class: "when-link" + (logs ? " on" : ""), onclick: go(() => setMode(logs ? "plays" : "logs")) }, "Logs"));
+  const logsBtn = el("span", { class: "act-logs" },
+    el("button", { class: "when-link", onclick: () => setView("lookup") }, "Lookup"),
+    phone() ? null : el("button", { class: "when-link" + (logins ? " on" : ""), onclick: go(() => setMode(logins ? "plays" : "logins")) }, "Logins"),
+    phone() ? null : el("button", { class: "when-link" + (logs ? " on" : ""), onclick: go(() => setMode(logs ? "plays" : "logs")) }, "Logs"));
   const chips = logs || logins ? el("div", { class: "hist-months act-filters" }) : el("div", { class: "hist-months act-filters" },
     el("button", { class: "when-link" + (!act.who ? " on" : ""), onclick: go(() => { act.who = null; }) }, "All devices"),
     owners.map((d) => el("button", { class: "when-link" + (act.who === d.who ? " on" : ""), onclick: go(() => { act.who = d.who; }) }, deviceLabel(d))),
@@ -4032,7 +4033,7 @@ document.addEventListener("click", (e) => {
   if (page && page[1] === "random") setTimeout(() => setView("random"), 0); // Random opened in a new tab
   const gq = location.hash.match(/^#\/genres\?g=(.+)$/);
   if (gq) gSel = gq[1].split(",").map(decodeURIComponent).filter(Boolean);
-  document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view)));
+  document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view || (view === "lookup" && b.dataset.view === "activity"))));
   document.body.dataset.view = view;
   if (!phone()) idleDock(); // the empty player bar is there from the start on a computer
   runSearch();
@@ -4044,14 +4045,14 @@ document.addEventListener("click", (e) => {
 /* Lookup (key only): screenshots and photos of songs to look up later. They come from the phone's share sheet (the
    "Save to nrgfm" shortcut, with the upload key made here) or from Upload / dragging / pasting here. The artist and
    title in each are read on the Activity server; Youtube and Google search for them, Add opens Add track with them. */
-const lk = { items: [], used: 0, max: 0, phoneKey: false, reads: true, done: false, token: 0, urls: new Map(), head: el("div", { class: "act-head lk-head" }), poll: null, newKey: null };
+const lk = { items: [], used: 0, max: 0, phoneKey: false, reads: true, done: false, token: 0, head: el("div", { class: "act-head lk-head" }), poll: null, newKey: null };
 const lkApi = (path, body) => fetch(ACT_URL + path, body === undefined ? { headers: { Authorization: "Bearer " + getToken() } }
   : { method: "POST", headers: { Authorization: "Bearer " + getToken(), "Content-Type": "text/plain" }, body: JSON.stringify(body) })
   .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "The Activity server answered " + r.status + "."); return d; });
-const lkFile = el("input", { type: "file", accept: "image/*", multiple: true, hidden: true, onchange: (e) => { lkUpload([...e.target.files]); e.target.value = ""; } });
+const lkFile = el("input", { type: "file", accept: "image/*,video/*", multiple: true, hidden: true, onchange: (e) => { lkUpload([...e.target.files]); e.target.value = ""; } });
 document.body.append(lkFile);
 async function lkUpload(files) {
-  files = files.filter((f) => f && /^image\//.test(f.type || "image/"));
+  files = files.filter((f) => f && /^(image|video)\//.test(f.type || "image/"));
   if (!files.length || !getToken() || !ACT_URL) return;
   lk.uploading = (lk.uploading || 0) + files.length; drawLookupHead();
   for (const f of files) {
@@ -4116,19 +4117,18 @@ function lkWhen(ts) {
   if (d.toDateString() === new Date(now - 864e5).toDateString()) return "Yesterday " + t;
   return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + (d.getFullYear() !== now.getFullYear() ? " " + d.getFullYear() : "") + " " + t;
 }
-function lkImage(id, node) { // the images need the key, so they are fetched and shown from memory
-  if (lk.urls.has(id)) { node.src = lk.urls.get(id); return; }
-  fetch(ACT_URL + "/lookup/img?id=" + encodeURIComponent(id), { headers: { Authorization: "Bearer " + getToken() } })
-    .then((r) => (r.ok ? r.blob() : null)).then((b) => { if (!b) return; const u = URL.createObjectURL(b); lk.urls.set(id, u); node.src = u; }).catch(() => {});
+const isVideo = (x) => /^video\//.test(x.type || "");
+function lkMedia(x, big) { // the image, or the video (its first frame in the list; playing in the big view)
+  if (!isVideo(x)) return el("img", { class: big ? "lk-big" : "lk-img", alt: "", src: x.src, loading: "lazy" });
+  return big ? el("video", { class: "lk-big", src: x.src, controls: true, autoplay: true, playsinline: true, onclick: (e) => e.stopPropagation() })
+    : el("video", { class: "lk-img", src: x.src + "#t=0.1", muted: true, playsinline: true, preload: "metadata" });
 }
-const lkSeen = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { lkSeen.unobserve(e.target); lkImage(e.target.dataset.id, e.target); } }, { rootMargin: "600px" });
 function lkView(x) { // the whole image, over the page (click or Esc closes it)
-  const im = el("img", { class: "lk-big", alt: "" });
-  const box = el("div", { class: "lk-viewer", onclick: () => close() }, im);
+  const box = el("div", { class: "lk-viewer", onclick: () => close() }, lkMedia(x, true));
   const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
   const close = () => { box.remove(); removeEventListener("keydown", key, true); };
   addEventListener("keydown", key, true);
-  document.body.append(box); lkImage(x.id, im);
+  document.body.append(box);
 }
 const lkQuery = (sg) => [sg.artist, sg.title].filter(Boolean).join(" ");
 function drawLookupList() {
@@ -4136,12 +4136,10 @@ function drawLookupList() {
   const rows = lk.items.filter((x) => !!x.done === lk.done);
   if (!rows.length) {
     list.replaceChildren(el("p", { class: "view-note" }, lk.done ? "Nothing marked done yet." : lk.items.length ? "Everything has been looked up."
-      : phone() ? "Nothing saved yet. Share a screenshot to “Save to nrgfm”." : "Nothing saved yet. Upload, drag images here, or paste one (⌘V). On the phone: share a screenshot to “Save to nrgfm”."));
+      : phone() ? "Nothing saved yet. Share a screenshot or screen recording to “Save to nrgfm”." : "Nothing saved yet. Upload, drag images or videos here, or paste one (⌘V). On the phone: share a screenshot or screen recording to “Save to nrgfm”."));
     return;
   }
   list.replaceChildren(el("ul", { class: "lk-list" }, rows.map((x) => {
-    const im = el("img", { class: "lk-img", alt: "", "data-id": x.id });
-    lkSeen.observe(im);
     const songs = x.songs || [];
     const set = async (body) => { try { await lkApi("/lookup/set", { id: x.id, ...body }); } catch (e) { lk.error = e.message; } renderLookup(); };
     const songRow = (sg, k) => {
@@ -4178,12 +4176,12 @@ function drawLookupList() {
       renderLookup();
     } }, "Delete");
     return el("li", { class: "lk-item" },
-      el("button", { class: "lk-thumb", "aria-label": "Show the whole image", onclick: () => lkView(x) }, im),
+      el("button", { class: "lk-thumb" + (isVideo(x) ? " lk-vid" : ""), "aria-label": isVideo(x) ? "Play the video" : "Show the whole image", onclick: () => lkView(x) }, lkMedia(x)),
       el("div", { class: "lk-body" },
         songs.map(songRow), status,
         x.text ? el("p", { class: "lk-text" }, x.text) : null,
         el("div", { class: "lk-foot" },
-          el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.src === "phone" ? " · Phone" : "")),
+          el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.from === "phone" ? " · Phone" : "")),
           el("span", { class: "lk-btns" },
             !songs.length && !phone() ? el("button", { class: "when-link", onclick: () => { x.songs = [{ artist: "", title: "" }]; x._edit = 0; drawLookupList(); } }, "Type it") : null,
             x.read_ts ? el("button", { class: "when-link", onclick: async () => { try { await lkApi("/lookup/read", { id: x.id }); } catch (e) { lk.error = e.message; } renderLookup(); } }, "Read again") : null,
