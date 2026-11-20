@@ -11,11 +11,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - run: |
+          set +e
           W="npx --yes wrangler@4"
           cd worker
-          q() { $W d1 execute nrgfm-activity --remote --json --command "$1" | jq -c '.[0].results'; }
+          q() { $W d1 execute nrgfm-activity --remote --json --command "$1" 2>/dev/null | jq -c 'if type=="array" then .[0].results else . end'; }
           echo "ROWS:"; q "SELECT id, ts, type, size, src, read_ts, read_err FROM lookup ORDER BY ts DESC LIMIT 10"
-          old=$(q "SELECT v FROM settings WHERE k='upkey'" | jq -r '.[0].v')
+          old=$(q "SELECT v FROM settings WHERE k='upkey'" | jq -r '.[0].v'); [ -n "$old" ] && [ "$old" != null ] || { echo no-old-key; exit 1; }
           K=$(openssl rand -hex 24); H=$(printf %s "$K" | sha256sum | cut -d' ' -f1)
           q "UPDATE settings SET v='$H' WHERE k='upkey'" >/dev/null
           ($W tail nrgfm-activity --format json > /tmp/tail.log 2>/dev/null &) ; sleep 15
