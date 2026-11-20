@@ -4138,7 +4138,7 @@ function lkMedia(x, big) { // the image, or the video (its first frame in the li
   return big ? el("video", { class: "lk-big", src: x.src, controls: true, autoplay: true, playsinline: true, onclick: (e) => e.stopPropagation() })
     : el("video", { class: "lk-img", src: x.src + "#t=0.1", muted: true, playsinline: true, preload: "metadata" });
 }
-const LK_SEARCH = [["Youtube", "https://www.youtube.com/results?search_query="], ["Google", "https://www.google.com/search?q="], ["Discogs", "https://www.discogs.com/search/?type=all&q="]];
+const LK_SEARCH = [["Youtube", "https://www.youtube.com/results?search_query="], ["Google", "https://www.google.com/search?q="]];
 const lkSearchBtns = (get) => LK_SEARCH.map(([name, base]) => el("button", { class: "when-link", onclick: () => { const q = get().trim(); if (q) open(base + encodeURIComponent(q), "_blank", "noopener"); } }, name));
 const lkLines = (x) => x.lines || (x.songs || []).map((sg) => ({ t: [sg.artist, sg.title].filter(Boolean).join(" – ") })).concat(x.text ? [{ t: x.text }] : []); // (images read before lines: what was read then)
 const lkLineText = (ln) => (typeof ln.e === "string" ? ln.e : ln.t);
