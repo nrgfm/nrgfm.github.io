@@ -4163,7 +4163,7 @@ function lkItemNode(x) {
     const saveFinal = () => { clearTimeout(t); if ((x.final || "") !== final.value) { x.final = final.value; lkSave(x, { final: final.value }); } };
     final.addEventListener("input", () => { clearTimeout(t); t = setTimeout(saveFinal, 700); });
     final.addEventListener("blur", saveFinal);
-    final.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); final.blur(); } });
+    // (Esc: the image small again, see below)
     const copyIn = (text) => { // after what's there, with a space between
       const v = final.value.replace(/\s+$/, "");
       final.value = (v ? v + " " : "") + text.trim();
@@ -4248,6 +4248,15 @@ function drawLookupList() {
   }
   list.replaceChildren(el("ul", { class: "lk-list" }, rows.map(lkItemNode)));
 }
+/* Lookup: Esc makes the opened image small again (Esc while correcting a line only stops correcting it) */
+addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || view !== "lookup" || !lk.open.size || e.defaultPrevented) return;
+  const t = e.target;
+  if (t && t.closest && (t.closest(".lk-line-in") || t.closest("#q") || t.closest("#addPanel") || t.closest(".lock"))) return;
+  e.preventDefault();
+  const f = t && t.closest && t.closest(".lk-final"); if (f) f.blur(); // (saves what was typed)
+  for (const id of [...lk.open]) { lk.open.delete(id); const x = lk.items.find((y) => y.id === id); if (x) lkReplace(x); }
+});
 /* Lookup on the computer: drop images anywhere on the page, or paste one */
 addEventListener("dragover", (e) => { if (view === "lookup" && getToken() && [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file")) { e.preventDefault(); document.body.classList.add("lk-drop"); } });
 addEventListener("dragleave", (e) => { if (!e.relatedTarget) document.body.classList.remove("lk-drop"); });
