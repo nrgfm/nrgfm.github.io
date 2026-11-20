@@ -1529,7 +1529,7 @@ body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body
 #lockBtn svg { width: 18px; height: 18px; }
 #lockBtn:hover { color: var(--text); }
 #lockBtn:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
-.lock.on #lockBtn { color: var(--jade); } /* (the nrgfm logo's blue; the lock open) */
+.lock.on #lockBtn { color: color-mix(in srgb, var(--jade) 50%, var(--seek, #6f9ecb)); } /* (the lock open: halfway between the logo's blue and the Add-track blue, #8cb3d9) */
 .lock.on #lockBtn:hover { color: var(--text); }
 #lockPw { box-sizing: border-box; height: 40px; width: 0; padding: 0; margin-right: 0; opacity: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font: 400 16px/1.5 "nrgfm hash", "Schibsted Grotesk", system-ui, sans-serif; letter-spacing: normal; /* (as the search field) */ transition: width .2s ease, opacity .2s ease, padding .2s ease, margin .2s ease; pointer-events: none; }
 .lock.open #lockPw { width: 220px; padding: 0 14px; margin-right: 8px; opacity: 1; pointer-events: auto; }
