@@ -1,0 +1,27 @@
+name: Debug Lookup (temporary)
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: |
+          W="npx --yes wrangler@4"
+          cd worker
+          q() { $W d1 execute nrgfm-activity --remote --json --command "$1" | jq -c '.[0].results'; }
+          echo "ROWS:"; q "SELECT id, ts, type, size, src, read_ts, read_err FROM lookup ORDER BY ts DESC LIMIT 10"
+          old=$(q "SELECT v FROM settings WHERE k='upkey'" | jq -r '.[0].v')
+          K=$(openssl rand -hex 24); H=$(printf %s "$K" | sha256sum | cut -d' ' -f1)
+          q "UPDATE settings SET v='$H' WHERE k='upkey'" >/dev/null
+          ($W tail nrgfm-activity --format json > /tmp/tail.log 2>/dev/null &) ; sleep 15
+          f=$(ls ../*.png ../icons/*.png 2>/dev/null | head -1); echo "test image $f"
+          curl -s -X POST https://nrgfm-activity.nrgfm.workers.dev/lookup/up -H "Authorization: Upload $K" -H "Content-Type: image/png" --data-binary @"$f"; echo
+          sleep 45; pkill -f "wrangler.*tail" || true
+          q "UPDATE settings SET v='$old' WHERE k='upkey'" >/dev/null
+          echo "ROWS AFTER:"; q "SELECT id, ts, read_ts, read_err, songs FROM lookup ORDER BY ts DESC LIMIT 3"
+          echo "TAIL (no headers):"; jq -c 'select(.event.request.url | test("lookup/up")) | {outcome, exceptions, logs: [.logs[].message], cpu: .cpuTime, wall: .wallTime}' /tmp/tail.log || head -c 600 /tmp/tail.log | sed 's/Bearer [^"]*/Bearer ***/g; s/Upload [^"]*/Upload ***/g'
