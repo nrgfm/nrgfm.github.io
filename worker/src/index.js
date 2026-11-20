@@ -20,7 +20,7 @@
    GET  /lookup/img  (that link: ?id=&e=&s=) one image or video (videos: in parts, as the browser asks)
    POST /lookup/set  (key)  {id, done}, {id, lines} (corrected by hand: [{t, e}]) or {id, final} (the search typed together)
    POST /lookup/read (key, or the upload key)  {id}: read the lines of text in it (answers when done)
-   POST /lookup/del  (key)  {id}: deleted for good (the image too)
+   POST /lookup/del  (key)  {id}: deleted for good (the image too). Everything marked done is deleted every night (cron)
    POST /lookup/key  (key)  a new upload key for the phone (the old one stops working); shown once
    "key": the site's GitHub key (Authorization: Bearer …), accepted when it can write to the nrgfm repository. */
 const REPO = "nrgproduct/nrgfm";
@@ -444,5 +444,10 @@ export default {
     await env.DB.prepare("DELETE FROM devices WHERE last < ?1").bind(cut).run();
     await env.DB.prepare("DELETE FROM logins WHERE ts < ?1").bind(cut).run();
     await env.DB.prepare("DELETE FROM sessions WHERE exp < ?1").bind(Math.floor(Date.now() / 1000)).run();
+    // Lookup: what's in Done is deleted every night (the images too)
+    if (env.SHOTS) {
+      const { results } = await env.DB.prepare("SELECT id FROM lookup WHERE done > 0").all();
+      for (const r of results) { await env.SHOTS.delete(r.id); await env.DB.prepare("DELETE FROM lookup WHERE id = ?1").bind(r.id).run(); }
+    }
   },
 };

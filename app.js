@@ -358,7 +358,15 @@ function viewItems() {
   if (view === "history") return historyMonths();
   if (view === "activity" || view === "lookup") return []; // drawn by renderActivity / renderLookup
   if (view === "tagged") return threads.filter((t) => isBase(t) && t.tracks.some(userTagged));
+  if (view === "threads" && threadsByAdd) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
   return threads.filter(isBase);
+}
+/* Threads, the other order (press Threads in the menu while on Threads): the posts a track was added to most recently first */
+let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
+const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
+function drawThreadsOrder() {
+  const b = document.querySelector('#menu [data-view="threads"]');
+  if (b) b.replaceChildren("Threads", threadsByAdd ? el("span", { class: "menu-sub" }, " · latest added") : "");
 }
 const baseTracks = () => threads.filter(isBase).flatMap((t) => t.tracks);
 const playlist = (id, name, tracks, note) => ({ id, name, note, kind: "tag", tracks, last: Math.max(0, ...tracks.map((x) => x.ts)) });
@@ -716,6 +724,7 @@ function ublockUrl() {
 }
 const openUblock = () => open(ublockUrl(), "_blank", "noopener");
 $('#menu [data-view="ublock"]').href = ublockUrl();
+setTimeout(drawThreadsOrder, 0);
 function setView(v, keepHash) {
   setTimeout(() => (document.body.dataset.view = view), 0);
   if (v === "ublock") { // first press: "Confirm"; the second opens the store
@@ -765,6 +774,10 @@ $("#menu").addEventListener("click", (e) => {
   if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // Ctrl/Cmd+click: the browser opens it in a new tab
   e.preventDefault();
   if (VIEW_NAMES[b.dataset.view] || (phone() && b.dataset.view === "random")) toggleMenu(false); // a page closes the menu (phone: Random too)
+  if (b.dataset.view === "threads" && view === "threads" && !$("#q").value.trim()) { // Threads again: the other order
+    threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
+    drawThreadsOrder();
+  }
   setView(b.dataset.view);
 });
 /* scrolling the page closes the menu; the page is moved back by the menu's height, so nothing jumps */
@@ -4119,7 +4132,8 @@ function drawLookupHead() {
       el("span", { class: "lk-msg" + (lk.error && !lk.uploading ? " err" : "") }, msg),
       el("div", { class: "act-views lk-tools" },
         el("span", { class: "lk-used" }, lk.max ? `${lkMB(lk.used)} of ${lkMB(lk.max)}` : ""),
-        el("button", { class: "when-link lk-upload", onclick: () => { lk.error = ""; lkFile.click(); } }, "Upload"))),
+        el("button", { class: "when-link lk-upload", onclick: () => { lk.error = ""; lkFile.click(); } }, "Upload"),
+        el("button", { class: "when-link", onclick: () => setView("activity") }, "Back"))),
     );
   if (lk.error && !lk.uploading) { clearTimeout(lk.errT); lk.errT = setTimeout(() => { lk.error = ""; if (view === "lookup") drawLookupHead(); }, 8000); }
   const head = $("#viewHead");
@@ -4208,7 +4222,11 @@ function lkItemNode(x) {
         el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.from === "phone" ? " · Phone" : "")),
         el("span", { class: "lk-btns" },
           reading ? null : el("button", { class: "when-link", onclick: () => lkRead(x, true) }, "Read again"),
-          el("button", { class: "when-link" + (x.done ? " on" : ""), onclick: async () => { x.done = x.done ? 0 : 1; lk.open.delete(x.id); await lkSave(x, { done: !!x.done }); drawLookupHead(); drawLookupList(); } }, x.done ? "Not done" : "Done"),
+          el("button", { class: "when-link lk-done" + (x.done ? " on" : ""), onclick: async (e) => {
+            const b = e.currentTarget; if (b.classList.contains("saving")) return;
+            b.classList.add("saving"); // (blue until it's saved)
+            x.done = x.done ? 0 : 1; lk.open.delete(x.id); await lkSave(x, { done: !!x.done }); drawLookupHead(); drawLookupList();
+          } }, x.done ? "Not done" : "Done"),
           del))));
 }
 /* draw one item again (keeps what's being typed in it); opened: brought to the top of the page */
