@@ -1632,3 +1632,4 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .menu .menu-sort:not([hidden]) + .menu-right { margin-left: 18px; }
 .menu .menu-sort .sort-val { color: var(--jade); }
 .menu .menu-sort:hover .sort-val { text-decoration: underline dotted; text-underline-offset: 3px; }
+.menu .menu-sort[hidden] { display: none; }
