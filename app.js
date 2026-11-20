@@ -3543,7 +3543,30 @@ function drawLoginsPanel(set) {
     set ? null : el("p", { class: "view-note" }, "The Activity server didn't answer; the passwords can't be shown or changed right now."),
     field(2, "Level 2 password", "yours: playlists, automatic tags, notes in search; adding and editing tracks and tags"),
     field(3, "Level 3 password", "for friends: tags (no playlists or automatic tags), Archive, Tags, Genres, History"),
+    phoneKeyRow(set),
     el("p", { class: "lg-foot" }, "A login lasts 12 hours. After 5 wrong passwords within an hour, logging in is locked for an hour. Every login, wrong password and logout is in Logs.")));
+}
+/* the upload key for the "Save to nrgfm" shortcut on the phone: a new one only after Confirm (the old one stops working) */
+function phoneKeyRow(set) {
+  const has = !!(set && set.phoneKey);
+  const out = el("div", { class: "lg-line" }), msg = el("span", { class: "lg-msg" });
+  const btn = el("button", { class: "btn", onclick: async () => {
+    if (!btn.dataset.confirm) {
+      btn.dataset.confirm = "1"; btn.textContent = "Confirm";
+      msg.textContent = has ? "The key in the shortcut will stop working." : "";
+      btn._t = setTimeout(() => { delete btn.dataset.confirm; btn.textContent = has ? "New phone key" : "Make a phone key"; msg.textContent = ""; }, 5000);
+      return;
+    }
+    clearTimeout(btn._t); delete btn.dataset.confirm; btn.disabled = true; msg.textContent = "…";
+    try {
+      const k = (await lkApi("/lookup/key", {})).key;
+      const val = el("input", { type: "text", readonly: true, value: k, class: "lg-input lk-key-val", onfocus: (e) => e.target.select() });
+      out.replaceChildren(val, el("button", { class: "btn", onclick: async (e) => { try { await navigator.clipboard.writeText(k); e.currentTarget.textContent = "Copied"; } catch {} } }, "Copy"));
+      msg.textContent = "Paste it into the shortcut on the phone (after “Upload ”). It's only shown now.";
+    } catch (e) { msg.textContent = e.message || "Not made."; btn.disabled = false; btn.textContent = "New phone key"; }
+  } }, has ? "New phone key" : "Make a phone key");
+  out.append(btn);
+  return el("div", { class: "lg-row" }, el("div", { class: "lg-name" }, "Phone key", el("span", { class: "lg-note" }, has ? "set: the “Save to nrgfm” shortcut uploads to Lookup with it" : "for the “Save to nrgfm” shortcut on the phone (uploads to Lookup)")), out, msg);
 }
 /* Logs: every change made on the site, newest first (the same list the data is rebuilt from) */
 async function loadLogs() {
@@ -4087,17 +4110,6 @@ const lkMB = (n) => (n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(1) + " GB" : Math.
 function drawLookupHead() {
   const todo = lk.items.filter((x) => !x.done).length, done = lk.items.length - todo;
   const show = (d) => () => { lk.done = d; drawLookupHead(); drawLookupList(); };
-  const keyBtn = el("button", { class: "when-link", onclick: async () => {
-    if (lk.phoneKey && !lk.keyConfirm) { lk.keyConfirm = true; drawLookupHead(); setTimeout(() => { lk.keyConfirm = false; if (view === "lookup") drawLookupHead(); }, 5000); return; }
-    lk.keyConfirm = false;
-    try { lk.newKey = (await lkApi("/lookup/key", {})).key; lk.phoneKey = true; } catch (e) { lk.error = e.message; }
-    drawLookupHead();
-  } }, lk.keyConfirm ? "Confirm (the old key stops working)" : lk.phoneKey ? "New phone key" : "Phone key");
-  const keyBox = lk.newKey ? el("div", { class: "lk-key" },
-    el("span", { class: "lk-key-note" }, "Paste this into the shortcut on your phone. It's only shown now:"),
-    el("input", { type: "text", readonly: true, value: lk.newKey, class: "lk-key-val", onfocus: (e) => e.target.select() }),
-    el("button", { class: "when-link", onclick: async (e) => { try { await navigator.clipboard.writeText(lk.newKey); e.currentTarget.textContent = "Copied"; } catch {} } }, "Copy"),
-    el("button", { class: "when-link", onclick: () => { lk.newKey = null; drawLookupHead(); } }, "Hide")) : null;
   const msg = lk.uploading ? `Uploading ${lk.uploading}…` : lk.error || "";
   lk.head.replaceChildren(
     el("div", { class: "act-row1 lk-row1" },
@@ -4107,9 +4119,8 @@ function drawLookupHead() {
       el("span", { class: "lk-msg" + (lk.error && !lk.uploading ? " err" : "") }, msg),
       el("div", { class: "act-views lk-tools" },
         el("span", { class: "lk-used" }, lk.max ? `${lkMB(lk.used)} of ${lkMB(lk.max)}` : ""),
-        phone() ? null : keyBtn,
         el("button", { class: "when-link lk-upload", onclick: () => { lk.error = ""; lkFile.click(); } }, "Upload"))),
-    ...(keyBox ? [keyBox] : []));
+    );
   if (lk.error && !lk.uploading) { clearTimeout(lk.errT); lk.errT = setTimeout(() => { lk.error = ""; if (view === "lookup") drawLookupHead(); }, 8000); }
   const head = $("#viewHead");
   if (view === "lookup" && !$("#q").value.trim()) { head.className = "view-head view-history view-lookup"; head.replaceChildren(lk.head); head.hidden = false; }
@@ -4162,8 +4173,8 @@ function lkItemNode(x) {
       const row = el("div", { class: "lk-line" });
       const draw = () => row.replaceChildren(el("span", { class: "lk-line-text" }, lkLineText(ln)),
         el("span", { class: "lk-btns" },
-          el("button", { class: "when-link", onclick: edit }, "Edit"),
           el("button", { class: "when-link", onclick: () => copyIn(lkLineText(ln)) }, "Copy"),
+          el("button", { class: "when-link", onclick: edit }, "Edit"),
           lkSearchBtns(() => lkLineText(ln))));
       const edit = () => {
         const input = el("input", { type: "text", class: "lk-in lk-line-in", value: lkLineText(ln) });
@@ -4195,11 +4206,6 @@ function lkItemNode(x) {
       el("div", { class: "lk-foot" },
         el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.from === "phone" ? " · Phone" : "")),
         el("span", { class: "lk-btns" },
-          open ? el("button", { class: "when-link", onclick: toggle }, "Smaller") : null,
-          open && !phone() ? el("button", { class: "when-link", onclick: () => {
-            const q = (x.final || "").trim(); if ($("#addPanel").hidden) toggleHeaderForm();
-            const f = $("#addPanel form"); if (f && f.title) { f.title.value = q; (f.url || f.title).focus(); }
-          } }, "Add track") : null,
           reading ? null : el("button", { class: "when-link", onclick: () => lkRead(x, true) }, "Read again"),
           el("button", { class: "when-link" + (x.done ? " on" : ""), onclick: async () => { x.done = x.done ? 0 : 1; lk.open.delete(x.id); await lkSave(x, { done: !!x.done }); drawLookupHead(); drawLookupList(); } }, x.done ? "Not done" : "Done"),
           del))));

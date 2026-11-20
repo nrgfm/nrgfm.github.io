@@ -372,7 +372,8 @@ export default {
           return json(req, { ok: true });
         }
         const { results } = await env.DB.prepare("SELECT k FROM settings WHERE k IN ('pw2', 'pw3')").all();
-        return json(req, { level2: results.some((r) => r.k === "pw2"), level3: results.some((r) => r.k === "pw3") });
+        const up = await env.DB.prepare("SELECT 1 FROM settings WHERE k = 'upkey'").first();
+        return json(req, { level2: results.some((r) => r.k === "pw2"), level3: results.some((r) => r.k === "pw3"), phoneKey: !!up });
       }
       if (path === "/logins") {
         const days = Math.max(1, Math.min(400, Math.round(+url.searchParams.get("days") || 365)));
