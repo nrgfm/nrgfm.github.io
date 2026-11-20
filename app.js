@@ -226,7 +226,13 @@ function runSearch() {
   if (!terms.length) {
     searchOff.clear(); byNewest = false; resultList = false; // leaving search: the next one starts fresh
     shown = viewItems().map((t) => ({ t, hits: null }));
-    $("#resultInfo").hidden = true;
+    $("#resultInfo").hidden = view !== "threads";
+    $("#resultInfo").classList.toggle("ri-threads", view === "threads");
+    if (view === "threads") $("#resultInfo").replaceChildren( // Sort, as in a search: by the main post's date, or the latest added track
+      el("button", { class: "sf sf-order", "aria-pressed": String(threadsByAdd), onclick: () => {
+        threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
+        runSearch(); pageScrollTo(0);
+      } }, el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, threadsByAdd ? "Latest added" : "Date posted"), " ▾"));
     drawViewHead();
   } else {
     shown = [];
@@ -263,7 +269,7 @@ function runSearch() {
     const parts = [];
     if (tagHits) parts.push(`${tagHits} ${tagHits === 1 ? "tag" : "tags"}`);
     if (n) parts.push(`${n} ${n === 1 ? "track" : "tracks"} in ${trackThreads} ${trackThreads === 1 ? "thread" : "threads"}`);
-    $("#resultInfo").hidden = false;
+    $("#resultInfo").hidden = false; $("#resultInfo").classList.remove("ri-threads");
     $("#resultInfo").replaceChildren(
       n ? el("button", { class: "result-n" + (resultList ? " on" : ""), "aria-pressed": String(resultList), onclick: () => { resultList = !resultList; runSearch(); } }, `${n} ${n === 1 ? "result" : "results"}`)
         : el("span", { class: "result-n" }, `Nothing matches “${$("#q").value.trim()}”.`),
@@ -361,13 +367,10 @@ function viewItems() {
   if (view === "threads" && threadsByAdd) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
   return threads.filter(isBase);
 }
-/* Threads, the other order (press Threads in the menu while on Threads): the posts a track was added to most recently first */
+/* Threads, the other order (Sort at the top of Threads): the posts a track was added to most recently first */
 let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
-function drawThreadsOrder() {
-  const b = document.querySelector('#menu [data-view="threads"]');
-  if (b) b.replaceChildren("Threads");
-}
+
 const baseTracks = () => threads.filter(isBase).flatMap((t) => t.tracks);
 const playlist = (id, name, tracks, note) => ({ id, name, note, kind: "tag", tracks, last: Math.max(0, ...tracks.map((x) => x.ts)) });
 /* Mixes: every track ticked as a mix ("mix" tag). First all of them, then one box per other tag the mixes
@@ -724,7 +727,6 @@ function ublockUrl() {
 }
 const openUblock = () => open(ublockUrl(), "_blank", "noopener");
 $('#menu [data-view="ublock"]').href = ublockUrl();
-setTimeout(drawThreadsOrder, 0);
 function setView(v, keepHash) {
   setTimeout(() => (document.body.dataset.view = view), 0);
   if (v === "ublock") { // first press: "Confirm"; the second opens the store
@@ -774,10 +776,6 @@ $("#menu").addEventListener("click", (e) => {
   if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // Ctrl/Cmd+click: the browser opens it in a new tab
   e.preventDefault();
   if (VIEW_NAMES[b.dataset.view] || (phone() && b.dataset.view === "random")) toggleMenu(false); // a page closes the menu (phone: Random too)
-  if (b.dataset.view === "threads" && view === "threads" && !$("#q").value.trim()) { // Threads again: the other order
-    threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
-    drawThreadsOrder();
-  }
   setView(b.dataset.view);
 });
 /* scrolling the page closes the menu; the page is moved back by the menu's height, so nothing jumps */
@@ -4056,7 +4054,7 @@ document.addEventListener("click", (e) => {
     threads.push(...makeTagThreads());
     sortThreads();
   } catch (e) {
-    $("#resultInfo").hidden = false;
+    $("#resultInfo").hidden = false; $("#resultInfo").classList.remove("ri-threads");
     $("#resultInfo").textContent = "The archive didn't load. Reload the page to try again.";
     return;
   }
