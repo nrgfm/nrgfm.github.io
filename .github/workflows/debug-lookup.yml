@@ -4,26 +4,21 @@ jobs:
   d:
     runs-on: ubuntu-latest
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22" }
       - run: |
           set +e
-          W="npx --yes wrangler@4"
-          cd worker
-          id=$($W d1 list --json | jq -r '.[] | select(.name=="nrgfm-activity") | .uuid'); sed -i "s/DATABASE_ID/$id/" wrangler.toml
-          q() { $W d1 execute nrgfm-activity --remote --json --command "$1" 2>/dev/null | jq -c 'if type=="array" then .[0].results else . end'; }
-          old=$(q "SELECT v FROM settings WHERE k='upkey'" | jq -r '.[0].v'); [ -n "$old" ] && [ "$old" != null ] || { echo no-old-key; exit 1; }
-          K=$(openssl rand -hex 24); H=$(printf %s "$K" | sha256sum | cut -d' ' -f1)
-          q "UPDATE settings SET v='$H' WHERE k='upkey'" >/dev/null
-          ($W tail nrgfm-activity --format json > /tmp/tail.log 2>/dev/null &) ; sleep 15
-          T=$(q "SELECT id FROM lookup WHERE size < 10000 ORDER BY ts DESC LIMIT 1" | jq -r '.[0].id'); echo "test $T"
-          start=$(date +%s); curl -s -m 170 -X POST https://nrgfm-activity.nrgfm.workers.dev/lookup/read -H "Authorization: Upload $K" -H "Content-Type: text/plain" -d "{\"id\":\"$T\"}"; echo " ($(( $(date +%s) - start )) s)"
-          sleep 8; pkill -f "wrangler.*tail"
-          q "UPDATE settings SET v='$old' WHERE k='upkey'" >/dev/null
-          q "SELECT id, read_ts, read_err, lines FROM lookup WHERE id='$T'"
-          echo "LOGS:"; jq -c 'select((.event.request.url // "") | test("lookup/read")) | {outcome, exceptions, logs: [.logs[].message], cpu: .cpuTime, wall: .wallTime}' /tmp/tail.log
-          q "DELETE FROM lookup WHERE id='$T'" >/dev/null; $W r2 object delete "nrgfm-lookup/$T" --remote >/dev/null 2>&1; echo "test image deleted"
+          G=https://generativelanguage.googleapis.com
+          curl -s -H "x-goog-api-key: $KEY" "$G/v1beta/models?pageSize=200" | jq -r '.models[] | select(.supportedGenerationMethods | index("generateContent")) | .name' | grep -i flash
+          f=icons/logo-512.png; n=$(stat -c%s $f)
+          up=$(curl -s -D - -o /dev/null -X POST "$G/upload/v1beta/files" -H "x-goog-api-key: $KEY" -H "X-Goog-Upload-Protocol: resumable" -H "X-Goog-Upload-Command: start" -H "X-Goog-Upload-Header-Content-Length: $n" -H "X-Goog-Upload-Header-Content-Type: image/png" -H "Content-Type: application/json" -d '{"file":{"display_name":"t"}}' | grep -i x-goog-upload-url | cut -d' ' -f2 | tr -d '\r')
+          uri=$(curl -s -X POST "$up" -H "X-Goog-Upload-Offset: 0" -H "X-Goog-Upload-Command: upload, finalize" --data-binary @$f | jq -r .file.uri)
+          echo "uri ok: ${uri:0:40}"
+          for m in $(curl -s -H "x-goog-api-key: $KEY" "$G/v1beta/models?pageSize=200" | jq -r '.models[] | select(.supportedGenerationMethods | index("generateContent")) | .name' | grep -E 'gemini-[0-9.]+-flash(-lite)?$'); do
+            for th in none budget0 minimal; do
+              case $th in none) gc='{"temperature":0,"responseMimeType":"application/json"}';; budget0) gc='{"temperature":0,"responseMimeType":"application/json","thinkingConfig":{"thinkingBudget":0}}';; minimal) gc='{"temperature":0,"responseMimeType":"application/json","thinkingConfig":{"thinkingLevel":"minimal"}}';; esac
+              s=$(date +%s%N); r=$(curl -s -m 100 -w " HTTP%{http_code}" -X POST "$G/v1beta/$m:generateContent" -H "x-goog-api-key: $KEY" -H "Content-Type: application/json" -d "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"file_data\":{\"mime_type\":\"image/png\",\"file_uri\":\"$uri\"}},{\"text\":\"Write every line of text in the image. JSON {\\\"lines\\\":[]}\"}]}],\"generationConfig\":$gc}")
+              echo "$m $th $(( ($(date +%s%N)-s)/1000000 )) ms: $(echo "$r" | tr -d '\n' | sed 's/  */ /g' | cut -c1-160) ... ${r: -8}"
+            done
+          done
