@@ -2161,3 +2161,4 @@
 {"action": "edit", "thread": "p1949801175036597", "id": "t1949801288369919_0", "title": "Yousui Inoue - Pi Po Pa (1990)", "url": "https://www.youtube.com/watch?v=vuDSASKg3DM", "tags": ["eclectic 80s", "japanese"], "ts": 1795204299}
 {"action": "tag", "ids": ["t1994495507233830_0"], "add": ["soundtrack", "anime theme"], "remove": [], "ts": 1795204336}
 {"action": "tag", "ids": ["t1993334240683290_0"], "add": ["soundtrack"], "remove": [], "ts": 1795204376}
+{"action": "tag", "ids": ["t1993334240683290_0"], "add": ["synth theme"], "remove": [], "ts": 1795204427}
