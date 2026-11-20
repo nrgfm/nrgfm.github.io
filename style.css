@@ -1625,3 +1625,4 @@ div.lk-thumb.lk-open-media { cursor: auto; }
   .lk-item.open .lk-thumb { width: 100%; }
   .lk-big { margin: 0 auto; max-height: 75vh; }
 }
+.lk-del.deleting, .lk-del.deleting:hover { color: #e06666; cursor: default; }

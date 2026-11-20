@@ -4198,7 +4198,8 @@ function lkItemNode(x) {
   const del = el("button", { class: "when-link lk-del", onclick: async (e) => {
     const b = e.currentTarget;
     if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirm"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Delete"; } }, 4000); return; }
-    try { await lkApi("/lookup/del", { id: x.id }); } catch (err) { lk.error = err.message; }
+    b.classList.add("deleting"); b.disabled = true; // (red until it's gone)
+    try { await lkApi("/lookup/del", { id: x.id }); } catch (err) { lk.error = err.message; b.classList.remove("deleting"); b.disabled = false; delete b.dataset.confirm; b.textContent = "Delete"; drawLookupHead(); return; }
     lk.items = lk.items.filter((y) => y !== x); drawLookupHead(); drawLookupList();
   } }, "Delete");
   return el("li", { class: "lk-item" + (open ? " open" : ""), "data-id": x.id }, thumb,
