@@ -4222,9 +4222,10 @@ function lkReplace(x, scroll) {
   if (scroll) { // opened: as big as fits between the page's header and the player, and all of it in view
     const top = $("#viewHead").getBoundingClientRect().bottom, bar = document.querySelector(".bar"), bt = bar && bar.offsetHeight ? bar.getBoundingClientRect().top : 0;
     const bottom = bt > top + 100 ? bt : (visualViewport ? visualViewport.height : innerHeight); // (the player at the bottom, when it's there)
-    document.documentElement.style.setProperty("--lk-room", Math.max(200, Math.floor(bottom - top - 40)) + "px");
-    const place = () => pageScrollTo(pageY() + node.getBoundingClientRect().top - top - 12);
-    requestAnimationFrame(place);
+    document.documentElement.style.setProperty("--lk-room", Math.max(200, Math.floor(bottom - top - 22)) + "px");
+    // the image's top just under the header (the dotted line above the item goes up under it)
+    const place = () => { const m = node.querySelector(".lk-thumb"); pageScrollTo(pageY() + (m || node).getBoundingClientRect().top - $("#viewHead").getBoundingClientRect().bottom - 8); };
+    requestAnimationFrame(() => { place(); requestAnimationFrame(place); }); // (twice: the header sits differently once the page has moved)
     const m = node.querySelector(".lk-big"); if (m) m.addEventListener(m.tagName === "VIDEO" ? "loadedmetadata" : "load", place, { once: true }); // (again once its size is known)
   }
 }

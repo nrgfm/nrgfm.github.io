@@ -1577,7 +1577,7 @@ body.tags-off .tag-wrap { display: none; } /* (the key's lock closed: no tags un
 .lk-key-val { font: 13px ui-monospace, Menlo, monospace; color: var(--text); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 6px 8px; width: 31em; max-width: 100%; }
 .lk-list { list-style: none; margin: 0; padding: 0; }
 .lk-item { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-bottom: 1px dotted var(--dots, var(--line-strong)); }
-.lk-thumb { all: unset; cursor: zoom-in; display: block; width: 120px; height: 160px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
+.lk-thumb { all: unset; cursor: zoom-in; display: block; align-self: start; width: 120px; height: 160px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
 .lk-img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
 .lk-vid { position: relative; }
 .lk-vid::after { content: ""; position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: translate(-35%, -50%); border-style: solid; border-width: 13px 0 13px 21px; border-color: transparent transparent transparent rgba(255, 255, 255, .9); filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .6)); pointer-events: none; }
