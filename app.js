@@ -366,7 +366,7 @@ let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-ord
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
 function drawThreadsOrder() {
   const b = document.querySelector('#menu [data-view="threads"]');
-  if (b) b.replaceChildren("Threads", threadsByAdd ? el("span", { class: "menu-sub" }, " · latest added") : "");
+  if (b) b.replaceChildren("Threads");
 }
 const baseTracks = () => threads.filter(isBase).flatMap((t) => t.tracks);
 const playlist = (id, name, tracks, note) => ({ id, name, note, kind: "tag", tracks, last: Math.max(0, ...tracks.map((x) => x.ts)) });
