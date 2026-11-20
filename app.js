@@ -2005,7 +2005,7 @@ function tagEditor(initial, suggested = []) {
   const drawDrop = () => {
     const q = fold(input.value);
     const sug = suggested.filter((g) => !chosen.includes(g) && (!q || fold(g).includes(q)));
-    opts = q ? allTags().filter((g) => !chosen.includes(g) && !sug.includes(g) && fold(g).includes(q))
+    opts = q ? allTags().filter((g) => !isAutoTag(g) && !chosen.includes(g) && !sug.includes(g) && fold(g).includes(q)) // (no automatic tags)
       .sort((a, b) => fold(b).startsWith(q) - fold(a).startsWith(q)).slice(0, 6) : [];
     active = 0;
     const parts = [];
@@ -3877,7 +3877,7 @@ function openQuick(row, at, touch) {
   };
   const drawDrop = () => {
     const q = fold(input.value.trim());
-    opts = q ? [...tagCount.keys()].filter((g) => !draft.includes(g) && fold(g).includes(q))
+    opts = q ? [...tagCount.keys()].filter((g) => !isAutoTag(g) && !draft.includes(g) && fold(g).includes(q)) // (no automatic tags)
       .sort((a, b) => fold(b).startsWith(q) - fold(a).startsWith(q) || tagCount.get(b) - tagCount.get(a)).slice(0, 8) : [];
     drop.replaceChildren(...opts.map((g, j) => el("li", { onmouseenter: () => highlight(j),
       onmousedown: (e) => { e.preventDefault(); pick(g); } }, showTag(g), el("span", { class: "gi-n" }, tagCount.get(g)))));
