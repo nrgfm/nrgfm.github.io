@@ -2151,3 +2151,5 @@
 {"action": "tag", "ids": ["t2546358275380881_0"], "add": [], "remove": ["classic house"], "ts": 1795203957}
 {"action": "tag", "ids": ["t2449755091707867_0"], "add": ["house banger"], "remove": [], "ts": 1795203977}
 {"action": "edit", "thread": "p2449755091707867", "id": "t2449755091707867_0", "title": "Dominica - Gotta Let You Go (Hyper Go Go Remix)", "url": "https://www.youtube.com/watch?v=VFRHxZy85U8", "tags": ["house banger"], "ts": 1795203992}
+{"action": "edit", "thread": "p2449755091707867", "id": "t2450787988271244_0", "title": "Jennifer Holliday - A Woman's Got The Power (Thunderpuss 2000 Club Anthem Mix)", "url": "https://www.youtube.com/watch?v=3D7qMWqvWMM", "tags": ["cunt"], "ts": 1795204031}
+{"action": "tag", "ids": ["t2450787988271244_0"], "add": ["ballroom"], "remove": ["cunt"], "ts": 1795204042}
