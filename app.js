@@ -4219,7 +4219,14 @@ function lkReplace(x, scroll) {
   const node = lkItemNode(x);
   old.replaceWith(node);
   if (keep) { const f = node.querySelector(".lk-final"); if (f) { f.value = keep.v; f.focus({ preventScroll: true }); f.setSelectionRange(keep.a, keep.b); } }
-  if (scroll) requestAnimationFrame(() => pageScrollTo(scroller().scrollTop + node.getBoundingClientRect().top - $("#viewHead").getBoundingClientRect().bottom - 12));
+  if (scroll) { // opened: as big as fits between the page's header and the player, and all of it in view
+    const top = $("#viewHead").getBoundingClientRect().bottom, bar = document.querySelector(".bar"), bt = bar && bar.offsetHeight ? bar.getBoundingClientRect().top : 0;
+    const bottom = bt > top + 100 ? bt : (visualViewport ? visualViewport.height : innerHeight); // (the player at the bottom, when it's there)
+    document.documentElement.style.setProperty("--lk-room", Math.max(200, Math.floor(bottom - top - 40)) + "px");
+    const place = () => pageScrollTo(pageY() + node.getBoundingClientRect().top - top - 12);
+    requestAnimationFrame(place);
+    const m = node.querySelector(".lk-big"); if (m) m.addEventListener(m.tagName === "VIDEO" ? "loadedmetadata" : "load", place, { once: true }); // (again once its size is known)
+  }
 }
 /* reading: one at a time, asked for by this page (the server reads while it waits) */
 async function lkRead(x, again) {
