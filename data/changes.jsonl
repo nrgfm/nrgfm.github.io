@@ -2116,3 +2116,5 @@
 {"action": "tag", "ids": ["t1532937950056257_0"], "add": ["indie pop", "euphoric"], "remove": [], "ts": 1795202246}
 {"action": "edit", "thread": "xt1532937950056257_0", "id": "t1599060820110636_0", "title": "Squeeze - Last Time Forever (1985)", "url": "https://www.youtube.com/watch?v=6HsxcVSO8qE", "tags": ["new wave", "eclectic 80s", "#troels", "#xavi"], "ts": 1795202310}
 {"action": "edit", "thread": "xt1532937950056257_0", "id": "t1547009401982445_0", "title": "Cocteau Twins - Watchlar (1990)", "url": "https://www.youtube.com/watch?v=1KXCa8tQ87M", "tags": ["zoinked", "art pop", "easy listening"], "ts": 1795202427}
+{"action": "edit", "thread": "xt1532937950056257_0", "id": "t1547009401982445_0", "title": "Cocteau Twins - Watchlar (1990)", "url": "https://www.youtube.com/watch?v=1KXCa8tQ87M", "tags": ["zoinked", "art pop", "easy listening", "slow dance"], "ts": 1795202465}
+{"action": "promote", "thread": "xt1532937950056257_0", "id": "t1547009401982445_0", "to": "main", "ts": 1795202477}
