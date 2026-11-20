@@ -2122,3 +2122,4 @@
 {"url": "https://www.youtube.com/watch?v=b-WUAxgHgHw", "title": "Cocteau Twins - Fifty-fifty Clown (1990)", "thread": "xt1532937950056257_0", "tags": ["art pop"], "ts": 1795202578}
 {"action": "tag", "ids": ["t1794079035_0"], "add": [], "remove": ["score"], "ts": 1795202720}
 {"action": "edit", "thread": "p1300739926609395", "id": "t1300740073276047_0", "title": "Ichiko Hashimoto — Sculptured Blue (1985)", "url": "https://www.youtube.com/watch?v=tIiMwRqL73E", "tags": ["score", "piano"], "ts": 1795202809}
+{"action": "tag", "ids": ["t1300740073276047_0"], "add": ["minimalism"], "remove": [], "ts": 1795202850}
