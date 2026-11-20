@@ -226,13 +226,8 @@ function runSearch() {
   if (!terms.length) {
     searchOff.clear(); byNewest = false; resultList = false; // leaving search: the next one starts fresh
     shown = viewItems().map((t) => ({ t, hits: null }));
-    $("#resultInfo").hidden = view !== "threads";
-    $("#resultInfo").classList.toggle("ri-threads", view === "threads");
-    if (view === "threads") $("#resultInfo").replaceChildren( // Sort, as in a search: by the main post's date, or the latest added track
-      el("button", { class: "sf sf-order", "aria-pressed": String(threadsByAdd), onclick: () => {
-        threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
-        runSearch(); pageScrollTo(0);
-      } }, el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, threadsByAdd ? "Latest added" : "Date posted"), " ▾"));
+    $("#resultInfo").hidden = true;
+    drawThreadsSort();
     drawViewHead();
   } else {
     shown = [];
@@ -269,7 +264,7 @@ function runSearch() {
     const parts = [];
     if (tagHits) parts.push(`${tagHits} ${tagHits === 1 ? "tag" : "tags"}`);
     if (n) parts.push(`${n} ${n === 1 ? "track" : "tracks"} in ${trackThreads} ${trackThreads === 1 ? "thread" : "threads"}`);
-    $("#resultInfo").hidden = false; $("#resultInfo").classList.remove("ri-threads");
+    $("#resultInfo").hidden = false;
     $("#resultInfo").replaceChildren(
       n ? el("button", { class: "result-n" + (resultList ? " on" : ""), "aria-pressed": String(resultList), onclick: () => { resultList = !resultList; runSearch(); } }, `${n} ${n === 1 ? "result" : "results"}`)
         : el("span", { class: "result-n" }, `Nothing matches “${$("#q").value.trim()}”.`),
@@ -367,9 +362,22 @@ function viewItems() {
   if (view === "threads" && threadsByAdd) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
   return threads.filter(isBase);
 }
-/* Threads, the other order (Sort at the top of Threads): the posts a track was added to most recently first */
+/* Threads, the other order (Sort in the menu, left of uBlock, on Threads only): the posts a track was added to most recently first */
 let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
+function drawThreadsSort() {
+  let b = $("#threadsSort");
+  if (!b) {
+    b = el("button", { id: "threadsSort", class: "sf sf-order menu-sort", onclick: () => {
+      threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
+      if (view === "threads" && !$("#q").value.trim()) { runSearch(); pageScrollTo(0); } else drawThreadsSort();
+    } });
+    $('#menu [data-view="ublock"]').before(b);
+  }
+  b.hidden = view !== "threads";
+  b.setAttribute("aria-pressed", String(threadsByAdd));
+  b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, threadsByAdd ? "Latest added" : "Date posted"), " ▾");
+}
 
 const baseTracks = () => threads.filter(isBase).flatMap((t) => t.tracks);
 const playlist = (id, name, tracks, note) => ({ id, name, note, kind: "tag", tracks, last: Math.max(0, ...tracks.map((x) => x.ts)) });
@@ -4054,7 +4062,7 @@ document.addEventListener("click", (e) => {
     threads.push(...makeTagThreads());
     sortThreads();
   } catch (e) {
-    $("#resultInfo").hidden = false; $("#resultInfo").classList.remove("ri-threads");
+    $("#resultInfo").hidden = false;
     $("#resultInfo").textContent = "The archive didn't load. Reload the page to try again.";
     return;
   }
