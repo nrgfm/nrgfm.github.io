@@ -2126,3 +2126,4 @@
 {"action": "tag", "ids": ["t1300740073276047_0"], "add": [], "remove": ["score"], "ts": 1795202861}
 {"action": "tag", "ids": ["t1300740073276047_0"], "add": ["japanese"], "remove": [], "ts": 1795202865}
 {"action": "tag", "ids": ["t1303392783010776_0"], "add": ["anime theme", "japanese"], "remove": [], "ts": 1795202891}
+{"action": "tag", "ids": ["t1300739926609395_0"], "add": ["piano"], "remove": [], "ts": 1795202963}
