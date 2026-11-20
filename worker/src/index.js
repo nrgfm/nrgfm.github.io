@@ -72,15 +72,18 @@ async function session(req, env) {
 }
 /* Lookup: read the songs in a screenshot or photo with Gemini (the repository's GEMINI_API_KEY, as the Worker secret GEMINI_KEY) */
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/";
-let models = null;
+let models = null, goodModel = null; // (the model that answered last is asked first)
 async function geminiModels(env) {
   if (models) return models;
   const r = await fetch(GEMINI + "models?pageSize=200", { headers: { "x-goog-api-key": env.GEMINI_KEY } });
   if (!r.ok) throw new Error("Gemini answered " + r.status);
   const names = ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
-    .map((m) => m.name.split("/").pop()).filter((n) => /^gemini-\d+(\.\d+)?-flash$/.test(n));
+    .map((m) => m.name.split("/").pop()).filter((n) => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n));
   if (!names.length) throw new Error("no Gemini Flash model for this key");
-  return (models = [...new Set(names)].sort((a, b) => parseFloat(b.match(/\d+(\.\d+)?/)[0]) - parseFloat(a.match(/\d+(\.\d+)?/)[0])));
+  // the "lite" models first: reading text is easy for them and they answer in a second or two (the newest Flash models
+  // were overloaded or took minutes on the free key, Nov 2026); newest first within each
+  const ver = (n) => parseFloat(n.match(/\d+(\.\d+)?/)[0]), lite = (n) => (n.endsWith("-lite") ? 0 : 1);
+  return (models = [...new Set(names)].sort((a, b) => lite(a) - lite(b) || ver(b) - ver(a)));
 }
 const READ_PROMPT = `This is a screenshot, a screen recording or a photo someone took to remember a song: usually an Instagram post
 or reel, or a screen playing YouTube, Spotify, SoundCloud, Shazam or similar.
@@ -100,7 +103,7 @@ async function readImage(env, id) {
     if (!env.GEMINI_KEY) throw new Error("no Gemini key on the server");
     const obj = await env.SHOTS.get(id);
     if (!obj) throw new Error("image not found");
-    const size = obj.size, type = await typeOf(env, id, obj);
+    const size = obj.size, type = await typeOf(env, id, obj), isVid = type.startsWith("video/");
     // the image goes to Gemini's file store as it is (turning it into text here would use more of the Worker's CPU time than the free plan gives)
     const start = await fetch(GEMINI.replace("/v1beta/", "/upload/v1beta/files"), { method: "POST", ...wait(15000), headers: { "x-goog-api-key": env.GEMINI_KEY,
       "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": String(size),
@@ -120,16 +123,23 @@ async function readImage(env, id) {
     if (file.state === "PROCESSING") throw new Error("the video took too long to read: try Read again");
     if (file.state === "FAILED") throw new Error("Gemini couldn't open it");
     let last = null;
-    for (const m of await geminiModels(env)) {
-      const r = await fetch(GEMINI + `models/${m}:generateContent`, { method: "POST", ...wait(90000), headers: { "x-goog-api-key": env.GEMINI_KEY, "Content-Type": "application/json" },
+    const list = await geminiModels(env), order = goodModel && list.includes(goodModel) ? [goodModel, ...list.filter((m) => m !== goodModel)] : list;
+    for (const m of order) {
+      let r;
+      try {
+        r = await fetch(GEMINI + `models/${m}:generateContent`, { method: "POST", ...wait(isVid ? 90000 : 40000), headers: { "x-goog-api-key": env.GEMINI_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ file_data: { mime_type: type, file_uri: file.uri } }, { text: READ_PROMPT }] }],
-          generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
+          generationConfig: { temperature: 0, responseMimeType: "application/json",
+            responseSchema: { type: "OBJECT", properties: { lines: { type: "ARRAY", items: { type: "STRING" } } }, required: ["lines"] } } }) });
+      } catch (e) { step(id, t0, m + " didn't answer"); last = "Gemini took too long: try Read again"; continue; } // (overloaded: the next one)
       step(id, t0, m + " answered " + r.status);
-      if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429 || r.status >= 500 || r.status === 404) continue; break; }
+      if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429 || r.status >= 500 || r.status === 404 || r.status === 400) continue; break; }
       const d = await r.json();
-      const text = ((d.candidates || [])[0]?.content?.parts || []).map((p) => p.text || "").join("");
-      const a = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
-      const lines = (Array.isArray(a.lines) ? a.lines : []).map((x) => String(x || "").replace(/\s+/g, " ").trim().slice(0, 300)).filter(Boolean).slice(0, 80);
+      const text = ((d.candidates || [])[0]?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+      let a; try { a = JSON.parse(text.slice(Math.min(...["{", "["].map((c) => (text.indexOf(c) < 0 ? 1e9 : text.indexOf(c))))) .replace(/[^\]}]*$/, "")); } catch { last = "Gemini's answer couldn't be read"; continue; }
+      const raw = Array.isArray(a) ? a : Array.isArray(a.lines) ? a.lines : [];
+      const lines = raw.map((x) => String(x && typeof x === "object" ? x.text || x.line || "" : x || "").replace(/\s+/g, " ").trim().slice(0, 300)).filter(Boolean).slice(0, 80);
+      goodModel = m;
       await env.DB.prepare("UPDATE lookup SET lines = ?2, read_ts = ?3, read_err = NULL WHERE id = ?1").bind(id, JSON.stringify(lines.map((t) => ({ t }))), now()).run();
       return { ok: true };
     }
