@@ -2169,3 +2169,4 @@
 {"action": "edit", "thread": "p1949801175036597", "id": "t1982691975080850_0", "title": "Jan Pulsford - Light Is Knowledge (1986)", "url": "https://www.youtube.com/watch?v=UxxzKxavyNk", "tags": ["new age", "soundtrack"], "ts": 1795204574}
 {"action": "tag", "ids": ["t1982691975080850_0"], "add": ["vaporwave"], "remove": [], "ts": 1795204592}
 {"action": "tag", "ids": ["t2001942109822503_0"], "add": [], "remove": ["duplicate"], "ts": 1795204610}
+{"action": "tag", "ids": ["t2006354789381235_0"], "add": ["eclectic 80s", "japanese"], "remove": [], "ts": 1795204626}
