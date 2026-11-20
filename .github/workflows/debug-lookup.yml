@@ -21,9 +21,16 @@ jobs:
           K=$(openssl rand -hex 24); H=$(printf %s "$K" | sha256sum | cut -d' ' -f1)
           q "UPDATE settings SET v='$H' WHERE k='upkey'" >/dev/null
           ($W tail nrgfm-activity --format json > /tmp/tail.log 2>/dev/null &) ; sleep 15
+          T=mwp2qgoi-79f3a1f6.png   # (the test image from the last run)
+          time curl -s -m 150 -X POST https://nrgfm-activity.nrgfm.workers.dev/lookup/read -H "Authorization: Upload $K" -H "Content-Type: text/plain" -d "{\"id\":\"$T\"}"; echo
+          sleep 5; pkill -f "wrangler.*tail" || true
+          q "SELECT id, read_ts, read_err, lines FROM lookup WHERE id='$T'"
+          q "DELETE FROM lookup WHERE id='$T'" >/dev/null; $W r2 object delete "nrgfm-lookup/$T" --remote >/dev/null 2>&1; echo "test image deleted"
+          q "UPDATE settings SET v='$H' WHERE k='upkey'" >/dev/null
+          ($W tail nrgfm-activity --format json > /tmp/tail.log 2>/dev/null &) ; sleep 15
           f=$(ls ../*.png ../icons/*.png 2>/dev/null | head -1); echo "test image $f"
           curl -s -X POST https://nrgfm-activity.nrgfm.workers.dev/lookup/up -H "Authorization: Upload $K" -H "Content-Type: image/png" --data-binary @"$f"; echo
           sleep 45; pkill -f "wrangler.*tail" || true
           q "UPDATE settings SET v='$old' WHERE k='upkey'" >/dev/null
           echo "ROWS AFTER:"; q "SELECT id, ts, read_ts, read_err, songs FROM lookup ORDER BY ts DESC LIMIT 3"
-          echo "TAIL (no headers):"; jq -c 'select(.event.request.url | test("lookup/up")) | {outcome, exceptions, logs: [.logs[].message], cpu: .cpuTime, wall: .wallTime}' /tmp/tail.log || head -c 600 /tmp/tail.log | sed 's/Bearer [^"]*/Bearer ***/g; s/Upload [^"]*/Upload ***/g'
+          echo "TAIL (no headers):"; jq -c 'select(.event.request.url | test("lookup/read")) | {outcome, exceptions, logs: [.logs[].message], cpu: .cpuTime, wall: .wallTime}' /tmp/tail.log || head -c 600 /tmp/tail.log | sed 's/Bearer [^"]*/Bearer ***/g; s/Upload [^"]*/Upload ***/g'

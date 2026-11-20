@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS lookup (
   songs TEXT,               -- JSON [{artist, title}] read from the image (or corrected by hand)
   text TEXT,                -- other words in it that help
   read_ts INTEGER, read_err TEXT,
-  done INTEGER DEFAULT 0    -- when it was marked done (0: still to look up)
+  done INTEGER DEFAULT 0,   -- when it was marked done (0: still to look up)
+  lines TEXT,               -- JSON [{t, e}]: each line of text in it (t as read, e as corrected by hand)
+  final TEXT                -- what was typed together from them to search for
 );
 CREATE INDEX IF NOT EXISTS lookup_ts ON lookup(ts);

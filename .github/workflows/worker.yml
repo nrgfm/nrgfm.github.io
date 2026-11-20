@@ -47,6 +47,7 @@ jobs:
           [ -n "$id" ] || { echo "could not create the database"; exit 1; }
           sed -i "s/DATABASE_ID/$id/" wrangler.toml
           $W d1 execute nrgfm-activity --remote --file schema.sql
+          for c in "lines TEXT" "final TEXT"; do $W d1 execute nrgfm-activity --remote --command "ALTER TABLE lookup ADD COLUMN $c" >/dev/null 2>&1 || true; done  # (columns added later)
           # Lookup's images: a private R2 bucket in Western Europe
           $W r2 bucket list 2>&1 | grep -q "name:\s*nrgfm-lookup$" || $W r2 bucket create nrgfm-lookup --location weur
           $W deploy 2>&1 | tee deploy.log

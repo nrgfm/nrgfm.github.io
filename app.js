@@ -4074,11 +4074,15 @@ async function renderLookup() {
   let d;
   try { d = await lkApi("/lookup"); } catch (e) { if (token === lk.token) { lk.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, e.message)); } return; }
   if (token !== lk.token || view !== "lookup") return;
+  const finals = new Map(lk.items.map((x) => [x.id, x.final])); // (a search being typed isn't lost)
+  for (const x of d.items || []) if (finals.has(x.id) && finals.get(x.id) != null) x.final = finals.get(x.id);
   Object.assign(lk, { items: d.items || [], used: d.used || 0, max: d.max || 0, phoneKey: !!d.phoneKey, reads: d.reads !== false });
   drawLookupHead(); drawLookupList();
-  // still being read: look again in a few seconds
-  if (lk.items.some((x) => !x.read_ts && Date.now() / 1000 - x.ts < 300)) lk.poll = setTimeout(() => { if (view === "lookup" && !$("#q").value.trim()) renderLookup(); }, 4000);
+  if (lk.reads) lkReadAll();
 }
+document.addEventListener("visibilitychange", () => { // (back to this tab: anything new from the phone)
+  if (!document.hidden && view === "lookup" && !$("#q").value.trim() && !(document.activeElement && document.activeElement.closest(".lk-item"))) renderLookup();
+});
 const lkMB = (n) => (n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(1) + " GB" : Math.max(1, Math.round(n / 1024 ** 2)) + " MB");
 function drawLookupHead() {
   const todo = lk.items.filter((x) => !x.done).length, done = lk.items.length - todo;
@@ -4123,14 +4127,111 @@ function lkMedia(x, big) { // the image, or the video (its first frame in the li
   return big ? el("video", { class: "lk-big", src: x.src, controls: true, autoplay: true, playsinline: true, onclick: (e) => e.stopPropagation() })
     : el("video", { class: "lk-img", src: x.src + "#t=0.1", muted: true, playsinline: true, preload: "metadata" });
 }
-function lkView(x) { // the whole image, over the page (click or Esc closes it)
-  const box = el("div", { class: "lk-viewer", onclick: () => close() }, lkMedia(x, true));
-  const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
-  const close = () => { box.remove(); removeEventListener("keydown", key, true); };
-  addEventListener("keydown", key, true);
-  document.body.append(box);
+const LK_SEARCH = [["Youtube", "https://www.youtube.com/results?search_query="], ["Google", "https://www.google.com/search?q="], ["Discogs", "https://www.discogs.com/search/?type=all&q="]];
+const lkSearchBtns = (get) => LK_SEARCH.map(([name, base]) => el("button", { class: "when-link", onclick: () => { const q = get().trim(); if (q) open(base + encodeURIComponent(q), "_blank", "noopener"); } }, name));
+const lkLines = (x) => x.lines || (x.songs || []).map((sg) => ({ t: [sg.artist, sg.title].filter(Boolean).join(" – ") })).concat(x.text ? [{ t: x.text }] : []); // (images read before lines: what was read then)
+const lkLineText = (ln) => (typeof ln.e === "string" ? ln.e : ln.t);
+lk.open = new Set(); lk.reading = new Set();
+function lkSave(x, body) { return lkApi("/lookup/set", { id: x.id, ...body }).catch((e) => { lk.error = e.message; drawLookupHead(); }); }
+/* one image (or video) and its text. Closed: a thumbnail with its lines. Open (click the image): the image as big as the
+   page allows, the search field (the cursor goes there) and every line with Edit, Copy and the three searches */
+function lkItemNode(x) {
+  const open = lk.open.has(x.id), lines = lkLines(x);
+  const toggle = () => { open ? lk.open.delete(x.id) : lk.open.add(x.id); lkReplace(x, !open); };
+  const media = lkMedia(x, open);
+  const thumb = isVideo(x) && open ? el("div", { class: "lk-thumb lk-open-media" }, media)
+    : el("button", { class: "lk-thumb" + (isVideo(x) ? " lk-vid" : "") + (open ? " lk-open-media" : ""), "aria-label": open ? "Smaller" : "Bigger", onclick: toggle }, media);
+  let body;
+  if (!open) {
+    const shown = lines.slice(0, 5).map((ln) => el("p", { class: "lk-line-plain" }, lkLineText(ln)));
+    body = [x.final ? el("p", { class: "lk-final-plain" }, x.final) : null, shown,
+      lines.length > 5 ? el("p", { class: "lk-more" }, `+ ${lines.length - 5} more`) : null];
+  } else {
+    const final = el("input", { type: "text", class: "lk-final", value: x.final || "", placeholder: "Type here, or Copy lines into it", "aria-label": "Search for" });
+    let t = null;
+    const saveFinal = () => { clearTimeout(t); if ((x.final || "") !== final.value) { x.final = final.value; lkSave(x, { final: final.value }); } };
+    final.addEventListener("input", () => { clearTimeout(t); t = setTimeout(saveFinal, 700); });
+    final.addEventListener("blur", saveFinal);
+    final.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); final.blur(); } });
+    const copyIn = (text) => { // after what's there, with a space between
+      const v = final.value.replace(/\s+$/, "");
+      final.value = (v ? v + " " : "") + text.trim();
+      saveFinal(); final.focus(); final.setSelectionRange(final.value.length, final.value.length);
+    };
+    const lineRow = (ln, k) => {
+      const row = el("div", { class: "lk-line" });
+      const draw = () => row.replaceChildren(el("span", { class: "lk-line-text" }, lkLineText(ln)),
+        el("span", { class: "lk-btns" },
+          el("button", { class: "when-link", onclick: edit }, "Edit"),
+          el("button", { class: "when-link", onclick: () => copyIn(lkLineText(ln)) }, "Copy"),
+          lkSearchBtns(() => lkLineText(ln))));
+      const edit = () => {
+        const input = el("input", { type: "text", class: "lk-in lk-line-in", value: lkLineText(ln) });
+        const save = () => { const v = input.value.trim(); if (v !== lkLineText(ln)) { if (v === ln.t) delete ln.e; else ln.e = v; x.lines = lines; lkSave(x, { lines }); } draw(); };
+        input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.stopPropagation(); draw(); } });
+        row.replaceChildren(input, el("span", { class: "lk-btns" }, el("button", { class: "when-link", onclick: save }, "Save"), el("button", { class: "when-link", onclick: draw }, "Cancel")));
+        input.focus(); input.select();
+      };
+      draw();
+      return row;
+    };
+    body = [el("div", { class: "lk-final-row" }, final, el("span", { class: "lk-btns" }, lkSearchBtns(() => final.value))),
+      el("div", { class: "lk-lines" }, lines.map(lineRow))];
+    requestAnimationFrame(() => { if (!document.activeElement || !document.activeElement.closest(".lk-item")) { final.focus({ preventScroll: true }); final.setSelectionRange(final.value.length, final.value.length); } });
+  }
+  const reading = lk.reading.has(x.id) || (!x.read_ts && lk.reads);
+  const status = reading ? el("p", { class: "lk-note" }, isVideo(x) ? "Reading the video…" : "Reading…")
+    : !lk.reads && !x.read_ts ? el("p", { class: "lk-note" }, "Not read (no Gemini key on the server).")
+    : x.read_err ? el("p", { class: "lk-note err" }, "Couldn't read it: " + x.read_err)
+    : !lines.length ? el("p", { class: "lk-note" }, "No text found in it.") : null;
+  const del = el("button", { class: "when-link lk-del", onclick: async (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirm"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Delete"; } }, 4000); return; }
+    try { await lkApi("/lookup/del", { id: x.id }); } catch (err) { lk.error = err.message; }
+    lk.items = lk.items.filter((y) => y !== x); drawLookupHead(); drawLookupList();
+  } }, "Delete");
+  return el("li", { class: "lk-item" + (open ? " open" : ""), "data-id": x.id }, thumb,
+    el("div", { class: "lk-body" }, ...body.flat(), status,
+      el("div", { class: "lk-foot" },
+        el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.from === "phone" ? " · Phone" : "")),
+        el("span", { class: "lk-btns" },
+          open ? el("button", { class: "when-link", onclick: toggle }, "Smaller") : null,
+          open && !phone() ? el("button", { class: "when-link", onclick: () => {
+            const q = (x.final || "").trim(); if ($("#addPanel").hidden) toggleHeaderForm();
+            const f = $("#addPanel form"); if (f && f.title) { f.title.value = q; (f.url || f.title).focus(); }
+          } }, "Add track") : null,
+          reading ? null : el("button", { class: "when-link", onclick: () => lkRead(x, true) }, "Read again"),
+          el("button", { class: "when-link" + (x.done ? " on" : ""), onclick: async () => { x.done = x.done ? 0 : 1; lk.open.delete(x.id); await lkSave(x, { done: !!x.done }); drawLookupHead(); drawLookupList(); } }, x.done ? "Not done" : "Done"),
+          del))));
 }
-const lkQuery = (sg) => [sg.artist, sg.title].filter(Boolean).join(" ");
+/* draw one item again (keeps what's being typed in it); opened: brought to the top of the page */
+function lkReplace(x, scroll) {
+  const old = document.querySelector(`.lk-item[data-id="${CSS.escape(x.id)}"]`);
+  if (!old) return;
+  const act = document.activeElement, keep = act && old.contains(act) && act.matches(".lk-final") ? { v: act.value, a: act.selectionStart, b: act.selectionEnd } : null;
+  const node = lkItemNode(x);
+  old.replaceWith(node);
+  if (keep) { const f = node.querySelector(".lk-final"); if (f) { f.value = keep.v; f.focus({ preventScroll: true }); f.setSelectionRange(keep.a, keep.b); } }
+  if (scroll) requestAnimationFrame(() => pageScrollTo(scroller().scrollTop + node.getBoundingClientRect().top - $("#viewHead").getBoundingClientRect().bottom - 12));
+}
+/* reading: one at a time, asked for by this page (the server reads while it waits) */
+async function lkRead(x, again) {
+  if (lk.reading.has(x.id)) return;
+  lk.reading.add(x.id); lkReplace(x);
+  try {
+    const r = await lkApi("/lookup/read", { id: x.id });
+    if (r.error) x.read_err = r.error;
+  } catch (e) { x.read_err = e.message; }
+  lk.reading.delete(x.id);
+  try { const d = await lkApi("/lookup"); const y = (d.items || []).find((i) => i.id === x.id); if (y) Object.assign(x, y, { final: x.final }); } catch {}
+  if (!x.read_ts) x.read_ts = Math.floor(Date.now() / 1000);
+  lkReplace(x);
+}
+async function lkReadAll() {
+  if (lk.readingAll) return;
+  lk.readingAll = true;
+  try { for (const x of lk.items.filter((y) => !y.read_ts)) { if (view !== "lookup") break; await lkRead(x); } } finally { lk.readingAll = false; }
+}
 function drawLookupList() {
   const list = $("#threads");
   const rows = lk.items.filter((x) => !!x.done === lk.done);
@@ -4139,55 +4240,7 @@ function drawLookupList() {
       : phone() ? "Nothing saved yet. Share a screenshot or screen recording to “Save to nrgfm”." : "Nothing saved yet. Upload, drag images or videos here, or paste one (⌘V). On the phone: share a screenshot or screen recording to “Save to nrgfm”."));
     return;
   }
-  list.replaceChildren(el("ul", { class: "lk-list" }, rows.map((x) => {
-    const songs = x.songs || [];
-    const set = async (body) => { try { await lkApi("/lookup/set", { id: x.id, ...body }); } catch (e) { lk.error = e.message; } renderLookup(); };
-    const songRow = (sg, k) => {
-      const name = el("span", { class: "lk-song-name" },
-        sg.artist ? el("span", { class: "lk-artist" }, sg.artist) : null, sg.artist && sg.title ? " – " : null, sg.title ? el("span", { class: "lk-title" }, sg.title) : null);
-      const edit = () => { // fix what was read
-        const a = el("input", { type: "text", value: sg.artist, placeholder: "Artist", class: "lk-in" }), t = el("input", { type: "text", value: sg.title, placeholder: "Title", class: "lk-in" });
-        const save = () => { const next = songs.slice(); next[k] = { artist: a.value.trim(), title: t.value.trim() }; set({ songs: next }); };
-        const keys = (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.stopPropagation(); drawLookupList(); } };
-        a.addEventListener("keydown", keys); t.addEventListener("keydown", keys);
-        row.replaceChildren(a, t, el("button", { class: "when-link", onclick: save }, "Save"), el("button", { class: "when-link", onclick: () => drawLookupList() }, "Cancel"));
-        a.focus();
-      };
-      const q = lkQuery(sg);
-      const row = el("div", { class: "lk-song" }, name,
-        el("span", { class: "lk-btns" },
-          el("a", { class: "when-link", href: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q), target: "_blank", rel: "noopener" }, "Youtube"),
-          el("a", { class: "when-link", href: "https://www.google.com/search?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener" }, "Google"),
-          el("button", { class: "when-link", onclick: () => {
-            if ($("#addPanel").hidden) toggleHeaderForm();
-            const f = $("#addPanel form"); if (f && f.title) { f.title.value = [sg.artist, sg.title].filter(Boolean).join(" – "); (f.url || f.title).focus(); }
-          } }, "Add"),
-          phone() ? null : el("button", { class: "when-link lk-edit", onclick: edit }, "Edit")));
-      if (x._edit === k) { delete x._edit; requestAnimationFrame(edit); }
-      return row;
-    };
-    const status = !x.read_ts ? el("p", { class: "lk-note" }, lk.reads ? "Reading…" : "Not read (no Gemini key on the server).")
-      : x.read_err ? el("p", { class: "lk-note err" }, "Couldn't read it: " + x.read_err)
-      : !songs.length ? el("p", { class: "lk-note" }, "No song found in it.") : null;
-    const del = el("button", { class: "when-link lk-del", onclick: async (e) => {
-      const b = e.currentTarget;
-      if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirm"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Delete"; } }, 4000); return; }
-      try { await lkApi("/lookup/del", { id: x.id }); } catch (err) { lk.error = err.message; }
-      renderLookup();
-    } }, "Delete");
-    return el("li", { class: "lk-item" },
-      el("button", { class: "lk-thumb" + (isVideo(x) ? " lk-vid" : ""), "aria-label": isVideo(x) ? "Play the video" : "Show the whole image", onclick: () => lkView(x) }, lkMedia(x)),
-      el("div", { class: "lk-body" },
-        songs.map(songRow), status,
-        x.text ? el("p", { class: "lk-text" }, x.text) : null,
-        el("div", { class: "lk-foot" },
-          el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.from === "phone" ? " · Phone" : "")),
-          el("span", { class: "lk-btns" },
-            !songs.length && !phone() ? el("button", { class: "when-link", onclick: () => { x.songs = [{ artist: "", title: "" }]; x._edit = 0; drawLookupList(); } }, "Type it") : null,
-            x.read_ts ? el("button", { class: "when-link", onclick: async () => { try { await lkApi("/lookup/read", { id: x.id }); } catch (e) { lk.error = e.message; } renderLookup(); } }, "Read again") : null,
-            el("button", { class: "when-link" + (x.done ? " on" : ""), onclick: () => set({ done: !x.done }) }, x.done ? "Not done" : "Done"),
-            del))));
-  })));
+  list.replaceChildren(el("ul", { class: "lk-list" }, rows.map(lkItemNode)));
 }
 /* Lookup on the computer: drop images anywhere on the page, or paste one */
 addEventListener("dragover", (e) => { if (view === "lookup" && getToken() && [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file")) { e.preventDefault(); document.body.classList.add("lk-drop"); } });
