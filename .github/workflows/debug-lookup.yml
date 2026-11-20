@@ -14,6 +14,7 @@ jobs:
           set +e
           W="npx --yes wrangler@4"
           cd worker
+          id=$($W d1 list --json | jq -r '.[] | select(.name=="nrgfm-activity") | .uuid'); sed -i "s/DATABASE_ID/$id/" wrangler.toml
           q() { $W d1 execute nrgfm-activity --remote --json --command "$1" 2>/dev/null | jq -c 'if type=="array" then .[0].results else . end'; }
           echo "ROWS:"; q "SELECT id, ts, type, size, src, read_ts, read_err FROM lookup ORDER BY ts DESC LIMIT 10"
           old=$(q "SELECT v FROM settings WHERE k='upkey'" | jq -r '.[0].v'); [ -n "$old" ] && [ "$old" != null ] || { echo no-old-key; exit 1; }
