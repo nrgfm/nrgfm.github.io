@@ -2162,3 +2162,5 @@
 {"action": "tag", "ids": ["t1994495507233830_0"], "add": ["soundtrack", "anime theme"], "remove": [], "ts": 1795204336}
 {"action": "tag", "ids": ["t1993334240683290_0"], "add": ["soundtrack"], "remove": [], "ts": 1795204376}
 {"action": "tag", "ids": ["t1993334240683290_0"], "add": ["synth theme"], "remove": [], "ts": 1795204427}
+{"action": "tag", "ids": ["t2001942109822503_0"], "add": ["new age"], "remove": [], "ts": 1795204455}
+{"action": "edit", "thread": "p1949801175036597", "id": "t2001942109822503_0", "title": "Windsor Riley - Endlessly Moving, Always Alive (The Move of Life) (1988)", "url": "https://www.youtube.com/watch?v=Kd67GzMbRq8", "tags": ["duplicate", "new age"], "ts": 1795204468}
