@@ -12,3 +12,8 @@ crons = ["17 3 * * *"]   # once a day: plays older than a year are deleted
 binding = "DB"
 database_name = "nrgfm-activity"
 database_id = "DATABASE_ID"
+
+# Lookup: the screenshots and photos (private: only the Worker reads them). Made by the workflow if missing.
+[[r2_buckets]]
+binding = "SHOTS"
+bucket_name = "nrgfm-lookup"

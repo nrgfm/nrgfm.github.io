@@ -280,6 +280,7 @@ function runSearch() {
   if (terms.length) pageScrollTo(0); // results start at the top, wherever you were in the feed
   renderMore(terms.length ? 12 : PAGE); // search: the first results right away, more as you scroll
   if (!terms.length && view === "activity") renderActivity();
+  if (!terms.length && view === "lookup") renderLookup();
   if (!terms.length && tagsView()) renderTagsPage(); else hideTagPanel();
 }
 
@@ -344,7 +345,7 @@ function showWhy(row) {
 /* ---------- pages: Threads, Tags, Mixes, Genres, History (and Random) ----------
    The logo opens the menu. Search always looks through everything; clearing it returns to the page you were on. */
 let view = "threads";
-const VIEW_NAMES = { threads: "Threads", tags: "Tags", mixes: "Mixes", genres: "Genres", history: "History", activity: "Activity", tagged: "Archive", genreboxes: "Genres (one box each)", tagsold: "Tags (Oct 2026)", tagsrows: "Tags (Nov 2026)", tag: "Tag", threadsold: "Threads (Oct 2026)" };
+const VIEW_NAMES = { threads: "Threads", tags: "Tags", mixes: "Mixes", genres: "Genres", history: "History", activity: "Activity", lookup: "Lookup", tagged: "Archive", genreboxes: "Genres (one box each)", tagsold: "Tags (Oct 2026)", tagsrows: "Tags (Nov 2026)", tag: "Tag", threadsold: "Threads (Oct 2026)" };
 const slug = (g) => fold(g).replace(/ /g, "-");
 const newestFirst = (a, b) => b.ts - a.ts;
 function viewItems() {
@@ -355,7 +356,7 @@ function viewItems() {
   if (view === "genres") return gSel.length ? [genreMix()] : []; // no playlist until a genre is picked
   if (view === "genreboxes") return genreThreads(); // the earlier Genres page (#/genreboxes), kept as a backup
   if (view === "history") return historyMonths();
-  if (view === "activity") return []; // drawn by renderActivity
+  if (view === "activity" || view === "lookup") return []; // drawn by renderActivity / renderLookup
   if (view === "tagged") return threads.filter((t) => isBase(t) && t.tracks.some(userTagged));
   return threads.filter(isBase);
 }
@@ -662,6 +663,8 @@ function drawViewHead() {
     if (years.length) pickYear(years[0]);
   } else if (view === "activity") {
     head.replaceChildren(act.head); head.hidden = false; return;
+  } else if (view === "lookup") {
+    head.className = "view-head view-history view-lookup"; head.replaceChildren(lk.head); head.hidden = false; return;
   } else if (view === "tag") {
     head.className = "view-head view-tagpage"; head.replaceChildren(el("div", { class: "tp-page-head" }, drawTagPanel(true, true))); head.hidden = false; return;
   } else if (tagsView()) {
@@ -1831,7 +1834,7 @@ function session() { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY
 const keyHidden = () => { try { return !!getToken() && localStorage.getItem("nrgfm-key-hidden") === "1"; } catch { return false; } }; // the key's lock "closed": no tags under the tracks (all else stays)
 function level() { return getToken() ? 1 : (session() || {}).level || 4; }
 const canEdit = () => level() <= 2;
-const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, genres: 3, activity: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
+const VIEW_LEVEL = { tagged: 3, tags: 3, tag: 3, history: 3, genres: 3, activity: 1, lookup: 1, mixes: 2, tagsold: 1, tagsrows: 1, threadsold: 1 }; // the highest level that may open each page (others: all)
 const viewAllowed = (v, lv = level()) => lv <= (VIEW_LEVEL[v] || 4);
 let shownLevel = null, levelTimer = null;
 function updateCanAdd() {
@@ -3314,7 +3317,7 @@ addEventListener("scroll", () => placeTagPanel(), { passive: true });
 /* ---------- Activity: every play of 10 seconds or more is logged on the Activity server (worker/, on Cloudflare);
    only a device with the key can see the log. Each browser has a random id; devices with the key can be named. ---------- */
 let ACT_URL = "";
-fetch("data/worker.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : {})).then((d) => { ACT_URL = (d.url || "").replace(/\/$/, ""); if (view === "activity") renderActivity(); }).catch(() => {});
+fetch("data/worker.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : {})).then((d) => { ACT_URL = (d.url || "").replace(/\/$/, ""); if (view === "activity") renderActivity(); if (view === "lookup") renderLookup(); }).catch(() => {});
 const DEVICE_ID = (() => { try { let v = localStorage.getItem("nrgfm-did"); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, ""); localStorage.setItem("nrgfm-did", v); } return v; } catch { return "nostorage"; } })();
 let plog = null; // the play being logged now
 function sendPlay(final) {
@@ -4037,3 +4040,168 @@ document.addEventListener("click", (e) => {
   watchHistory(); watchIndex();
   checkSetupHash();
 })();
+
+/* Lookup (key only): screenshots and photos of songs to look up later. They come from the phone's share sheet (the
+   "Save to nrgfm" shortcut, with the upload key made here) or from Upload / dragging / pasting here. The artist and
+   title in each are read on the Activity server; Youtube and Google search for them, Add opens Add track with them. */
+const lk = { items: [], used: 0, max: 0, phoneKey: false, reads: true, done: false, token: 0, urls: new Map(), head: el("div", { class: "act-head lk-head" }), poll: null, newKey: null };
+const lkApi = (path, body) => fetch(ACT_URL + path, body === undefined ? { headers: { Authorization: "Bearer " + getToken() } }
+  : { method: "POST", headers: { Authorization: "Bearer " + getToken(), "Content-Type": "text/plain" }, body: JSON.stringify(body) })
+  .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "The Activity server answered " + r.status + "."); return d; });
+const lkFile = el("input", { type: "file", accept: "image/*", multiple: true, hidden: true, onchange: (e) => { lkUpload([...e.target.files]); e.target.value = ""; } });
+document.body.append(lkFile);
+async function lkUpload(files) {
+  files = files.filter((f) => f && /^image\//.test(f.type || "image/"));
+  if (!files.length || !getToken() || !ACT_URL) return;
+  lk.uploading = (lk.uploading || 0) + files.length; drawLookupHead();
+  for (const f of files) {
+    try {
+      const r = await fetch(ACT_URL + "/lookup/up", { method: "POST", headers: { Authorization: "Bearer " + getToken(), "Content-Type": f.type || "application/octet-stream" }, body: f });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); lk.error = d.error || "Upload failed (" + r.status + ")."; }
+    } catch { lk.error = "Upload failed: no connection."; }
+    lk.uploading--;
+  }
+  lk.done = false;
+  renderLookup();
+}
+async function renderLookup() {
+  const list = $("#threads"), token = ++lk.token;
+  clearTimeout(lk.poll);
+  if (!getToken()) { lk.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, "Lookup is only shown on a device with the key.")); return; }
+  if (!ACT_URL) { lk.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, "The Activity server isn't set up yet.")); return; }
+  if (!lk.items.length) list.replaceChildren(el("p", { class: "view-note" }, "Loading…"));
+  let d;
+  try { d = await lkApi("/lookup"); } catch (e) { if (token === lk.token) { lk.head.replaceChildren(); list.replaceChildren(el("p", { class: "view-note" }, e.message)); } return; }
+  if (token !== lk.token || view !== "lookup") return;
+  Object.assign(lk, { items: d.items || [], used: d.used || 0, max: d.max || 0, phoneKey: !!d.phoneKey, reads: d.reads !== false });
+  drawLookupHead(); drawLookupList();
+  // still being read: look again in a few seconds
+  if (lk.items.some((x) => !x.read_ts && Date.now() / 1000 - x.ts < 300)) lk.poll = setTimeout(() => { if (view === "lookup" && !$("#q").value.trim()) renderLookup(); }, 4000);
+}
+const lkMB = (n) => (n >= 1024 ** 3 ? (n / 1024 ** 3).toFixed(1) + " GB" : Math.max(1, Math.round(n / 1024 ** 2)) + " MB");
+function drawLookupHead() {
+  const todo = lk.items.filter((x) => !x.done).length, done = lk.items.length - todo;
+  const show = (d) => () => { lk.done = d; drawLookupHead(); drawLookupList(); };
+  const keyBtn = el("button", { class: "when-link", onclick: async () => {
+    if (lk.phoneKey && !lk.keyConfirm) { lk.keyConfirm = true; drawLookupHead(); setTimeout(() => { lk.keyConfirm = false; if (view === "lookup") drawLookupHead(); }, 5000); return; }
+    lk.keyConfirm = false;
+    try { lk.newKey = (await lkApi("/lookup/key", {})).key; lk.phoneKey = true; } catch (e) { lk.error = e.message; }
+    drawLookupHead();
+  } }, lk.keyConfirm ? "Confirm (the old key stops working)" : lk.phoneKey ? "New phone key" : "Phone key");
+  const keyBox = lk.newKey ? el("div", { class: "lk-key" },
+    el("span", { class: "lk-key-note" }, "Paste this into the shortcut on your phone. It's only shown now:"),
+    el("input", { type: "text", readonly: true, value: lk.newKey, class: "lk-key-val", onfocus: (e) => e.target.select() }),
+    el("button", { class: "when-link", onclick: async (e) => { try { await navigator.clipboard.writeText(lk.newKey); e.currentTarget.textContent = "Copied"; } catch {} } }, "Copy"),
+    el("button", { class: "when-link", onclick: () => { lk.newKey = null; drawLookupHead(); } }, "Hide")) : null;
+  const msg = lk.uploading ? `Uploading ${lk.uploading}…` : lk.error || "";
+  lk.head.replaceChildren(
+    el("div", { class: "act-row1 lk-row1" },
+      el("div", { class: "act-views lk-views" },
+        el("button", { class: "when-link" + (!lk.done ? " on" : ""), onclick: show(false) }, "To look up", el("span", { class: "gi-n" }, todo)),
+        el("button", { class: "when-link" + (lk.done ? " on" : ""), onclick: show(true) }, "Done", el("span", { class: "gi-n" }, done))),
+      el("span", { class: "lk-msg" + (lk.error && !lk.uploading ? " err" : "") }, msg),
+      el("div", { class: "act-views lk-tools" },
+        el("span", { class: "lk-used" }, lk.max ? `${lkMB(lk.used)} of ${lkMB(lk.max)}` : ""),
+        phone() ? null : keyBtn,
+        el("button", { class: "when-link lk-upload", onclick: () => { lk.error = ""; lkFile.click(); } }, "Upload"))),
+    ...(keyBox ? [keyBox] : []));
+  if (lk.error && !lk.uploading) { clearTimeout(lk.errT); lk.errT = setTimeout(() => { lk.error = ""; if (view === "lookup") drawLookupHead(); }, 8000); }
+  const head = $("#viewHead");
+  if (view === "lookup" && !$("#q").value.trim()) { head.className = "view-head view-history view-lookup"; head.replaceChildren(lk.head); head.hidden = false; }
+}
+function lkWhen(ts) {
+  const d = new Date(ts * 1000), now = new Date();
+  const t = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  if (d.toDateString() === now.toDateString()) return "Today " + t;
+  if (d.toDateString() === new Date(now - 864e5).toDateString()) return "Yesterday " + t;
+  return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + (d.getFullYear() !== now.getFullYear() ? " " + d.getFullYear() : "") + " " + t;
+}
+function lkImage(id, node) { // the images need the key, so they are fetched and shown from memory
+  if (lk.urls.has(id)) { node.src = lk.urls.get(id); return; }
+  fetch(ACT_URL + "/lookup/img?id=" + encodeURIComponent(id), { headers: { Authorization: "Bearer " + getToken() } })
+    .then((r) => (r.ok ? r.blob() : null)).then((b) => { if (!b) return; const u = URL.createObjectURL(b); lk.urls.set(id, u); node.src = u; }).catch(() => {});
+}
+const lkSeen = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { lkSeen.unobserve(e.target); lkImage(e.target.dataset.id, e.target); } }, { rootMargin: "600px" });
+function lkView(x) { // the whole image, over the page (click or Esc closes it)
+  const im = el("img", { class: "lk-big", alt: "" });
+  const box = el("div", { class: "lk-viewer", onclick: () => close() }, im);
+  const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  const close = () => { box.remove(); removeEventListener("keydown", key, true); };
+  addEventListener("keydown", key, true);
+  document.body.append(box); lkImage(x.id, im);
+}
+const lkQuery = (sg) => [sg.artist, sg.title].filter(Boolean).join(" ");
+function drawLookupList() {
+  const list = $("#threads");
+  const rows = lk.items.filter((x) => !!x.done === lk.done);
+  if (!rows.length) {
+    list.replaceChildren(el("p", { class: "view-note" }, lk.done ? "Nothing marked done yet." : lk.items.length ? "Everything has been looked up."
+      : phone() ? "Nothing saved yet. Share a screenshot to “Save to nrgfm”." : "Nothing saved yet. Upload, drag images here, or paste one (⌘V). On the phone: share a screenshot to “Save to nrgfm”."));
+    return;
+  }
+  list.replaceChildren(el("ul", { class: "lk-list" }, rows.map((x) => {
+    const im = el("img", { class: "lk-img", alt: "", "data-id": x.id });
+    lkSeen.observe(im);
+    const songs = x.songs || [];
+    const set = async (body) => { try { await lkApi("/lookup/set", { id: x.id, ...body }); } catch (e) { lk.error = e.message; } renderLookup(); };
+    const songRow = (sg, k) => {
+      const name = el("span", { class: "lk-song-name" },
+        sg.artist ? el("span", { class: "lk-artist" }, sg.artist) : null, sg.artist && sg.title ? " – " : null, sg.title ? el("span", { class: "lk-title" }, sg.title) : null);
+      const edit = () => { // fix what was read
+        const a = el("input", { type: "text", value: sg.artist, placeholder: "Artist", class: "lk-in" }), t = el("input", { type: "text", value: sg.title, placeholder: "Title", class: "lk-in" });
+        const save = () => { const next = songs.slice(); next[k] = { artist: a.value.trim(), title: t.value.trim() }; set({ songs: next }); };
+        const keys = (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.stopPropagation(); drawLookupList(); } };
+        a.addEventListener("keydown", keys); t.addEventListener("keydown", keys);
+        row.replaceChildren(a, t, el("button", { class: "when-link", onclick: save }, "Save"), el("button", { class: "when-link", onclick: () => drawLookupList() }, "Cancel"));
+        a.focus();
+      };
+      const q = lkQuery(sg);
+      const row = el("div", { class: "lk-song" }, name,
+        el("span", { class: "lk-btns" },
+          el("a", { class: "when-link", href: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q), target: "_blank", rel: "noopener" }, "Youtube"),
+          el("a", { class: "when-link", href: "https://www.google.com/search?q=" + encodeURIComponent(q), target: "_blank", rel: "noopener" }, "Google"),
+          el("button", { class: "when-link", onclick: () => {
+            if ($("#addPanel").hidden) toggleHeaderForm();
+            const f = $("#addPanel form"); if (f && f.title) { f.title.value = [sg.artist, sg.title].filter(Boolean).join(" – "); (f.url || f.title).focus(); }
+          } }, "Add"),
+          phone() ? null : el("button", { class: "when-link lk-edit", onclick: edit }, "Edit")));
+      if (x._edit === k) { delete x._edit; requestAnimationFrame(edit); }
+      return row;
+    };
+    const status = !x.read_ts ? el("p", { class: "lk-note" }, lk.reads ? "Reading…" : "Not read (no Gemini key on the server).")
+      : x.read_err ? el("p", { class: "lk-note err" }, "Couldn't read it: " + x.read_err)
+      : !songs.length ? el("p", { class: "lk-note" }, "No song found in it.") : null;
+    const del = el("button", { class: "when-link lk-del", onclick: async (e) => {
+      const b = e.currentTarget;
+      if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Confirm"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Delete"; } }, 4000); return; }
+      try { await lkApi("/lookup/del", { id: x.id }); } catch (err) { lk.error = err.message; }
+      renderLookup();
+    } }, "Delete");
+    return el("li", { class: "lk-item" },
+      el("button", { class: "lk-thumb", "aria-label": "Show the whole image", onclick: () => lkView(x) }, im),
+      el("div", { class: "lk-body" },
+        songs.map(songRow), status,
+        x.text ? el("p", { class: "lk-text" }, x.text) : null,
+        el("div", { class: "lk-foot" },
+          el("span", { class: "lk-when" }, lkWhen(x.ts) + (x.src === "phone" ? " · Phone" : "")),
+          el("span", { class: "lk-btns" },
+            !songs.length && !phone() ? el("button", { class: "when-link", onclick: () => { x.songs = [{ artist: "", title: "" }]; x._edit = 0; drawLookupList(); } }, "Type it") : null,
+            x.read_ts ? el("button", { class: "when-link", onclick: async () => { try { await lkApi("/lookup/read", { id: x.id }); } catch (e) { lk.error = e.message; } renderLookup(); } }, "Read again") : null,
+            el("button", { class: "when-link" + (x.done ? " on" : ""), onclick: () => set({ done: !x.done }) }, x.done ? "Not done" : "Done"),
+            del))));
+  })));
+}
+/* Lookup on the computer: drop images anywhere on the page, or paste one */
+addEventListener("dragover", (e) => { if (view === "lookup" && getToken() && [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file")) { e.preventDefault(); document.body.classList.add("lk-drop"); } });
+addEventListener("dragleave", (e) => { if (!e.relatedTarget) document.body.classList.remove("lk-drop"); });
+addEventListener("drop", (e) => {
+  document.body.classList.remove("lk-drop");
+  if (view !== "lookup" || !getToken()) return;
+  const files = [...(e.dataTransfer?.files || [])];
+  if (files.length) { e.preventDefault(); lkUpload(files); }
+});
+addEventListener("paste", (e) => {
+  if (view !== "lookup" || !getToken() || (e.target && e.target.closest && e.target.closest("input, textarea"))) return;
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); lkUpload(files); }
+});

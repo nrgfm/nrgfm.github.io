@@ -14,12 +14,21 @@
    POST /passwords (key)  {level2, level3}: set (or "" to turn off) the passwords
    GET  /passwords (key)  which are set
    GET  /logins   (key)  the logins (?days=)
+   POST /lookup/up   (key, or the phone's upload key: Authorization: Upload …) one image (the body itself, or form
+                  fields "file"): saved in R2 (bucket nrgfm-lookup); the artist and title in it are read by Gemini
+   GET  /lookup      (key)  the saved images, newest first
+   GET  /lookup/img  (key)  one image (?id=)
+   POST /lookup/set  (key)  {id, done} or {id, songs} (corrected by hand)
+   POST /lookup/read (key)  {id}: read it again
+   POST /lookup/del  (key)  {id}: deleted for good (the image too)
+   POST /lookup/key  (key)  a new upload key for the phone (the old one stops working); shown once
    "key": the site's GitHub key (Authorization: Bearer …), accepted when it can write to the nrgfm repository. */
 const REPO = "nrgproduct/nrgfm";
 const ORIGINS = ["https://nrgproduct.github.io", "http://localhost:8765", "http://127.0.0.1:8765"];
 const YEAR = 365 * 86400;
 const SESSION = 12 * 3600;  // a password login lasts 12 hours
 const LEVEL2 = new Set(["", "edit", "tag"]); // what a level-2 login may save: new tracks, edits, tag changes
+const LOOKUP_MAX = 2 * 1024 ** 3; // the Lookup images stay under 2 GB (R2's free plan: 10 GB, shared with the backups)
 const okKeys = new Map(); // key hash -> time it was checked (checked again after 10 minutes)
 
 function cors(req) {
@@ -61,9 +70,96 @@ async function session(req, env) {
   const row = await env.DB.prepare("SELECT level, who, exp FROM sessions WHERE h = ?1").bind(await sha(t)).first();
   return row && row.exp > Math.floor(Date.now() / 1000) ? row : null;
 }
+/* Lookup: read the songs in a screenshot or photo with Gemini (the repository's GEMINI_API_KEY, as the Worker secret GEMINI_KEY) */
+const GEMINI = "https://generativelanguage.googleapis.com/v1beta/";
+let models = null;
+async function geminiModels(env) {
+  if (models) return models;
+  const r = await fetch(GEMINI + "models?pageSize=200", { headers: { "x-goog-api-key": env.GEMINI_KEY } });
+  if (!r.ok) throw new Error("Gemini answered " + r.status);
+  const names = ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map((m) => m.name.split("/").pop()).filter((n) => /^gemini-\d+(\.\d+)?-flash$/.test(n));
+  if (!names.length) throw new Error("no Gemini Flash model for this key");
+  return (models = [...new Set(names)].sort((a, b) => parseFloat(b.match(/\d+(\.\d+)?/)[0]) - parseFloat(a.match(/\d+(\.\d+)?/)[0])));
+}
+const READ_PROMPT = `This is a screenshot or a photo someone took to remember a song: usually an Instagram post or reel, or a
+screen playing YouTube, Spotify, SoundCloud, Shazam or similar. Find every song shown in it.
+On Instagram the song is the line with a music note under the account name or at the bottom, written "Artist · Title"
+(it scrolls, so it may be cut off: give what is visible). "Original audio" / "Originalton" means the account's own sound:
+then give the account name as the artist and leave the title empty. On YouTube the video title usually holds artist and title.
+Only give what can be read in the image; do not guess a song from the picture alone.
+Answer JSON only: {"songs": [{"artist": "...", "title": "..."}], "text": "other words in the image that would help find it (account name, caption words), at most 120 characters"}
+"songs" is empty when there is no song in it.`;
+async function readImage(env, id) {
+  const now = () => Math.floor(Date.now() / 1000);
+  try {
+    if (!env.GEMINI_KEY) throw new Error("no Gemini key on the server");
+    const obj = await env.SHOTS.get(id);
+    if (!obj) throw new Error("image not found");
+    const buf = await obj.arrayBuffer(), type = (obj.httpMetadata && obj.httpMetadata.contentType) || "image/jpeg";
+    // the image goes to Gemini's file store as it is (turning it into text here would use more of the Worker's CPU time than the free plan gives)
+    const start = await fetch(GEMINI.replace("/v1beta/", "/upload/v1beta/files"), { method: "POST", headers: { "x-goog-api-key": env.GEMINI_KEY,
+      "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": String(buf.byteLength),
+      "X-Goog-Upload-Header-Content-Type": type, "Content-Type": "application/json" }, body: JSON.stringify({ file: { display_name: "nrgfm-lookup-" + id } }) });
+    const to = start.ok && start.headers.get("x-goog-upload-url");
+    if (!to) throw new Error("Gemini didn't take the image (" + start.status + ")");
+    const up = await fetch(to, { method: "POST", headers: { "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize" }, body: buf });
+    const file = up.ok ? (await up.json()).file : null;
+    if (!file || !file.uri) throw new Error("Gemini didn't take the image (" + up.status + ")");
+    let last = null;
+    for (const m of await geminiModels(env)) {
+      const r = await fetch(GEMINI + `models/${m}:generateContent`, { method: "POST", headers: { "x-goog-api-key": env.GEMINI_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ file_data: { mime_type: type, file_uri: file.uri } }, { text: READ_PROMPT }] }],
+          generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
+      if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429 || r.status >= 500 || r.status === 404) continue; break; }
+      const d = await r.json();
+      const text = ((d.candidates || [])[0]?.content?.parts || []).map((p) => p.text || "").join("");
+      const a = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      const songs = (Array.isArray(a.songs) ? a.songs : []).slice(0, 10)
+        .map((x) => ({ artist: String(x.artist || "").trim().slice(0, 200), title: String(x.title || "").trim().slice(0, 200) })).filter((x) => x.artist || x.title);
+      await env.DB.prepare("UPDATE lookup SET songs = ?2, text = ?3, read_ts = ?4, read_err = NULL WHERE id = ?1")
+        .bind(id, JSON.stringify(songs), String(a.text || "").slice(0, 200), now()).run();
+      return;
+    }
+    throw new Error(last || "no answer");
+  } catch (e) {
+    await env.DB.prepare("UPDATE lookup SET read_ts = ?2, read_err = ?3 WHERE id = ?1").bind(id, now(), String(e && e.message || e).slice(0, 200)).run();
+  }
+}
+const IMAGE_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic", "image/heif": "heif", "image/webp": "webp", "image/gif": "gif" };
+async function saveImages(req, env, ctx, src) {
+  const files = [];
+  const ct = (req.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+  if (ct === "multipart/form-data") {
+    const f = await req.formData();
+    for (const v of f.getAll("file")) if (v && typeof v === "object") files.push({ type: (v.type || "").toLowerCase(), buf: await v.arrayBuffer() });
+  } else files.push({ type: ct, buf: await req.arrayBuffer() });
+  const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM lookup").first()).n;
+  let total = used;
+  const ids = [];
+  for (const f of files) {
+    let type = f.type;
+    if (!IMAGE_TYPES[type]) { // (the phone may send no type: look at the first bytes)
+      const b = new Uint8Array(f.buf.slice(0, 12));
+      type = b[0] === 0xff && b[1] === 0xd8 ? "image/jpeg" : b[0] === 0x89 && b[1] === 0x50 ? "image/png"
+        : String.fromCharCode(...b.slice(4, 12)).match(/ftyp(heic|heix|mif1|heif)/) ? "image/heic" : null;
+    }
+    if (!type) return { error: "not an image", status: 415 };
+    if (!f.buf.byteLength || f.buf.byteLength > 25 * 1024 ** 2) return { error: "image too big (25 MB at most)", status: 413 };
+    if (total + f.buf.byteLength > LOOKUP_MAX) return { error: "Lookup is full (2 GB): delete some images first", status: 507 };
+    total += f.buf.byteLength;
+    const id = Date.now().toString(36) + "-" + rand(4) + "." + IMAGE_TYPES[type];
+    await env.SHOTS.put(id, f.buf, { httpMetadata: { contentType: type } });
+    await env.DB.prepare("INSERT INTO lookup (id, ts, type, size, src) VALUES (?1, ?2, ?3, ?4, ?5)")
+      .bind(id, Math.floor(Date.now() / 1000), type, f.buf.byteLength, src).run();
+    ctx.waitUntil(readImage(env, id));
+    ids.push(id);
+  }
+  return { ids };
+}
 const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
     const url = new URL(req.url), path = url.pathname.replace(/\/+$/, "") || "/";
     try {
@@ -135,7 +231,59 @@ export default {
           body: JSON.stringify({ message: (kind ? kind[0].toUpperCase() + kind.slice(1) : "Add") + " track (password login)", content: b64(text) }) });
         return r.ok ? json(req, { ok: true }) : json(req, { error: "GitHub answered " + r.status }, 502);
       }
+      if (path === "/lookup/up" && req.method === "POST") { // (before the key check: the phone uses its own upload key)
+        const auth = req.headers.get("Authorization") || "";
+        let src = "upload";
+        if (/^Upload\s+/i.test(auth)) {
+          const k = auth.replace(/^Upload\s+/i, "").trim(), row = await env.DB.prepare("SELECT v FROM settings WHERE k = 'upkey'").first();
+          if (!k || !row || row.v !== (await sha(k))) return json(req, { error: "wrong upload key" }, 401);
+          src = "phone";
+        } else if (!(await isOwner(req))) return json(req, { error: "key needed" }, 401);
+        if (!env.SHOTS) return json(req, { error: "no image storage on the server yet" }, 503);
+        const r = await saveImages(req, env, ctx, src);
+        return r.error ? json(req, { error: r.error }, r.status) : json(req, { ok: true, ids: r.ids });
+      }
       if (!(await isOwner(req))) return json(req, { error: "key needed" }, 401);
+      if (path.startsWith("/lookup")) {
+        if (!env.SHOTS) return json(req, { error: "no image storage on the server yet" }, 503);
+        if (path === "/lookup" && req.method === "GET") {
+          const { results } = await env.DB.prepare("SELECT * FROM lookup ORDER BY ts DESC LIMIT 2000").all();
+          const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM lookup").first()).n;
+          const key = await env.DB.prepare("SELECT 1 FROM settings WHERE k = 'upkey'").first();
+          return json(req, { items: results.map((r) => ({ ...r, songs: r.songs ? JSON.parse(r.songs) : null })), used, max: LOOKUP_MAX, phoneKey: !!key, reads: !!env.GEMINI_KEY });
+        }
+        if (path === "/lookup/img") {
+          const id = url.searchParams.get("id") || "", obj = /^[\w.-]+$/.test(id) ? await env.SHOTS.get(id) : null;
+          if (!obj) return json(req, { error: "not found" }, 404);
+          return new Response(obj.body, { headers: { "Content-Type": (obj.httpMetadata && obj.httpMetadata.contentType) || "image/jpeg", "Cache-Control": "private, max-age=31536000, immutable", ...cors(req) } });
+        }
+        if (req.method !== "POST") return json(req, { error: "not found" }, 404);
+        if (path === "/lookup/key") {
+          const k = rand(24);
+          await env.DB.prepare("INSERT INTO settings (k, v) VALUES ('upkey', ?1) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(await sha(k)).run();
+          return json(req, { key: k });
+        }
+        const p = await req.json().catch(() => ({}));
+        const id = str(p.id, 80);
+        if (!id || !(await env.DB.prepare("SELECT 1 FROM lookup WHERE id = ?1").bind(id).first())) return json(req, { error: "not found" }, 404);
+        if (path === "/lookup/set") {
+          if (typeof p.done === "boolean") await env.DB.prepare("UPDATE lookup SET done = ?2 WHERE id = ?1").bind(id, p.done ? Math.floor(Date.now() / 1000) : 0).run();
+          if (Array.isArray(p.songs)) await env.DB.prepare("UPDATE lookup SET songs = ?2 WHERE id = ?1").bind(id, JSON.stringify(p.songs.slice(0, 10)
+            .map((x) => ({ artist: String((x && x.artist) || "").slice(0, 200), title: String((x && x.title) || "").slice(0, 200) })).filter((x) => x.artist || x.title))).run();
+          return json(req, { ok: true });
+        }
+        if (path === "/lookup/read") {
+          await env.DB.prepare("UPDATE lookup SET read_ts = NULL, read_err = NULL WHERE id = ?1").bind(id).run();
+          ctx.waitUntil(readImage(env, id));
+          return json(req, { ok: true });
+        }
+        if (path === "/lookup/del") {
+          await env.SHOTS.delete(id);
+          await env.DB.prepare("DELETE FROM lookup WHERE id = ?1").bind(id).run();
+          return json(req, { ok: true });
+        }
+        return json(req, { error: "not found" }, 404);
+      }
       if (path === "/passwords") {
         if (req.method === "POST") {
           const p = await req.json().catch(() => ({}));

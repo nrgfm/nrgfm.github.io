@@ -25,6 +25,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WRITE_TOKEN: ${{ secrets.NRGFM_WRITE_TOKEN }}
+      GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
       CI: "true"
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +47,8 @@ jobs:
           [ -n "$id" ] || { echo "could not create the database"; exit 1; }
           sed -i "s/DATABASE_ID/$id/" wrangler.toml
           $W d1 execute nrgfm-activity --remote --file schema.sql
+          # Lookup's images: a private R2 bucket in Western Europe
+          $W r2 bucket list 2>&1 | grep -q "name:\s*nrgfm-lookup$" || $W r2 bucket create nrgfm-lookup --location weur
           $W deploy 2>&1 | tee deploy.log
           url=$(grep -o 'https://[a-z0-9.-]*\.workers\.dev' deploy.log | head -1)
           [ -n "$url" ] || { echo "no workers.dev address in the output (is a workers.dev subdomain set up in the Cloudflare dashboard?)"; exit 1; }
@@ -53,6 +56,8 @@ jobs:
           echo "Activity server: $url"
           # level-2 password logins save edits through the server with this key (repository secret NRGFM_WRITE_TOKEN)
           if [ -n "$WRITE_TOKEN" ]; then printf %s "$WRITE_TOKEN" | $W secret put GH_WRITE; else echo "::warning::No NRGFM_WRITE_TOKEN secret: level-2 logins can look but not save."; fi
+          # Lookup reads the artist and title in each image with the repository's Gemini key
+          if [ -n "$GEMINI_KEY" ]; then printf %s "$GEMINI_KEY" | $W secret put GEMINI_KEY; else echo "::warning::No GEMINI_API_KEY secret: Lookup can't read the images."; fi
       - name: Save the address
         env:
           GH_TOKEN: ${{ github.token }}

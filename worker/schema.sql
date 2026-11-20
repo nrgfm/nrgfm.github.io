@@ -29,3 +29,15 @@ CREATE TABLE IF NOT EXISTS logins (
 );
 CREATE INDEX IF NOT EXISTS logins_ts ON logins(ts);
 CREATE TABLE IF NOT EXISTS sessions (h TEXT PRIMARY KEY, level INTEGER NOT NULL, who TEXT, exp INTEGER NOT NULL);
+-- Lookup: screenshots and photos of songs to look up later (the images themselves are in R2, bucket nrgfm-lookup)
+CREATE TABLE IF NOT EXISTS lookup (
+  id TEXT PRIMARY KEY,      -- also the image's name in R2
+  ts INTEGER NOT NULL,      -- when it was saved
+  type TEXT, size INTEGER,
+  src TEXT,                 -- "phone" (the share sheet) or "upload" (the site)
+  songs TEXT,               -- JSON [{artist, title}] read from the image (or corrected by hand)
+  text TEXT,                -- other words in it that help
+  read_ts INTEGER, read_err TEXT,
+  done INTEGER DEFAULT 0    -- when it was marked done (0: still to look up)
+);
+CREATE INDEX IF NOT EXISTS lookup_ts ON lookup(ts);
