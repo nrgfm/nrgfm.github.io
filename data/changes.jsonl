@@ -2201,3 +2201,4 @@
 {"url": "https://www.youtube.com/watch?v=WYQVTZpVgGY", "title": "Patrick Cowley - Sea Hunt (1981)", "thread": "p1949801175036597", "tags": [], "ts": 1795300564}
 {"action": "tag", "ids": ["t1795300564_0"], "add": ["synth theme"], "remove": [], "ts": 1795300577}
 {"url": "https://www.youtube.com/watch?v=fEcZ6AVgpfs", "title": "山口美央子 Mioko Yamaguchi - さても天晴 夢桜 Satemo Apparé Yumezakura (1983 5th single)", "thread": "p1949801175036597", "tags": ["eclectic 80s"], "ts": 1795300739}
+{"action": "edit", "thread": "p1949801175036597", "id": "t1795300739_0", "title": "山口美央子 Mioko Yamaguchi - さても天晴 夢桜 Satemo Apparé Yume-Zakura (1983 5th single)", "url": "https://www.youtube.com/watch?v=zYNichCgcL8", "tags": ["eclectic 80s"], "ts": 1795300795}
