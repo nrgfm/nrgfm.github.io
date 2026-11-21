@@ -862,16 +862,15 @@ const markThread = (id) => { // the address remembers the post (a reload comes b
   history.replaceState(null, "", location.pathname + "#t/" + encodeURIComponent(id));
   try { sessionStorage.setItem("nrgfm-last-post", id); } catch {}
 };
-/* Backspace (not while typing): back to the post in the address, or the last one that was there before going to
-   another page; the address points at it again */
+/* Cmd+Esc (Ctrl+Esc): back to the post in the address, or the last one that was there before going to another page;
+   the address points at it again (also from the search field) */
 addEventListener("keydown", (e) => {
-  if (e.key !== "Backspace" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return;
-  if (e.target.closest && e.target.closest("input:not([type=range]), textarea, select, [contenteditable]")) return;
+  if (e.key !== "Escape" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.repeat) return;
   const m = location.hash.match(/^#t\/(.+)$/);
   let id = m ? m[1] : null; try { id = id ? decodeURIComponent(id) : sessionStorage.getItem("nrgfm-last-post"); } catch {}
   const t = id && threads.find((x) => x.id === id && x.kind !== "tag" && isBase(x));
   if (!t) return;
-  e.preventDefault();
+  e.preventDefault(); e.stopImmediatePropagation();
   if (view !== "threads") setView("threads");
   goToThread(t); markThread(t.id);
 });
@@ -2832,13 +2831,13 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("button, a");
   if (b && !b.closest(".add-form, .quick-tag")) setTimeout(() => { if (document.activeElement === b) b.blur(); }, 0);
 });
-/* Cmd+Esc (Ctrl+Esc, or Shift+Esc): like the player's × (computer: the video goes, the bar stays). Caught first.
+/* Cmd+Backspace (Ctrl+Backspace): like the player's × (computer: the video goes, the bar stays). Caught first.
    Cmd+Left/Right: previous/next track in the thread or tag; Cmd+Up/Down: volume in steps of 2. */
 addEventListener("keydown", (e) => {
-  if (!(e.metaKey || e.ctrlKey || (e.shiftKey && e.key === "Escape")) || e.altKey) return;
+  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
   const inField = e.target.closest && e.target.closest("input:not([type=range]), textarea, [contenteditable]");
-  if (e.key === "Escape" && playing) { e.preventDefault(); e.stopPropagation(); closeDock(); return; }
-  if (e.key === "Backspace" && playing && (e.metaKey || e.ctrlKey) && !inField) { e.preventDefault(); e.stopPropagation(); closeDock(); return; } // Cmd+Backspace: the same
+  if (e.key === "Escape") return; // (Cmd+Esc: back to the post, see markThread)
+  if (e.key === "Backspace" && playing && !inField) { e.preventDefault(); e.stopPropagation(); closeDock(); return; } // Cmd+Backspace: like the player's ×
   if (inField || $("#dock").hidden || e.shiftKey) return;
   if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && playing) {
     e.preventDefault(); e.stopPropagation(); // (instead of the browser's Back/Forward)
