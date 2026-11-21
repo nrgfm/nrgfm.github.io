@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>nrgfm key test</title>
+<style>body{background:#161c24;color:#dde5ee;font:15px ui-monospace,Menlo,monospace;padding:24px}p{color:#8b99a8;font-family:system-ui}#log div{padding:2px 0}</style>
+<p>Click this page once, then press Cmd+Esc, then Ctrl+Esc, then Cmd+Backspace. Every key the page receives is listed (newest first).</p>
+<div id="log"></div>
+<script>
+const log = document.getElementById("log");
+for (const type of ["keydown", "keyup"]) addEventListener(type, (e) => {
+  const mods = [e.metaKey && "Cmd", e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift"].filter(Boolean).join("+");
+  const d = document.createElement("div");
+  d.textContent = `${type.padEnd(7)} key=${JSON.stringify(e.key)} code=${e.code} mods=${mods || "-"}`;
+  log.prepend(d);
+  if (e.key === "Escape" || e.key === "Backspace") e.preventDefault();
+}, true);
+</script>
