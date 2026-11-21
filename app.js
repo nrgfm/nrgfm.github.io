@@ -858,7 +858,23 @@ function duplicatesOf(tr) {
 let dupFilter = null; // {q, ids}: the search shows exactly these tracks (cleared when the search changes)
 /* a post's date (and "source" in the player): Cmd+click (Ctrl+click on Windows) opens that thread in a new tab */
 const openThreadTab = (id) => open(location.pathname + "#t/" + encodeURIComponent(id), "_blank");
-const markThread = (id) => history.replaceState(null, "", location.pathname + "#t/" + encodeURIComponent(id)); // the address remembers the post (a reload comes back to it)
+const markThread = (id) => { // the address remembers the post (a reload comes back to it); Backspace too, also from other pages
+  history.replaceState(null, "", location.pathname + "#t/" + encodeURIComponent(id));
+  try { sessionStorage.setItem("nrgfm-last-post", id); } catch {}
+};
+/* Backspace (not while typing): back to the post in the address, or the last one that was there before going to
+   another page; the address points at it again */
+addEventListener("keydown", (e) => {
+  if (e.key !== "Backspace" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.target.closest && e.target.closest("input:not([type=range]), textarea, select, [contenteditable]")) return;
+  const m = location.hash.match(/^#t\/(.+)$/);
+  let id = m ? m[1] : null; try { id = id ? decodeURIComponent(id) : sessionStorage.getItem("nrgfm-last-post"); } catch {}
+  const t = id && threads.find((x) => x.id === id && x.kind !== "tag" && isBase(x));
+  if (!t) return;
+  e.preventDefault();
+  if (view !== "threads") setView("threads");
+  goToThread(t); markThread(t.id);
+});
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-thread]");
   if (!b) return;
