@@ -862,10 +862,11 @@ const markThread = (id) => { // the address remembers the post (a reload comes b
   history.replaceState(null, "", location.pathname + "#t/" + encodeURIComponent(id));
   try { sessionStorage.setItem("nrgfm-last-post", id); } catch {}
 };
-/* Cmd+Esc (Ctrl+Esc): back to the post in the address, or the last one that was there before going to another page;
-   the address points at it again (also from the search field) */
+/* Backspace (not while typing): back to the post in the address, or the last one that was there before going to
+   another page; the address points at it again. (Cmd+Esc was tried: on a Mac it doesn't reach the page.) */
 addEventListener("keydown", (e) => {
-  if (e.key !== "Escape" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.key !== "Backspace" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.target.closest && e.target.closest("input:not([type=range]), textarea, select, [contenteditable]")) return;
   const m = location.hash.match(/^#t\/(.+)$/);
   let id = m ? m[1] : null; try { id = id ? decodeURIComponent(id) : sessionStorage.getItem("nrgfm-last-post"); } catch {}
   const t = id && threads.find((x) => x.id === id && x.kind !== "tag" && isBase(x));
@@ -2836,7 +2837,6 @@ document.addEventListener("click", (e) => {
 addEventListener("keydown", (e) => {
   if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
   const inField = e.target.closest && e.target.closest("input:not([type=range]), textarea, [contenteditable]");
-  if (e.key === "Escape") return; // (Cmd+Esc: back to the post, see markThread)
   if (e.key === "Backspace" && playing && !inField) { e.preventDefault(); e.stopPropagation(); closeDock(); return; } // Cmd+Backspace: like the player's ×
   if (inField || $("#dock").hidden || e.shiftKey) return;
   if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && playing) {

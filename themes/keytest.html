@@ -1,14 +1,134 @@
-<!doctype html><meta charset="utf-8"><title>nrgfm key test</title>
-<style>body{background:#161c24;color:#dde5ee;font:15px ui-monospace,Menlo,monospace;padding:24px}p{color:#8b99a8;font-family:system-ui}#log div{padding:2px 0}</style>
-<p>Click this page once, then press Cmd+Esc, then Ctrl+Esc, then Cmd+Backspace. Every key the page receives is listed (newest first).</p>
-<div id="log"></div>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nrgfm: hotkeys</title>
+<style>
+  :root { --bg: #161c24; --surface: #1c2430; --text: #dde5ee; --muted: #8b99a8; --line: #2b3644; --jade: #8cb3d9; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, sans-serif; margin: 0; padding: 28px 24px 60px; }
+  main { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; } h1 a { color: var(--jade); text-decoration: none; }
+  .intro { color: var(--muted); margin: 0 0 22px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 26px 0 6px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 7px 10px; border-top: 1px dotted var(--line); vertical-align: baseline; transition: background .25s, color .25s; }
+  td:first-child { width: 230px; white-space: nowrap; padding-left: 6px; }
+  td.when { color: var(--muted); font-size: 13px; width: 210px; }
+  kbd { display: inline-block; min-width: 1.2em; text-align: center; font: 13px ui-monospace, Menlo, monospace; padding: 2px 7px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); color: var(--text); transition: background .2s, color .2s, border-color .2s; }
+  .plus { color: var(--muted); margin: 0 3px; font-size: 12px; }
+  tr.half kbd.down { border-color: var(--jade); color: var(--jade); }
+  tr.hit td { background: rgba(140, 179, 217, .16); }
+  tr.hit kbd, tr.hit kbd.down { background: var(--jade); color: var(--bg); border-color: var(--jade); }
+  .note { color: var(--muted); font-size: 13px; margin-top: 30px; }
+  details { margin-top: 26px; color: var(--muted); } summary { cursor: pointer; font-size: 13px; }
+  #log { font: 13px ui-monospace, Menlo, monospace; margin-top: 8px; max-height: 260px; overflow: auto; }
+  @media (max-width: 640px) { td:first-child { width: auto; white-space: normal; } td.when { display: none; } }
+</style>
+<main>
+<h1><a href="../">nrgfm</a>: hotkeys</h1>
+<p class="intro">Every keyboard shortcut on the site. Press one here and it lights up. On Windows, Ctrl works where it says Cmd.</p>
+<div id="list"></div>
+<p class="note">Cmd+Esc doesn't reach web pages on this Mac (something takes it first), so the site doesn't use it.</p>
+<details><summary>Every key this page receives</summary><div id="log"></div></details>
+</main>
 <script>
+// [keys shown, what it does, when it works, match: {k: key, m: "cmd"|"shift"|"alt"|"" , click: true}]
+const C = "Cmd", SECTIONS = [
+  ["Playing", [
+    [["Space"], "Play / pause", "a track is in the player", { k: " " }],
+    [["←"], "5 seconds back", "a track is playing", { k: "ArrowLeft" }],
+    [["→"], "5 seconds forward", "a track is playing", { k: "ArrowRight" }],
+    [["↑"], "Volume up (5)", "the player is there", { k: "ArrowUp" }],
+    [["↓"], "Volume down (5)", "the player is there", { k: "ArrowDown" }],
+    [[C, "←"], "Previous track in the thread or tag", "a track is playing", { k: "ArrowLeft", m: "cmd" }],
+    [[C, "→"], "Next track in the thread or tag", "a track is playing", { k: "ArrowRight", m: "cmd" }],
+    [[C, "↑"], "Volume up (2)", "the player is there", { k: "ArrowUp", m: "cmd" }],
+    [[C, "↓"], "Volume down (2)", "the player is there", { k: "ArrowDown", m: "cmd" }],
+    [[C, "Backspace"], "Close the player (like its ×)", "a track is playing", { k: "Backspace", m: "cmd" }],
+    [["Esc", "Esc"], "Back to the playing track (press twice quickly)", "a track is playing", { k: "Escape", twice: true }],
+  ]],
+  ["Moving around", [
+    [["Backspace"], "Back to the post in the address, or the last one before going to another page", "not while typing", { k: "Backspace" }],
+    [["Esc"], "Close open cards, the menu and the search", "anywhere", { k: "Escape" }],
+    [["a–z 0–9"], "Typing a letter or number anywhere starts a search", "not in a field", { letter: true }],
+    [["Enter"], "Search now (phone: puts the keyboard away)", "in the search field", { k: "Enter" }],
+    [[C, "click"], "Open in a new tab: a post's date, Source in the player, the logo, a tag", "computer", { click: "cmd" }],
+    [["Ctrl", "click"], "On a Mac: a post's date or Source in a new tab", "computer", { click: "ctrl" }],
+  ]],
+  ["Editing (with the key)", [
+    [[C, "Enter"], "Open the playing track's edit card; again: its More info", "a track is playing", { k: "Enter", m: "cmd" }],
+    [[C, "I"], "Edit card of the playing track; again: More info, Meta, then it closes", "a track is playing", { k: "i", m: "cmd" }],
+    [[C, "E"], "Quick tag field for the playing track (again: closes it)", "a track is playing", { k: "e", m: "cmd" }],
+    [[C, "click"], "Quick tag field for that track (a track, or the player's title)", "computer", { click: "cmd" }],
+  ]],
+  ["In a tag field (quick tags, edit card)", [
+    [["Enter"], "Use the suggestion (or what you typed); on an empty field: save", "", { k: "Enter" }],
+    [["Shift", "Enter"], "Save", "quick tags", { k: "Enter", m: "shift" }],
+    [[","], "Use the suggestion, keep typing the next tag", "", { k: "," }],
+    [["→"], "Use what you typed as it is (a new tag)", "at the end of the text", { k: "ArrowRight" }],
+    [["↑"], "Previous suggestion", "", { k: "ArrowUp" }],
+    [["↓"], "Next suggestion", "", { k: "ArrowDown" }],
+    [["Backspace"], "Mark the last tag; again: take it out", "empty field", { k: "Backspace" }],
+    [["←"], "Mark the tag before", "quick tags, at the start", { k: "ArrowLeft" }],
+    [["Esc"], "Close it (quick tags) / close the suggestions", "", { k: "Escape" }],
+  ]],
+  ["Other pages", [
+    [["Esc"], "Lookup: make an opened image small again", "Lookup", { k: "Escape" }],
+    [["Enter"], "Save (renaming a tag, correcting a line, the password)", "in that field", { k: "Enter" }],
+    [["Esc"], "Cancel (renaming, correcting, the password field)", "in that field", { k: "Escape" }],
+    [["Esc"], "Genres: empty the genre field", "Genres", { k: "Escape" }],
+  ]],
+];
+const list = document.getElementById("list"), rows = [];
+const kbd = (t) => { const k = document.createElement("kbd"); k.textContent = t; return k; };
+for (const [title, items] of SECTIONS) {
+  const h = document.createElement("h2"); h.textContent = title; list.append(h);
+  const table = document.createElement("table"); list.append(table);
+  for (const [keys, what, when, match] of items) {
+    const tr = table.insertRow(), a = tr.insertCell(), b = tr.insertCell(), c = tr.insertCell();
+    keys.forEach((k, i) => { if (i) { const p = document.createElement("span"); p.className = "plus"; p.textContent = "+"; a.append(p); } a.append(kbd(k)); });
+    b.textContent = what; c.textContent = when; c.className = "when";
+    rows.push({ tr, match });
+  }
+}
+const timers = new Map();
+const light = (tr) => { tr.classList.add("hit"); clearTimeout(timers.get(tr)); timers.set(tr, setTimeout(() => tr.classList.remove("hit"), 1400)); };
+const modsOf = (e) => (e.metaKey || e.ctrlKey ? "cmd" : e.shiftKey ? "shift" : e.altKey ? "alt" : "");
+let lastEsc = 0;
+// holding a modifier: its key lights in the rows that use it
+const showHeld = (e) => {
+  for (const { tr } of rows) {
+    const ks = [...tr.querySelectorAll("kbd")];
+    let any = false;
+    for (const k of ks) { const on = (k.textContent === "Cmd" && (e.metaKey || e.ctrlKey)) || (k.textContent === "Ctrl" && e.ctrlKey) || (k.textContent === "Shift" && e.shiftKey); k.classList.toggle("down", on); any = any || on; }
+    tr.classList.toggle("half", any);
+  }
+};
+addEventListener("keydown", (e) => {
+  showHeld(e);
+  if (["Meta", "Control", "Shift", "Alt"].includes(e.key)) return;
+  const m = modsOf(e), key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const twice = key === "Escape" && !m && Date.now() - lastEsc < 450;
+  if (key === "Escape" && !m) lastEsc = twice ? 0 : Date.now();
+  for (const { tr, match } of rows) {
+    if (match.click) continue;
+    if (match.letter) { if (!m && /^[\p{L}\p{N}]$/u.test(e.key)) light(tr); continue; }
+    if (match.twice) { if (twice) light(tr); continue; }
+    if (match.k === key && (match.m || "") === m) light(tr);
+  }
+  if (!e.metaKey || !["r", "w", "t", "q", "l"].includes(key)) e.preventDefault(); // (the browser's own Cmd+R, W, T, Q, L still work)
+}, true);
+addEventListener("keyup", showHeld, true);
+addEventListener("mousedown", (e) => {
+  const m = e.ctrlKey && !e.metaKey ? "ctrl" : e.metaKey ? "cmd" : "";
+  if (m) for (const { tr, match } of rows) if (match.click === m || (match.click === "cmd" && m === "ctrl" && !navigator.platform.startsWith("Mac"))) light(tr);
+}, true);
+addEventListener("contextmenu", (e) => { if (e.ctrlKey) e.preventDefault(); });
+// every key the page receives (what reaches the site at all)
 const log = document.getElementById("log");
 for (const type of ["keydown", "keyup"]) addEventListener(type, (e) => {
   const mods = [e.metaKey && "Cmd", e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift"].filter(Boolean).join("+");
   const d = document.createElement("div");
   d.textContent = `${type.padEnd(7)} key=${JSON.stringify(e.key)} code=${e.code} mods=${mods || "-"}`;
   log.prepend(d);
-  if (e.key === "Escape" || e.key === "Backspace") e.preventDefault();
+  while (log.childElementCount > 200) log.lastChild.remove();
 }, true);
 </script>
+</html>
