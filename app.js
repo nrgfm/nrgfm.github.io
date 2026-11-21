@@ -2318,7 +2318,7 @@ function toggleEditForm(t, i, row) {
 async function writeInbox(item, kind) {
   if (!getToken() && level() === 2) { // level 2: saved through the Activity server (which holds a GitHub key of its own)
     const r = await fetch(ACT_URL + "/inbox", { method: "POST", headers: { Authorization: "Session " + session().token, "Content-Type": "text/plain" }, body: JSON.stringify({ item, kind: kind || "" }) });
-    if (r.ok) return;
+    if (r.ok) { watchPublish(); return; }
     const why = (await r.json().catch(() => ({}))).error || "";
     if (r.status === 401) throw new Error("The login ran out. Log in again with the lock at the top right. Nothing was saved.");
     if (r.status === 403) throw new Error("This can only be done with the key. Nothing was saved.");
@@ -2339,6 +2339,63 @@ async function writeInbox(item, kind) {
     if (r.status === 401) throw new Error("The saved key no longer works (expired or deleted). Open the site with #setup and paste a new one.");
     throw new Error(`GitHub answered ${r.status}. Nothing was saved; try again.`);
   }
+  watchPublish();
+}
+/* After a save: once the site has been published again (a minute or two later), the archive is loaded again quietly,
+   so promoted, moved and added tracks are as on the server (searchable, with their own addresses) without a reload.
+   Only index.html (6 KB) is looked at, every 15 s, for up to 6 minutes after the last save; then tracks.json and
+   meta.json once. Waits while a card or the quick tag field is open, and keeps the page where it is. */
+let pub = null;
+const siteVersion = () => fetch("index.html?check=" + Date.now(), { cache: "no-store" }).then((r) => r.text()).then((h) => (h.match(/app\.js\?v=([\w-]+)/) || [])[1] || "").catch(() => "");
+async function watchPublish() {
+  const until = Date.now() + 6 * 60000;
+  if (pub) { pub.until = until; return; }
+  pub = { until, base: await siteVersion() };
+  const tick = async () => {
+    if (!pub) return;
+    if (Date.now() > pub.until) { pub = null; return; }
+    const v = await siteVersion();
+    if (v && pub.base && v !== pub.base) { pub.base = v; await freshData(); }
+    if (!pub.base) pub.base = v;
+    setTimeout(tick, 15000);
+  };
+  setTimeout(tick, 15000);
+}
+async function freshData() {
+  const busy = () => document.querySelector(".add-form") || quick || (document.activeElement && document.activeElement.closest && document.activeElement.closest("input, textarea, [contenteditable]") && document.activeElement !== $("#q"));
+  if (busy()) { setTimeout(freshData, 10000); return; } // (not while something is being edited: later)
+  let d, m;
+  try {
+    [d, m] = await Promise.all([
+      fetch("data/tracks.json?fresh=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; return r.json(); }),
+      fetch("data/meta.json?fresh=" + Date.now(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+  } catch { return; }
+  if (busy()) { setTimeout(freshData, 10000); return; }
+  // where the page is: the first post (or row) on screen and how far down it sits
+  const top = headerBottom(), anchor = [...document.querySelectorAll("#threads [id^='th-']")].find((n) => n.getBoundingClientRect().bottom > top + 4);
+  const anchorId = anchor && anchor.id, anchorAt = anchor ? anchor.getBoundingClientRect().top : 0;
+  const nowTr = playing && playing.thread.tracks[playing.index], nowThread = playing && playing.thread.id;
+  if (m) meta = m;
+  threads = d.threads;
+  for (const t of threads) for (const tr of t.tracks) { setYear(tr); setGenresOf(tr); setArtistCountry(tr); }
+  threads.push(...makeTagThreads());
+  sortThreads();
+  gIndex = null;
+  if (playing && nowTr) { // the player keeps playing: the same track in the new data
+    const t = threads.find((x) => x.id === nowThread && x.tracks.some((y) => y.id === nowTr.id)) || threads.find((x) => isBase(x) && x.tracks.some((y) => y.id === nowTr.id));
+    if (t) playing = { ...playing, thread: t, index: t.tracks.findIndex((y) => y.id === nowTr.id) };
+  }
+  if (view === "activity" || view === "lookup") return; // (those pages don't show the archive)
+  if (view === "tags" || view === "tag") refreshTags();
+  runSearch();
+  if (anchorId) {
+    const k = shown.findIndex((x) => "th-" + x.t.id === anchorId);
+    if (k > -1) while (rendered <= k && rendered < shown.length) renderMore();
+    const n = document.getElementById(anchorId);
+    if (n) pageScrollTo(pageY() + n.getBoundingClientRect().top - anchorAt);
+  }
+  markPlaying();
 }
 const netMsg = (e) => (e.message === "Failed to fetch" ? "No connection to GitHub. Nothing was saved; try again." : e.message);
 
