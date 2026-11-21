@@ -2324,11 +2324,17 @@ async function writeInbox(item, kind) {
     if (r.status === 403) throw new Error("This can only be done with the key. Nothing was saved.");
     throw new Error(`The server answered ${r.status}${why ? " (" + why + ")" : ""}. Nothing was saved; try again.`);
   }
-  const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
-  const r = await gh(`/contents/inbox/${name}`, {
-    method: "PUT",
-    body: JSON.stringify({ message: kind ? `${kind[0].toUpperCase() + kind.slice(1)} track` : "Add track", content: toBase64(JSON.stringify(item, null, 2) + "\n") }),
-  });
+  // 409: someone else's change reached GitHub at the same moment (another save, or the site's own update): tried again
+  let r;
+  for (let k = 0; k < 5; k++) {
+    if (k) await new Promise((ok) => setTimeout(ok, 700 * k + Math.random() * 500));
+    const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
+    r = await gh(`/contents/inbox/${name}`, {
+      method: "PUT",
+      body: JSON.stringify({ message: kind ? `${kind[0].toUpperCase() + kind.slice(1)} track` : "Add track", content: toBase64(JSON.stringify(item, null, 2) + "\n") }),
+    });
+    if (r.status !== 409) break;
+  }
   if (!r.ok) {
     if (r.status === 401) throw new Error("The saved key no longer works (expired or deleted). Open the site with #setup and paste a new one.");
     throw new Error(`GitHub answered ${r.status}. Nothing was saved; try again.`);

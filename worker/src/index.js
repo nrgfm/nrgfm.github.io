@@ -286,10 +286,15 @@ export default {
         if ((item.action || "") !== kind) return json(req, { error: "not allowed with this login" }, 403);
         const text = JSON.stringify({ ...item, via: "password" }, null, 2) + "\n";
         if (text.length > 20000) return json(req, { error: "too big" }, 413);
-        const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
-        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/inbox/${name}`, { method: "PUT",
-          headers: { Authorization: `Bearer ${env.GH_WRITE}`, "User-Agent": "nrgfm-activity", Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-          body: JSON.stringify({ message: (kind ? kind[0].toUpperCase() + kind.slice(1) : "Add") + " track (password login)", content: b64(text) }) });
+        let r; // (409: another change reached GitHub at the same moment: tried again)
+        for (let k = 0; k < 5; k++) {
+          if (k) await new Promise((ok) => setTimeout(ok, 700 * k + Math.random() * 500));
+          const name = `${Date.now()}${kind ? "-" + kind : ""}.json`;
+          r = await fetch(`https://api.github.com/repos/${REPO}/contents/inbox/${name}`, { method: "PUT",
+            headers: { Authorization: `Bearer ${env.GH_WRITE}`, "User-Agent": "nrgfm-activity", Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+            body: JSON.stringify({ message: (kind ? kind[0].toUpperCase() + kind.slice(1) : "Add") + " track (password login)", content: b64(text) }) });
+          if (r.status !== 409) break;
+        }
         return r.ok ? json(req, { ok: true }) : json(req, { error: "GitHub answered " + r.status }, 502);
       }
       if (path === "/lookup/up" && req.method === "POST") { // (before the key check: the phone uses its own upload key)
