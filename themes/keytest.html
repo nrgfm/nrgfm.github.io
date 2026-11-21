@@ -3,7 +3,10 @@
 <style>
   :root { --bg: #161c24; --surface: #1c2430; --text: #dde5ee; --muted: #8b99a8; --line: #2b3644; --jade: #8cb3d9; }
   body { background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, sans-serif; margin: 0; padding: 28px 24px 60px; }
-  main { max-width: 880px; margin: 0 auto; }
+  main { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 880px); gap: 40px; align-items: start; }
+  .keys-log { position: sticky; top: 20px; }
+  .keys-log h2 { margin-top: 0; }
+  .keys-log p { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
   h1 { font-size: 22px; margin: 0 0 4px; } h1 a { color: var(--jade); text-decoration: none; }
   .intro { color: var(--muted); margin: 0 0 22px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 26px 0 6px; font-weight: 600; }
@@ -17,16 +20,19 @@
   tr.hit td { background: rgba(140, 179, 217, .16); }
   tr.hit kbd, tr.hit kbd.down { background: var(--jade); color: var(--bg); border-color: var(--jade); }
   .note { color: var(--muted); font-size: 13px; margin-top: 30px; }
-  details { margin-top: 26px; color: var(--muted); } summary { cursor: pointer; font-size: 13px; }
-  #log { font: 13px ui-monospace, Menlo, monospace; margin-top: 8px; max-height: 260px; overflow: auto; }
+  #log { font: 12.5px ui-monospace, Menlo, monospace; color: var(--muted); max-height: calc(100vh - 110px); overflow: auto; }
+  #log div:first-child { color: var(--text); }
+  @media (max-width: 900px) { main { display: block; } .keys-log { position: static; margin-bottom: 20px; } #log { max-height: 180px; } }
   @media (max-width: 640px) { td:first-child { width: auto; white-space: normal; } td.when { display: none; } }
 </style>
 <main>
+<section class="keys-log"><h2>Every key this page receives</h2><p>Newest first. A key that doesn't show up here never reaches the site.</p><div id="log"></div></section>
+<section>
 <h1><a href="../">nrgfm</a>: hotkeys</h1>
 <p class="intro">Every keyboard shortcut on the site. Press one here and it lights up. On Windows, Ctrl works where it says Cmd.</p>
 <div id="list"></div>
 <p class="note">Cmd+Esc doesn't reach web pages on this Mac (something takes it first), so the site doesn't use it.</p>
-<details><summary>Every key this page receives</summary><div id="log"></div></details>
+</section>
 </main>
 <script>
 // [keys shown, what it does, when it works, match: {k: key, m: "cmd"|"shift"|"alt"|"" , click: true}]
