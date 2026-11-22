@@ -213,7 +213,9 @@ def ask(model, how, batch, vocab):
     kind = "search" if how == "better" else how
     text = PROMPT.format(vocab=", ".join(vocab), how=HOW[kind] + (HOW_BETTER if how == "better" else ""), tracks=tracks)
     body = {"contents": [{"role": "user", "parts": [{"text": text}]}],
-            "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUT[how], "thinkingConfig": {"thinkingLevel": "low"}}}
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUT[how]}}
+    if how == "sources":  # (weighing what was found needs little thinking; a search needs the model's own judgement:
+        body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": "low"}  # with "low" it answered from memory instead of searching)
     if kind == "search":
         body["tools"] = [{"google_search": {}}]
     elif how == "bandcamp":
@@ -241,6 +243,7 @@ def ask(model, how, batch, vocab):
         raise
     inp, out, searches = budget.used(d)
     budget.add(model, inp, out, searches)
+    ask.searches = searches
     text = "".join(p.get("text", "") for c in d.get("candidates", [])[:1] for p in c.get("content", {}).get("parts", []) if not p.get("thought"))
     s, e = text.find("["), text.rfind("]")
     if s < 0 or e < s:
@@ -423,11 +426,17 @@ def main():
                     if how == "bandcamp":
                         break
                     continue
+                # a lookup that didn't search Google is from memory: never more than "low" (it gets asked again with the
+                # better model); memory alone was confidently wrong ("Gilgamesh" given as "Soft Airs")
+                guessed = how == "search" and getattr(ask, "searches", 0) < max(1, len(batch) // 3)
                 for a in answers if isinstance(answers, list) else []:
                     k = a.get("i") if isinstance(a, dict) else None
                     if isinstance(k, int) and 0 <= k < len(batch):
                         u = batch[k][0]
-                        ai[u] = {**clean_answer(a), "how": how, "m": model, "in": chunk[k][2], "v": VERSION}
+                        x = clean_answer(a)
+                        if guessed:
+                            x["conf"] = "low"
+                        ai[u] = {**x, "how": how, "m": model, "in": chunk[k][2], "v": VERSION}
                 status["asked"] += len(batch)
                 state["left"] -= len(batch)
                 print(how, status["asked"], "asked")
