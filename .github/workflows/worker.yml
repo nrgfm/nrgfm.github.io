@@ -66,8 +66,8 @@ jobs:
         run: |
           [ -f data/worker.json ] || exit 0
           git checkout -- worker && rm -f worker/deploy.log   # (the database id written into wrangler.toml stays out of the repo)
-          git config user.name "nrgproduct"
-          git config user.email "nrgproduct@users.noreply.github.com"
+          git config user.name "nrgfm"
+          git config user.email "nrgfm@users.noreply.github.com"
           git add data/worker.json
           if git diff --cached --quiet; then echo "address unchanged"; exit 0; fi
           git commit -m "Activity server address"

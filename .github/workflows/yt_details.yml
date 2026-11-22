@@ -28,8 +28,8 @@ jobs:
         run: python3 scripts/yt_details.py
       - name: Commit
         run: |
-          git config user.name "nrgproduct"
-          git config user.email "nrgproduct@users.noreply.github.com"
+          git config user.name "nrgfm"
+          git config user.email "nrgfm@users.noreply.github.com"
           git add data/ytinfo.json
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           git commit -m "Read YouTube video details"

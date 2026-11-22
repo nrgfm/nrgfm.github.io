@@ -44,8 +44,8 @@ jobs:
         run: python3 scripts/auto_tags.py
       - name: Commit changes
         run: |
-          git config user.name "nrgproduct"
-          git config user.email "nrgproduct@users.noreply.github.com"
+          git config user.name "nrgfm"
+          git config user.email "nrgfm@users.noreply.github.com"
           git add -A data inbox
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "Update tracks and titles"

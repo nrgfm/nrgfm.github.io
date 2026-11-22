@@ -23,8 +23,8 @@
    POST /lookup/del  (key)  {id}: deleted for good (the image too). Everything marked done is deleted every night (cron)
    POST /lookup/key  (key)  a new upload key for the phone (the old one stops working); shown once
    "key": the site's GitHub key (Authorization: Bearer …), accepted when it can write to the nrgfm repository. */
-const REPO = "nrgproduct/nrgfm";
-const ORIGINS = ["https://nrgproduct.github.io", "http://localhost:8765", "http://127.0.0.1:8765"];
+const REPO = "nrgfm/nrgfm.github.io";
+const ORIGINS = ["https://nrgfm.github.io", "http://localhost:8765", "http://127.0.0.1:8765"];
 const YEAR = 365 * 86400;
 const SESSION = 12 * 3600;  // a password login lasts 12 hours
 const LEVEL2 = new Set(["", "edit", "tag"]); // what a level-2 login may save: new tracks, edits, tag changes

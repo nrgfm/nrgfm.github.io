@@ -1,5 +1,5 @@
 "use strict";
-const REPO = "nrgproduct/nrgfm";
+const REPO = "nrgfm/nrgfm.github.io";
 const PAGE = 40;
 
 const $ = (s) => document.querySelector(s);
