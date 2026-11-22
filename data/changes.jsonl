@@ -2255,3 +2255,6 @@
 {"action": "edit", "thread": "p6843657455650920", "id": "t7050658314950832_0", "title": "Shocking Blue - Send Me A Postcard", "url": "https://www.youtube.com/watch?v=DVFBIBCuP3s", "tags": ["alt rock", "prog"], "ts": 1795349591}
 {"action": "edit", "thread": "p6846277308722268", "id": "t6846277308722268_0", "title": "Novelty - Too Much For Me (Sport Mix)", "url": "https://www.youtube.com/watch?v=R3CWJ4AiqPg", "tags": ["house banger"], "ts": 1795349814}
 {"action": "tag", "ids": ["t6846611942022138_0"], "add": ["house banger", "euphoric"], "remove": [], "ts": 1795349854}
+{"action": "tag", "ids": ["t6874381809245151_0"], "add": ["euphoric", "abstract", "breakbeat"], "remove": [], "ts": 1795349876}
+{"action": "tag", "ids": ["t6874381809245151_0"], "add": ["london"], "remove": [], "ts": 1795349879}
+{"action": "tag", "ids": ["t6917433454939986_0"], "add": ["house banger"], "remove": [], "ts": 1795349911}
