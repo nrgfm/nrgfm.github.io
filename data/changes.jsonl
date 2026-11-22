@@ -2237,3 +2237,4 @@
 {"action": "edit", "thread": "xt1625049304178454_0", "id": "t1638682829481768_0", "title": "Laurel Halo - Until I Make U Smile (Hatsune Miku)", "url": "https://www.youtube.com/watch?v=9VQoEDv5rVU", "tags": [], "ts": 1795306999}
 {"action": "promote", "thread": "xt1625049304178454_0", "id": "t1638682829481768_0", "to": "original", "ts": 1795307039}
 {"action": "edit", "thread": "xt1638682829481768_0", "id": "t1638682829481768_0", "title": "Laurel Halo - Until I Make U Smile (Hatsune Miku)", "url": "https://www.youtube.com/watch?v=9VQoEDv5rVU", "tags": ["deconstructed", "art pop", "experimental"], "ts": 1795307113}
+{"action": "tag", "ids": ["t1638682829481768_0"], "add": ["anime"], "remove": [], "ts": 1795307234}
