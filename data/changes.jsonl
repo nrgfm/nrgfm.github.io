@@ -2221,3 +2221,4 @@
 {"action": "tag", "ids": ["t1795304749_0"], "add": [], "remove": ["duplicate"], "ts": 1795305820}
 {"action": "tag", "ids": ["t1795304932_0"], "add": [], "remove": ["duplicate"], "ts": 1795305822}
 {"action": "tag", "ids": ["t1795304932_0"], "add": ["hiphop"], "remove": [], "ts": 1795305840}
+{"action": "tag", "ids": ["t1739654619384588_0"], "add": ["soul"], "remove": [], "ts": 1795305978}
