@@ -1,0 +1,25 @@
+name: Test a Gemini key (temporary)
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    env:
+      K1: ${{ secrets.NRGFM_GEMINI }}
+      K2: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - run: |
+          G=https://generativelanguage.googleapis.com/v1beta
+          for n in K1 K2; do
+            K=${!n}; [ -z "$K" ] && { echo "$n: not set"; continue; }
+            echo "== $n"
+            for m in gemini-3.8-flash gemini-3.5-flash-lite; do
+              for tool in none search; do
+                b='{"contents":[{"role":"user","parts":[{"text":"What year was Send Me A Postcard by Shocking Blue released? One line."}]}]'
+                [ $tool = search ] && b="$b"',"tools":[{"google_search":{}}]'
+                b="$b}"
+                r=$(curl -s -m 60 -w "\nHTTP%{http_code}" -X POST "$G/models/$m:generateContent" -H "x-goog-api-key: $K" -H "Content-Type: application/json" -d "$b")
+                code=$(echo "$r" | tail -1); body=$(echo "$r" | head -n -1)
+                echo "$m $tool $code: $(echo "$body" | jq -r '(.candidates[0].content.parts[0].text // .error.message // "")' | tr '\n' ' ' | cut -c1-220)"
+              done
+            done
+          done
