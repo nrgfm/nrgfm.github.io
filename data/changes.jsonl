@@ -2265,3 +2265,4 @@
 {"action": "tag", "ids": ["t6882353448447987_0"], "add": ["pop banger"], "remove": [], "ts": 1795350023}
 {"action": "tag", "ids": ["t6815590091790990_0"], "add": ["zoinked"], "remove": [], "ts": 1795350092}
 {"action": "tag", "ids": ["t6878386755511323_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795350124, "auto": "player"}
+{"action": "edit", "thread": "p6717527188263948", "id": "t6878386755511323_0", "title": "Liquido – Narcotic (Long Version)", "url": "https://www.youtube.com/watch?v=I98k-Nl7LgA", "tags": ["pop-punk"], "ts": 1795350158}
