@@ -26,6 +26,7 @@ const fold = (s) => (s || "").toLowerCase()
   .replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "a").replace(/ß/g, "ss")
   .normalize("NFD").replace(/[̀-ͯ]/g, "").normalize("NFC") // (NFC again: Korean and Japanese letters stay whole)
   .replace(/['’‘`´ʼ]/g, "") // apostrophes don't count: "dont" finds "don't", "rocknroll" "rock'n'roll"
+  .replace(/&/g, " and ") // "&" and "and" are the same
   .replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // letters of every script are kept (Japanese, Korean, Chinese, Greek…)
 
 const PLATFORM = { youtube: "Youtube", soundcloud: "Soundcloud", bandcamp: "Bandcamp", vimeo: "Vimeo", mixcloud: "Mixcloud", spotify: "Spotify" };
@@ -97,7 +98,12 @@ const FIELDS = [["title", "Titles"], ["notes", "Notes"], ["tags", "Tags"], ["rel
 function haystack(t) {
   if (t._hay == null) {
     const m = meta[t.url] || {}, x = extra[t.url] || {};
-    const j = (a) => " " + fold(a.filter(Boolean).join(" ")); // words start after a space: matching is by word start
+    // words start after a space: matching is by word start. Each two neighbouring words also once written together,
+    // so "hiphop" finds "hip-hop" and "hip hop", "citypop" "city pop"
+    const j = (a) => { const f = fold(a.filter(Boolean).join(" ")), w = f.split(" ");
+      let out = " " + f;
+      for (let k = 0; k + 1 < w.length; k++) if (w[k] && w[k + 1] && w[k].length + w[k + 1].length <= 24) out += " " + w[k] + w[k + 1];
+      return out; };
     const named = t.title || m.title || m.wb_title;
     t._f = {
       title: j([t.title, m.title, m.wb_title, named ? "" : slugTitle(t), named ? info(t).title : ""]), // the link's words only when there is no title; and the title as shown (with the artist put in front)
