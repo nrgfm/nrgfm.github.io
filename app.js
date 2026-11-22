@@ -706,18 +706,30 @@ function drawBrowse() {
   if (level() !== 1 || phone() || innerWidth < 966 || view !== "threads" || (!marks.length && !rest.length)) { browsePanel.hidden = true; return; }
   const cur = (location.hash.match(/^#t\/(.+)$/) || [])[1];
   const row = (t) => { const x = info(t.tracks[0]), on = browse.marks.includes(t.id);
-    return el("div", { class: "side-row browse-row" + (cur && decodeURIComponent(cur) === t.id ? " here" : "") + (x.dead ? " dead" : ""), role: "button", tabindex: "0",
+    return el("div", { "data-id": t.id, class: "side-row browse-row" + (cur && decodeURIComponent(cur) === t.id ? " here" : "") + (x.dead ? " dead" : ""), role: "button", tabindex: "0",
         onclick: (e) => { if (e.target.closest(".browse-mark")) return; if (e.metaKey || e.ctrlKey) { openThreadTab(t.id); return; } goToThread(t); markThread(t.id, true); } },
       img(x.thumb, "side-thumb"),
       el("span", { class: "browse-text" }, el("span", { class: "side-name" }, x.title), el("span", { class: "browse-date" }, fmtDay(postDate(t)))),
       el("button", { type: "button", class: "browse-mark" + (on ? " on" : ""), "aria-label": on ? "Remove bookmark" : "Bookmark", "aria-pressed": String(on),
         onclick: () => browseMark(t.id) }, BOOKMARK_SVG(on))); };
-  const y = browsePanel.querySelector(".tp-p-list") ? browsePanel.querySelector(".tp-p-list").scrollTop : 0;
-  browsePanel.replaceChildren(el("div", { class: "tp-p-list" }, marks.map(row), rest.map(row)));
-  browsePanel.querySelector(".tp-p-list").scrollTop = y;
+  const old = browsePanel.querySelector(".tp-p-list"), y = old ? old.scrollTop : 0;
+  const before = new Map(); // where each row was (to slide them from there)
+  if (old && !browsePanel.hidden) for (const r of old.children) before.set(r.dataset.id, r.getBoundingClientRect().top);
+  const list = el("div", { class: "tp-p-list" }, marks.map(row), rest.map(row));
+  list.addEventListener("scroll", () => fadeEnd(list), { passive: true });
+  browsePanel.replaceChildren(list);
+  list.scrollTop = y;
   browsePanel.hidden = false;
   placeSidePanel(browsePanel);
+  fadeEnd(list);
+  if (!before.size || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const r of list.children) {
+    const was = before.get(r.dataset.id), now = r.getBoundingClientRect().top;
+    if (was === undefined) r.animate([{ opacity: 0, transform: "translateY(-12px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" }); // the new one comes in on top
+    else if (Math.abs(was - now) > 1) r.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 260, easing: "ease-out" }); // the others are pushed down
+  }
 }
+function fadeEnd(list) { list.classList.toggle("at-end", list.scrollTop + list.clientHeight >= list.scrollHeight - 2); }
 addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
   const [y, mo] = t.month.split("-");
@@ -973,8 +985,10 @@ addEventListener("keydown", (e) => {
   freshIfNewer(); // (also: what was changed in another tab or on another device shows up, without a reload)
   if (!t) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  if (view !== "threads") setView("threads");
-  goToThread(t); markThread(t.id);
+  const node = view === "threads" && !$("#q").value && document.getElementById("th-" + t.id);
+  if (node) pageScrollBy(node.getBoundingClientRect().top - (headerBottom() + 22), true); // already on the page: glide there (as double Esc does)
+  else { if (view !== "threads") setView("threads"); goToThread(t); }
+  markThread(t.id);
 });
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-thread]");
@@ -3666,7 +3680,7 @@ function placeTpBar() {
   tpBar.hidden = !on;
   if (!on) return;
   const list = $("#threads").getBoundingClientRect(), pl = tagPanel.box.getBoundingClientRect();
-  const vh0 = $("#viewHead"), top = (vh0.hidden ? headerBottom() : vh0.getBoundingClientRect().bottom) + 4, d = $("#dock"), bottom = (d.hidden ? innerHeight : d.getBoundingClientRect().top) - 4;
+  const vh0 = $("#viewHead"), top = (vh0.hidden ? headerBottom() : vh0.getBoundingClientRect().bottom) + 4, d = $("#dock"), bottom = (d.hidden ? innerHeight : d.querySelector(".bar").getBoundingClientRect().top) - 4; // (down to the player bar, also with the video window open: that sits right of the bar)
   const H = Math.max(40, bottom - top), docH = document.documentElement.scrollHeight, vh = innerHeight;
   tpBar.style.left = Math.round((list.right + pl.left) / 2 - 4) + "px";
   tpBar.style.top = top + "px"; tpBar.style.height = H + "px";
