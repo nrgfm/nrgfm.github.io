@@ -2267,3 +2267,4 @@
 {"action": "tag", "ids": ["t6878386755511323_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795350124, "auto": "player"}
 {"action": "edit", "thread": "p6717527188263948", "id": "t6878386755511323_0", "title": "Liquido – Narcotic (Long Version)", "url": "https://www.youtube.com/watch?v=I98k-Nl7LgA", "tags": ["pop-punk"], "ts": 1795350158}
 {"action": "tag", "ids": ["t6780488555301144_0"], "add": ["downtempo"], "remove": [], "ts": 1795350200}
+{"action": "tag", "ids": ["t6780515838631749_0"], "add": ["chillout room"], "remove": [], "ts": 1795350229}
