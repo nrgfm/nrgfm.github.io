@@ -54,14 +54,16 @@ def pick_models():
         d = call("models?pageSize=200" + (f"&pageToken={page}" if page else ""))
         for m in d.get("models", []):
             n = m["name"].split("/")[-1]
-            if "generateContent" in m.get("supportedGenerationMethods", []) and re.fullmatch(r"gemini-\d+(\.\d+)?-flash", n):
+            if "generateContent" in m.get("supportedGenerationMethods", []) and re.fullmatch(r"gemini-\d+(\.\d+)?-flash(-lite)?", n):
                 names.append(n)
         page = d.get("nextPageToken")
         if not page:
             break
     if not names:
         raise SystemExit("no Gemini Flash model available for this key")
-    return sorted(set(names), key=lambda n: -float(re.search(r"\d+(\.\d+)?", n).group()))
+    # the Flash models first (newest first), then the Lite ones: each has its own free daily quota, so when the
+    # Flash ones are used up or overloaded the Lite ones carry on (they also search Google)
+    return sorted(set(names), key=lambda n: (n.endswith("-lite"), -float(re.search(r"\d+(\.\d+)?", n).group())))
 
 
 def title_of(tr, meta):
@@ -274,6 +276,10 @@ def main():
     vocab = [g for g, _ in sorted(count.items(), key=lambda kv: -kv[1])][:250]
 
     yt_of = {tr["url"]: tr.get("yt") for th in tracks["threads"] for tr in th["tracks"]}
+    ts_of = {}  # when each link was added (newest first among the ones never asked)
+    for th in tracks["threads"]:
+        for tr in th["tracks"]:
+            ts_of[tr["url"]] = max(ts_of.get(tr["url"], 0), tr.get("ts") or 0)
     todo = {"bandcamp": [], "sources": [], "search": []}
     seen = set()
     for th in tracks["threads"]:
@@ -295,7 +301,7 @@ def main():
     pp = os.path.join(DATA, "gemini-priority.json")
     first = set(json.load(open(pp, encoding="utf-8"))) if os.path.exists(pp) else set()
     for how in todo:
-        todo[how].sort(key=lambda item: (item[0] not in first, item[0] in ai))  # then tracks never asked before
+        todo[how].sort(key=lambda item: (item[0] not in first, item[0] in ai, -ts_of.get(item[0], 0)))  # then tracks never asked before, newest first
     print("to ask:", len(todo["sources"]), "with sources,", len(todo["search"]), "to look up,", len(todo["bandcamp"]), "Bandcamp pages")
 
     try:
@@ -307,8 +313,11 @@ def main():
 
     left, fails = MAX, 0
     status["state"] = "ok"
-    for how in ("bandcamp", "sources", "search"):
-        items = todo[how]
+    # first every track never asked (a track just added gets its answer on the next run, whatever kind it is),
+    # then the ones asked again because what is known about them changed
+    passes = [(how, [x for x in todo[how] if x[0] not in ai]) for how in ("bandcamp", "sources", "search")] + \
+             [(how, [x for x in todo[how] if x[0] in ai]) for how in ("bandcamp", "sources", "search")]
+    for how, items in passes:
         for i in range(0, len(items), PER_CALL[how]):
             if left <= 0 or time.time() - START > MINUTES * 60:
                 status["state"] = "ok (stopped for this run, continues next run)"

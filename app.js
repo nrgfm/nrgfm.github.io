@@ -363,11 +363,12 @@ function viewItems() {
   if (view === "activity" || view === "lookup") return []; // drawn by renderActivity / renderLookup
   if (view === "tagged" && archiveShuffle) return shuffleParts();
   if (view === "tagged") return threads.filter((t) => isBase(t) && t.tracks.some(userTagged));
-  if (view === "threads" && threadsByAdd) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
+  if (view === "threads" && byAddOn()) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
   return threads.filter(isBase);
 }
 /* Threads, the other order (Sort in the menu, left of uBlock, on Threads only): the posts a track was added to most recently first */
 let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
+const byAddOn = () => threadsByAdd && level() <= 3; // (logged out: always by date)
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
 function drawThreadsSort() { // (the same button on Archive: Date posted or Shuffle)
   let b = $("#threadsSort");
@@ -380,7 +381,7 @@ function drawThreadsSort() { // (the same button on Archive: Date posted or Shuf
     } });
     $('#menu [data-view="ublock"]').before(b);
   }
-  b.hidden = view !== "threads" && view !== "tagged" && view !== "tags";
+  b.hidden = (view !== "threads" && view !== "tagged" && view !== "tags") || level() > 3;
   const on = view === "tagged" ? !!archiveShuffle : view === "tags" ? tagsByLatest : threadsByAdd;
   b.setAttribute("aria-pressed", String(on));
   b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" },

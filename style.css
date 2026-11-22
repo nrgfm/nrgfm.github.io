@@ -1652,3 +1652,4 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .act-lock svg { width: 18px; height: 18px; }
 @media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }
 .side-row.side-main .side-name { font-weight: 600; font-size: 15px; } /* (History: the post's main track) */
+body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in its normal order) */

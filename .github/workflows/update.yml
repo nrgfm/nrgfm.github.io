@@ -14,6 +14,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: write
 
 concurrency:
   group: update-and-publish
@@ -33,7 +34,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Add new tracks from inbox
-        run: python3 scripts/ingest_inbox.py
+        id: ingest
+        run: |
+          # (tracks added on the site are inbox/<time>.json: they get looked up right after, see the end)
+          echo "added=$(ls inbox 2>/dev/null | grep -cE '^[0-9]+\.json$' || true)" >> "$GITHUB_OUTPUT"
+          python3 scripts/ingest_inbox.py
       - name: Fetch missing titles
         run: python3 scripts/fetch_meta.py
       - name: Automatic tags (duplicate, +10 min / +30 min / +1 hour)
@@ -58,6 +63,11 @@ jobs:
             git commit -m "Update tracks and titles"
           done
           exit 1
+      - name: Look up the new tracks now (track info, then Gemini) instead of waiting for the next scheduled run
+        if: steps.ingest.outputs.added != '0' && steps.ingest.outputs.added != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run enrich.yml --ref main -f max=200 -f then_gemini=yes || true
       - name: Prepare site
         run: |
           mkdir -p _site
