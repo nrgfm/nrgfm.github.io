@@ -1704,5 +1704,9 @@ body[data-view="threads"] .t-title, body[data-view="threads"] .tr-title { font-f
 body[data-view="threads"] .t-title { font-size: 17px; line-height: 1.3; }
 body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 /* the side list of opened posts: the track names in Facebook's light grey-white */
-.browse-row .side-name { color: #E4E6EB; }
+.browse-row .side-name { color: #E3E5E9; } /* (measured on Facebook: 227, 229, 233) */
+/* thinner and a little smaller: the system font, drawn thin on a Mac */
+.browse-text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.browse-text .side-name { font-size: 13.5px; font-weight: 400; }
+.browse-text .browse-date { font-size: 12px; font-weight: 400; }
 .browse-row.here .side-name { color: var(--jade); }
