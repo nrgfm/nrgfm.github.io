@@ -872,6 +872,7 @@ addEventListener("keydown", (e) => {
   const m = location.hash.match(/^#t\/(.+)$/);
   let id = m ? m[1] : null; try { id = id ? decodeURIComponent(id) : sessionStorage.getItem("nrgfm-last-post"); } catch {}
   const t = id && threads.find((x) => x.id === id && x.kind !== "tag" && isBase(x));
+  freshIfNewer(); // (also: what was changed in another tab or on another device shows up, without a reload)
   if (!t) return;
   e.preventDefault(); e.stopImmediatePropagation();
   if (view !== "threads") setView("threads");
@@ -2379,15 +2380,21 @@ async function watchPublish(item) {
     if (!pub) return;
     if (Date.now() > pub.until) { pub = null; return; }
     const v = await siteVersion();
-    if (v && pub.base && v !== pub.base) { pub.base = v; await freshData(); }
+    if (v && pub.base && v !== pub.base) { pub.base = v; await freshData(v); }
     if (!pub.base) pub.base = v;
     setTimeout(tick, 15000);
   };
   setTimeout(tick, 15000);
 }
-async function freshData() {
+/* the version of the site this page's data came from; Backspace loads the data again when a newer one is published */
+let dataVersion = ((document.querySelector('script[src*="app.js?v="]') || {}).src || "").match(/v=([\w-]+)/)?.[1] || "";
+async function freshIfNewer() {
+  const v = await siteVersion();
+  if (v && v !== dataVersion) freshData(v);
+}
+async function freshData(version) {
   const busy = () => document.querySelector(".add-form") || quick || (document.activeElement && document.activeElement.closest && document.activeElement.closest("input, textarea, [contenteditable]") && document.activeElement !== $("#q"));
-  if (busy()) { setTimeout(freshData, 10000); return; } // (not while something is being edited: later)
+  if (busy()) { setTimeout(() => freshData(version), 10000); return; } // (not while something is being edited: later)
   const seq = saveSeq;
   // which saves the published data holds: the end of the change log
   pendingSaves = pendingSaves.filter((p) => Date.now() - p.at < 10 * 60000); // (one that never arrives doesn't hold it up forever)
@@ -2406,13 +2413,14 @@ async function freshData() {
       fetch("data/meta.json?fresh=" + Date.now(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
   } catch { return; }
-  if (busy()) { setTimeout(freshData, 10000); return; }
+  if (busy()) { setTimeout(() => freshData(version), 10000); return; }
   if (saveSeq !== seq) return; // saved again meanwhile: wait for that one to be published
   // where the page is: the first post (or row) on screen and how far down it sits
   const top = headerBottom(), anchor = [...document.querySelectorAll("#threads [id^='th-']")].find((n) => n.getBoundingClientRect().bottom > top + 4);
   const anchorId = anchor && anchor.id, anchorAt = anchor ? anchor.getBoundingClientRect().top : 0;
   const nowTr = playing && playing.thread.tracks[playing.index], nowThread = playing && playing.thread.id;
   if (m) meta = m;
+  if (version) dataVersion = version;
   threads = d.threads;
   for (const t of threads) for (const tr of t.tracks) { setYear(tr); setGenresOf(tr); setArtistCountry(tr); }
   threads.push(...makeTagThreads());
