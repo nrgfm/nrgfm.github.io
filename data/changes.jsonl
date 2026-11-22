@@ -2305,3 +2305,4 @@
 {"action": "promote", "thread": "p1795376479", "id": "t1795376706_0", "to": "main", "ts": 1795376711}
 {"url": "https://www.youtube.com/watch?v=soiAjkCiTHI", "title": "坂本慎太郎 = Shintaro Sakamoto — 死にませんが？ = Feeling Immortal (2016)", "thread": "p1795376479", "tags": [], "ts": 1795376893}
 {"url": "https://www.youtube.com/watch?v=HbTf4y_iJ1Q", "title": "Adriana - Contigo (1977)", "thread": "p1795376479", "tags": [], "ts": 1795377239}
+{"action": "tag", "ids": ["t1718235941526456_0"], "add": ["anime theme"], "remove": [], "ts": 1795377524}
