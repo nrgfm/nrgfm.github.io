@@ -1,0 +1,19 @@
+name: Gemini models (temporary)
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    env:
+      K: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - run: |
+          set +e
+          G=https://generativelanguage.googleapis.com/v1beta
+          curl -s -H "x-goog-api-key: $K" "$G/models?pageSize=200" | jq -r '.models[] | select(.supportedGenerationMethods|index("generateContent")) | [.name, .displayName, (.inputTokenLimit|tostring), (.outputTokenLimit|tostring), (.thinking|tostring)] | join(" | ")'
+          for m in gemini-3.8-flash gemini-3.5-flash-lite gemini-3.1-flash-lite; do
+            b='{"contents":[{"role":"user","parts":[{"text":"Shocking Blue - Send Me A Postcard: original release, year, country of the band. Short."}]}],"tools":[{"google_search":{}}]}'
+            s=$(date +%s%N); r=$(curl -s -m 120 -w "\nHTTP%{http_code}" -X POST "$G/models/$m:generateContent" -H "x-goog-api-key: $K" -H "Content-Type: application/json" -d "$b")
+            code=$(echo "$r" | tail -1); body=$(echo "$r" | head -n -1)
+            echo "== $m search $code $(( ($(date +%s%N)-s)/1000000 ))ms queries=$(echo "$body" | jq -c '[.candidates[0].groundingMetadata.webSearchQueries]') usage=$(echo "$body" | jq -c '.usageMetadata')"
+            echo "$body" | jq -r '(.candidates[0].content.parts | map(.text // "") | join(" ")) // .error.message' | tr '\n' ' ' | cut -c1-300; echo
+          done
