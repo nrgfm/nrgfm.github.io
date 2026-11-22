@@ -2400,7 +2400,7 @@ function sectionFields(tr) {
   let url = tr ? tr.url : "", cleared = false;
   const had = !!(tr && (tr.start || tr.end));
   const box = el("span", { class: "af-time", hidden: !had }, sf, ef,
-    el("button", { type: "button", class: "btn ghost", onclick: () => {
+    el("button", { type: "button", class: "btn ghost af-clear", onclick: () => {
       const f = box.closest("form"); f.url.value = linkWithoutTime(f.url.value);
       start.value = end.value = ""; box.hidden = true; cleared = true;
     } }, "Clear"));
