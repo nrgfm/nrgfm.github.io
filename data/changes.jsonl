@@ -2264,3 +2264,4 @@
 {"action": "tag", "ids": ["t6882353448447987_0"], "add": ["uk garage"], "remove": [], "ts": 1795350014}
 {"action": "tag", "ids": ["t6882353448447987_0"], "add": ["pop banger"], "remove": [], "ts": 1795350023}
 {"action": "tag", "ids": ["t6815590091790990_0"], "add": ["zoinked"], "remove": [], "ts": 1795350092}
+{"action": "tag", "ids": ["t6878386755511323_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795350124, "auto": "player"}
