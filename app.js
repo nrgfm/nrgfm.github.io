@@ -2236,7 +2236,12 @@ function addForm(thread, edit, row) {
     new ResizeObserver(() => { if (save.offsetWidth) form.style.setProperty("--save-w", save.offsetWidth + "px"); }).observe(save);
   }
   if (tr) { form.title.value = tr.title ? flipDotTitle(tr.title) : info(tr).title; form.url.value = tr.url; } // YouTube's "Title · Artist" shown as "Artist – Title", as on the page
-  form.url.addEventListener("input", () => { form.url.setCustomValidity(""); sec.fromLink(form.url.value); });
+  form.url.addEventListener("input", () => {
+    form.url.setCustomValidity("");
+    const clean = withoutPlaylist(form.url.value);
+    if (clean !== form.url.value) form.url.value = clean; // a video from a playlist: only the video
+    sec.fromLink(form.url.value);
+  });
   form.tags = tags; form.section = sec;
   form.addEventListener("submit", (ev) => { ev.preventDefault(); edit ? saveEdit(form, edit) : saveTrack(form, thread); });
   // Shift+Enter saves from any field, the tag field included
@@ -2366,10 +2371,19 @@ function timeInLink(u) { // t=7225, t=7225s, t=2h0m25s, t=1:02:05, start=, #t= -
 function linkWithoutTime(u) {
   try {
     const x = new URL(u.trim());
-    for (const k of ["t", "start", "time_continue", "si", "feature", "pp"]) x.searchParams.delete(k);
+    for (const k of ["t", "start", "time_continue", "si", "feature", "pp", "list", "index", "start_radio", "rv"]) x.searchParams.delete(k);
     for (const k of [...x.searchParams.keys()]) if (/^(fbclid|utm_)/.test(k)) x.searchParams.delete(k);
     if (/^#t=/.test(x.hash)) x.hash = "";
     return x.toString();
+  } catch { return u; }
+}
+function withoutPlaylist(u) { // a YouTube video link that is part of a playlist or mix: the playlist parts go (a link to a whole playlist stays)
+  try {
+    const x = new URL(u.trim());
+    if (!/(^|\.)(youtube\.com|youtu\.be)$/.test(x.hostname) || !(x.searchParams.get("v") || x.hostname.endsWith("youtu.be"))) return u;
+    let n = 0;
+    for (const k of ["list", "index", "start_radio", "pp", "rv", "si", "feature"]) if (x.searchParams.has(k)) { x.searchParams.delete(k); n++; }
+    return n ? x.toString() : u;
   } catch { return u; }
 }
 function videoLength(u) { // the whole video's length when it's already known (seconds), else 0
@@ -2390,6 +2404,15 @@ function sectionFields(tr) {
       const f = box.closest("form"); f.url.value = linkWithoutTime(f.url.value);
       start.value = end.value = ""; box.hidden = true; cleared = true;
     } }, "Clear"));
+  // the fields as wide as "0:00:00" in their own font (and not a character more)
+  const fit = () => requestAnimationFrame(() => {
+    if (!start.isConnected || box.hidden) return;
+    const c = (fit.c ||= document.createElement("canvas").getContext("2d"));
+    c.font = getComputedStyle(start).font;
+    const w = Math.ceil(Math.max(...["0:00:00", "8:58:58", "4:44:44", "2:22:22"].map((t) => c.measureText(t).width))) + 2 + "px";
+    start.style.setProperty("--tw", w); end.style.setProperty("--tw", w);
+  });
+  if (had) { let n = 0; const wait = () => (start.isConnected ? fit() : ++n < 20 && setTimeout(wait, 50)); wait(); }
   const fillEnd = () => { const d = videoLength(url); if (!end.value && d) end.value = hms(d); };
   if (had) { start.value = hms(tr.start || 0); if (tr.end) end.value = hms(tr.end); fillEnd(); }
   return {
@@ -2398,7 +2421,7 @@ function sectionFields(tr) {
       url = v.trim();
       const t = timeInLink(url);
       if (t === null) return;
-      cleared = false; box.hidden = false; start.value = hms(t); fillEnd();
+      cleared = false; box.hidden = false; start.value = hms(t); fillEnd(); fit();
     },
     // {start, end} in seconds (0 = none); null: no section; false: a field isn't a time (it says so)
     get() {

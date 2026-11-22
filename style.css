@@ -1658,8 +1658,8 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 .af-time { display: flex; align-items: center; gap: 8px; flex: none; }
 .af-time[hidden] { display: none; }
 .af-time .tag-field.af-time-f { width: auto; flex: none; padding: 0 10px; }
-.af-time .tag-field .tag-input.af-time-in { flex: none; min-width: 0; width: calc(7ch + 2px) !important; padding: 0; }
+.af-time .tag-field .tag-input.af-time-in { flex: none; min-width: 0; width: var(--tw, 7ch) !important; padding: 0; }
 .af-actions:has(.af-time:not([hidden])) { flex-wrap: wrap; } /* too narrow: the tag field gets its own line */
-.af-actions:has(.af-time:not([hidden])) .tag-area { flex: 1 1 140px; min-width: 140px; }
+.af-actions:has(.af-time:not([hidden])) .tag-area { flex: 1 1 0; min-width: 60px; } /* shorter tag field first; a new line only below 60px */
 .af-actions:has(.af-time:not([hidden])) .tag-box { min-width: 0; width: 100%; }
 .af-actions .af-time > .btn { flex: none; }
