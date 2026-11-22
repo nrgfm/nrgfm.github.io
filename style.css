@@ -1668,4 +1668,4 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 .add-form .btn.ghost.af-clear:hover, .add-form .btn.ghost.more-info-btn:hover { color: var(--text); border-color: var(--muted); }
 .af-time .tag-field .tag-input.af-time-in { text-align: center; }
 @media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
-body[data-view="threads"] .tr-title { font-weight: 400; } /* Threads: the titles not bold */
+body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-weight: 400; } /* Threads: the titles not bold (the main track too) */
