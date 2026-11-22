@@ -2301,3 +2301,5 @@
 {"action": "promote", "thread": "p1619813071368744", "id": "t1667629419920442_0", "to": "original", "ts": 1795376445}
 {"url": "", "title": "Jin Kirigaya (桐々蠷仁) - Wind Surfin' (1981)", "thread": "", "tags": [], "ts": 1795376479}
 {"action": "edit", "thread": "p1795376479", "id": "t1795376479_0", "title": "Jin Kirigaya (桐々蠷仁) - Wind Surfin' (1981)", "url": "https://www.youtube.com/watch?v=ciN_bUwDnKw", "tags": [], "ts": 1795376526, "date": "2017-01-18"}
+{"url": "https://www.youtube.com/watch?v=2q06q9PU2fU", "title": "Jin Kirigaya (桐ヶ谷仁) - テールライト (Taillight) (1983)", "thread": "p1795376479", "tags": ["city pop", "slow jam", "ballad"], "ts": 1795376706}
+{"action": "promote", "thread": "p1795376479", "id": "t1795376706_0", "to": "main", "ts": 1795376711}
