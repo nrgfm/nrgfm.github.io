@@ -2218,3 +2218,6 @@
 {"url": "https://www.youtube.com/watch?v=eWat-fjQ8P0", "title": "Tommy Wright III - Still Pimpin (Remastered)", "thread": "p1748463331837050", "tags": [], "ts": 1795304932}
 {"action": "edit", "thread": "p1748463331837050", "id": "t1748463331837050_0", "title": "PC MUSIC - ∂", "url": "https://www.youtube.com/watch?v=yV7wB5o5ML0", "tags": ["+30 min"], "ts": 1795305799}
 {"action": "tag", "ids": ["t1764088500274533_0"], "add": ["trap"], "remove": [], "ts": 1795305809}
+{"action": "tag", "ids": ["t1795304749_0"], "add": [], "remove": ["duplicate"], "ts": 1795305820}
+{"action": "tag", "ids": ["t1795304932_0"], "add": [], "remove": ["duplicate"], "ts": 1795305822}
+{"action": "tag", "ids": ["t1795304932_0"], "add": ["hiphop"], "remove": [], "ts": 1795305840}
