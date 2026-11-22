@@ -1,6 +1,11 @@
 {
- "date": "2026-11-22 12:27",
- "asked": 10,
- "done": 3306,
- "state": "error: HTTP 404 This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started)."
+ "date": "2026-11-22 14:23",
+ "asked": 23,
+ "done": 3329,
+ "month": {
+  "searches": 0,
+  "cost": 0.01
+ },
+ "state": "ok (asked as many as this run may)",
+ "model": "gemini-3.5-flash-lite"
 }
