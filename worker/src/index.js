@@ -108,7 +108,7 @@ async function readImage(env, id) { // (with the first key; when its quota is us
 }
 /* this month's Gemini use, shared with the GitHub jobs (scripts/budget.py: the same table, the same prices, kept on
    the high side). Reading stops when the month's budget is used up. */
-const COST_LIMIT = 0.8, PRICE = (m) => (m.endsWith("-lite") ? [0.3, 2.5] : m.includes("flash") ? [1.5, 7.5] : [4, 20]);
+const COST_LIMIT = 0, PRICE = (m) => (m.endsWith("-lite") ? [0.3, 2.5] : m.includes("flash") ? [1.5, 7.5] : [4, 20]);
 const pacific = () => { const d = new Date(Date.now() - 8 * 3600e3).toISOString(); return [d.slice(0, 7), d.slice(0, 10)]; };
 async function budgetLeft(env) {
   const [m] = pacific();

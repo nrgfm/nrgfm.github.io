@@ -15,7 +15,7 @@ import json, os, time, urllib.request
 
 SEARCH_LIMIT = int(os.environ.get("GEMINI_SEARCH_LIMIT", "") or 4500)
 SEARCH_DAY = int(os.environ.get("GEMINI_SEARCH_DAY", "") or 1000)
-COST_LIMIT = float(os.environ.get("GEMINI_COST_LIMIT", "") or 0.80)
+COST_LIMIT = float(os.environ.get("GEMINI_COST_LIMIT", "") or 0)  # (0: paused, no paid requests at all)
 FREE_SEARCHES = 5000
 SEARCH_PRICE = 14 / 1000  # dollars per search over the free ones
 
