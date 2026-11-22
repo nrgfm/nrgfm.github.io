@@ -1633,3 +1633,8 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .menu .menu-sort .sort-val { color: var(--jade); }
 .menu .menu-sort:hover .sort-val { text-decoration: underline dotted; text-underline-offset: 3px; }
 .menu .menu-sort[hidden] { display: none; }
+/* Archive shuffled: one long list (its parts run on without lines or gaps between them) */
+.tagged-thread.tg-shuffle, .tagged-thread.tg-shuffle:not(:has(.thread-foot)):not(:has(.search-foot)) { border-bottom: 0; padding: 0; }
+.tagged-thread.tg-shuffle:first-child { padding-top: 10px; }
+/* History: the post whose tracks are in the side panel */
+.month-row.on > .month-line { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: var(--radius-sm); }

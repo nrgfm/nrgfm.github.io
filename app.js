@@ -285,6 +285,7 @@ function runSearch() {
   if (!terms.length && view === "activity") renderActivity();
   if (!terms.length && view === "lookup") renderLookup();
   if (!terms.length && tagsView()) renderTagsPage(); else hideTagPanel();
+  if (terms.length || view !== "history") hideHistPanel();
 }
 
 /* computer: the search line stays one line: the count, the filters after it, Sort on the right. Too many filters
@@ -360,6 +361,7 @@ function viewItems() {
   if (view === "genreboxes") return genreThreads(); // the earlier Genres page (#/genreboxes), kept as a backup
   if (view === "history") return historyMonths();
   if (view === "activity" || view === "lookup") return []; // drawn by renderActivity / renderLookup
+  if (view === "tagged" && archiveShuffle) return shuffleParts();
   if (view === "tagged") return threads.filter((t) => isBase(t) && t.tracks.some(userTagged));
   if (view === "threads" && threadsByAdd) return threads.filter(isBase).sort((a, b) => lastAdded(b) - lastAdded(a));
   return threads.filter(isBase);
@@ -367,18 +369,40 @@ function viewItems() {
 /* Threads, the other order (Sort in the menu, left of uBlock, on Threads only): the posts a track was added to most recently first */
 let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
-function drawThreadsSort() {
+function drawThreadsSort() { // (the same button on Archive: Date posted or Shuffle)
   let b = $("#threadsSort");
   if (!b) {
     b = el("button", { id: "threadsSort", class: "sf sf-order menu-sort", onclick: () => {
+      if (view === "tagged") { archiveShuffle = archiveShuffle ? null : shuffledArchive(); runSearch(); pageScrollTo(0); return; }
       threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
       if (view === "threads" && !$("#q").value.trim()) { runSearch(); pageScrollTo(0); } else drawThreadsSort();
     } });
     $('#menu [data-view="ublock"]').before(b);
   }
-  b.hidden = view !== "threads";
-  b.setAttribute("aria-pressed", String(threadsByAdd));
-  b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, threadsByAdd ? "Latest added" : "Date posted"), " ▾");
+  b.hidden = view !== "threads" && view !== "tagged";
+  const on = view === "tagged" ? !!archiveShuffle : threadsByAdd;
+  b.setAttribute("aria-pressed", String(on));
+  b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, view === "tagged" ? (on ? "Shuffle" : "Date posted") : on ? "Latest added" : "Date posted"), " ▾");
+}
+/* Archive shuffled: every track with a tag of its own, in random order, as one playlist (playing one: autoplay on,
+   on through the shuffled list). Shown in small parts so the page stays quick. */
+let archiveShuffle = null;
+const SHUF_PART = 5; // (40 parts at a time: 200 tracks, like an ordinary Archive page)
+function shuffledArchive() {
+  const all = [];
+  for (const t of threads) if (isBase(t)) for (const tr of t.tracks) if (userTagged(tr)) all.push(tr);
+  for (let k = all.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [all[k], all[j]] = [all[j], all[k]]; }
+  return { id: "archive-shuffle", kind: "tag", name: "", shuffle: true, tracks: all, last: 0 };
+}
+function shuffleParts() {
+  const parts = [];
+  for (let k = 0; k < archiveShuffle.tracks.length; k += SHUF_PART) parts.push({ id: "shuf-" + k, kind: "shufpart", from: k, to: Math.min(k + SHUF_PART, archiveShuffle.tracks.length), tracks: [] });
+  return parts;
+}
+function shufflePartNode(p) {
+  const t = archiveShuffle, rows = [];
+  for (let i = p.from; i < p.to; i++) rows.push(trackRow(t, t.tracks[i], i, null));
+  return el("li", { class: "thread tagged-thread tg-shuffle", id: "th-" + p.id }, el("ol", { class: "tracks tg-tracks" }, rows));
 }
 
 const baseTracks = () => threads.filter(isBase).flatMap((t) => t.tracks);
@@ -624,13 +648,31 @@ function setThumbSize() {
 }
 setThumbSize();
 document.body.classList.add("hist-thumbs-on");
+/* History: hovering a post with tracks under it shows them in the side space (as on Tags: only the list) */
+const histPanel = el("aside", { class: "tag-panel hist-panel", hidden: true });
+document.body.append(histPanel);
+let histHoverT = 0, histTh = null;
+function hideHistPanel() { histPanel.hidden = true; histTh = null; document.querySelectorAll(".month-row.on").forEach((r) => r.classList.remove("on")); }
+function showHistPanel(th, row) {
+  if (phone() || innerWidth < 966 || view !== "history" || $("#q").value.trim() || !th || th.tracks.length < 2) { hideHistPanel(); return; }
+  histTh = th;
+  document.querySelectorAll(".month-row.on").forEach((r) => r.classList.remove("on"));
+  if (row) row.classList.add("on");
+  const now = playing && playing.thread.tracks[playing.index];
+  histPanel.replaceChildren(el("div", { class: "tp-p-list" }, th.tracks.slice(1).map((tr, k) => { const x = info(tr), yy = yearOf(tr);
+    return el("button", { class: "side-row" + (now === tr ? " playing" : "") + (x.dead ? " dead" : ""), onclick: (e) => { if (quickClick(e, th, tr)) return; play(th, k + 1); showHistPanel(th); } },
+      img(x.thumb, "side-thumb"), el("span", { class: "side-name" }, x.title), yy ? el("span", { class: "tp-y" }, yy) : null); })));
+  histPanel.hidden = false;
+  placeSidePanel(histPanel);
+}
 function monthNode({ t }) {
   const [y, mo] = t.month.split("-");
   return el("li", { class: "month", id: "th-" + t.id },
     el("h2", { class: "month-name" }, `${MONTHS[+mo - 1]} ${y}`, el("span", { class: "month-count" }, ` · ${t.threads.length} ${t.threads.length === 1 ? "post" : "posts"}`)),
     el("ol", { class: "month-list" }, t.threads.map((th) => {
       const x = info(th.tracks[0]), n = th.tracks.length;
-      return el("li", { class: "month-row" + (x.dead ? " dead" : "") }, el("div", { class: "month-line", "data-k": `${th.id}:0` },
+      const hover = phone() ? {} : { onmouseenter: (e) => { const row = e.currentTarget; clearTimeout(histHoverT); histHoverT = setTimeout(() => (n > 1 ? showHistPanel(th, row) : hideHistPanel()), 80); } };
+      return el("li", { class: "month-row" + (x.dead ? " dead" : ""), ...hover }, el("div", { class: "month-line", "data-k": `${th.id}:0` },
         el("button", { class: "when-link", "data-thread": th.id, title: "Go to the thread (" + fmtDay(postDate(th)) + ")", onclick: () => goToThread(th) }, fmtDay(postDate(th)).replace(/ \d{4}$/, "")),
         el("button", { class: "play month-play", onclick: () => play(th, 0), "aria-label": `Play ${x.title}` }, img(x.thumb, "mini"), el("span", { class: "tr-title" }, x.title)),
         n > 1 ? el("button", { class: "when-link month-n", "aria-expanded": "false", title: "Show the tracks",
@@ -1248,6 +1290,7 @@ function taggedNode(t) {
 }
 function threadNode({ t, hits, one }) {
   if (one != null) return resultItemNode(t, one); // search as a list: one found track, as in Archive
+  if (t.kind === "shufpart") return shufflePartNode(t);
   if ((view === "tagged" && !hits && t.kind === "thread") || (view === "tag" && !hits && t.kind === "tag")) return taggedNode(t);
   if (t.kind === "month") return monthNode({ t });
   if (t.mix) return genreMixNode(t);
@@ -1358,6 +1401,13 @@ function goToThread(t, gap = 22) { // a little under the header: the dividing li
 
 /* Archive: Random goes to a random track there (one with a tag of its own; automatic tags don't count) */
 function randomTagged(gap = 22) {
+  if (archiveShuffle && view === "tagged") { // shuffled: a random spot in the shuffled list
+    const k = Math.floor(Math.random() * archiveShuffle.tracks.length), at = Math.floor(k / SHUF_PART);
+    while (rendered <= at && rendered < shown.length) renderMore();
+    const row = document.querySelector(`[data-k="${archiveShuffle.id}:${k}"]`);
+    if (row) holdAt(row, () => headerBottom() + gap);
+    return;
+  }
   const pool = [];
   for (const t of threads) if (isBase(t)) t.tracks.forEach((tr, i) => { if (userTagged(tr)) pool.push([t, i]); });
   if (!pool.length) return;
@@ -1471,9 +1521,9 @@ function playable(tr) { const x = info(tr); return !x.dead && !x.noEmbed && !x.n
 function autoNext() {
   if (!autoplay || !playing) return;
   const { thread: t, index: i } = playing;
-  if (view === "tagged") { // Archive: the next track with a tag of its own, down the Archive's list (across posts)
+  if (view === "tagged" && !t.shuffle) { // Archive: the next track with a tag of its own, down the Archive's list (across posts)
     const seq = [];
-    for (const x of shown) if (x.t && isBase(x.t)) x.t.tracks.forEach((tr, k) => { if (userTagged(tr) || (x.t === t && k === i)) seq.push([x.t, k]); });
+    for (const x of shown) if (x.t && isBase(x.t) && x.t.kind !== "shufpart") x.t.tracks.forEach((tr, k) => { if (userTagged(tr) || (x.t === t && k === i)) seq.push([x.t, k]); });
     const at = seq.findIndex(([u, k]) => u === t && k === i);
     if (at > -1) { for (const [u, k] of seq.slice(at + 1)) if (playable(u.tracks[k])) { play(u, k); return; } return; }
   }
@@ -1602,7 +1652,7 @@ function makePlain(box, src, title) {
 function play(t, i) {
   if (i < 0 || i >= t.tracks.length) return;
   playing = { thread: t, index: i };
-  if ((t.mix || (t.kind === "tag" && view === "tag")) && !autoplay) { autoplay = true; $("#autoBtn").setAttribute("aria-pressed", "true"); $("#autoBtn").textContent = "Autoplay on"; } // a Genres playlist plays on
+  if ((t.mix || t.shuffle || (t.kind === "tag" && view === "tag")) && !autoplay) { autoplay = true; $("#autoBtn").setAttribute("aria-pressed", "true"); $("#autoBtn").textContent = "Autoplay on"; } // a Genres playlist plays on
   const pn = document.getElementById("th-" + t.id);
   // the thread you play from gets the selected frame (in search results only the ones that scroll)
   if (pn && activeId !== t.id && !addingId && selectable(pn)) setActive(t.id, `${t.id}:${i}`); // only boxes that scroll
@@ -1619,7 +1669,7 @@ function play(t, i) {
   startPlayLog(tr0, x);
   $("#dock").classList.remove("wide"); // a new track: the buttons come back
   showFlag();
-  $("#threadBtn").textContent = `${i + 1} of ${t.tracks.length}` + (phone() ? "" : t.kind === "tag" ? " in this tag" : " in this thread");
+  $("#threadBtn").textContent = `${i + 1} of ${t.tracks.length}` + (phone() ? "" : t.shuffle ? " in shuffle" : t.kind === "tag" ? " in this tag" : " in this thread");
   closeThread();
   fitTitle();
   $("#prevBtn").disabled = i === 0;
@@ -3286,8 +3336,8 @@ function openTagPanel(g, pin) {
   const r = document.querySelector(`.tp-row[data-tag="${CSS.escape(g)}"]`); if (r && !phone() && tp.pinned) r.classList.add("on");
   drawTagPanel(true);
 }
-function placeTagPanel() {
-  const box = tagPanel.box;
+function placeTagPanel() { placeSidePanel(tagPanel.box); placeSidePanel(histPanel); }
+function placeSidePanel(box) {
   if (box.hidden || phone()) return;
   const top = headerBottom() + 10, d = $("#dock");
   let bottom = innerHeight - 16;
@@ -3382,7 +3432,7 @@ function drawTagPanel(show, page) {
   if (!page) drawTagList();
   if (page) { // a tag's page: the name and how many tracks, the years on the right; the order and Add description / Rename under
     const n = t.tracks.length;
-    head.append(el("span", { class: "tp-page-n" }, `${n} ${n === 1 ? "track" : "tracks"}`));
+    head.append(el("span", { class: "tp-page-n" }, `${n} ${n === 1 ? "track" : "tracks"}` + (ys.length ? " · " + yearsText(ys) : "")));
     if (tp.returnTo) { // opened from Tags: ‹ before the name; the arrow and the name both go back there
       const title = head.querySelector(".tp-page-title");
       title.classList.add("tp-back-title"); title.setAttribute("role", "link"); title.setAttribute("aria-label", "Back to Tags");
@@ -3400,13 +3450,7 @@ function drawTagPanel(show, page) {
   const parts = [head,
     el("div", { class: "tp-p-meta" }, `${t.tracks.length} ${t.tracks.length === 1 ? "track" : "tracks"}` + (ys.length ? " · " + yearsText(ys) : "") + " · last added " + fmtTs(t.last)),
     descBox,
-    slider,
-    el("div", { class: "tp-btns" },
-      ...(key && tp.editing
-        ? [el("button", { class: "when-link", onclick: editDesc }, desc ? "Edit description" : "Add description"), !isAutoTag(g) ? el("button", { class: "when-link", onclick: rename }, "Rename") : null]
-        : [orderBtn("newest", "Newest added"), orderBtn("oldest", "Oldest added"), orderBtn("shuffle", "Shuffle")]),
-      key ? el("button", { class: "when-link tp-edit" + (tp.editing ? " on" : ""), onclick: () => { tp.editing = !tp.editing; redraw(); } }, "Edit") : null),
-    page ? null : list].filter(Boolean);
+    page ? null : list].filter(Boolean); // (the years, the order and Edit are on the tag's own page)
   if (desc) descBox.addEventListener("dblclick", () => key && editDesc());
   if (page) return parts;
   box.replaceChildren(...parts);
