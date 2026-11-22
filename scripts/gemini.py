@@ -23,12 +23,12 @@ KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 MODEL = os.environ.get("GEMINI_MODEL", "").strip()
 API = "https://generativelanguage.googleapis.com/v1beta/"
 VERSION = 3  # 3: no limit on genres and mood words; 2: also mood words, from the title, description and YouTube comments (everything is asked again once)
-PER_CALL = {"bandcamp": 8, "sources": 50, "search": 10, "better": 10}  # tracks per request
+PER_CALL = {"bandcamp": 8, "sources": 50, "search": 5, "better": 5}  # tracks per request
 # the most each answer may be (tokens, thinking included): keeps every request's worst case known, so the budget
 # check before it is real
 MAX_OUT = {"bandcamp": 6000, "sources": 12000, "search": 6000, "better": 6000}
 # Google searches one request may make at most, as counted before sending it (Gemini usually makes one or two a track)
-MAX_SEARCHES = {"bandcamp": 40, "sources": 0, "search": 40, "better": 40}
+MAX_SEARCHES = {"bandcamp": 40, "sources": 0, "search": 25, "better": 25}
 ESCALATE = int(os.environ.get("GEMINI_ESCALATE", "") or 40)  # tracks asked again with the better model, at most, per run
 MAX_REQUESTS = int(os.environ.get("GEMINI_MAX_REQUESTS", "") or 150)  # requests per run, at most
 PAUSE = 4  # seconds between requests
@@ -179,7 +179,8 @@ Ignore what doesn't fit the title and uploader. Don't guess: leave a field empty
 "group_year", "group_release" and "group_genres", when given, were set by hand by the group and are right: keep them.
 A year written in "title" or "link_title" is a strong hint (it can also be a remaster's year).""",
     "search": """MusicBrainz and Discogs found nothing about these tracks. Read the video description when there is one,
-and look each track up with Google Search: search "discogs <the title>" and read the first 3 or 4 results (the
+and look each track up with Google Search. Search for EVERY track, at least once each, before answering: never
+answer from memory alone (memory gets album names and years wrong while sounding sure). search "discogs <the title>" and read the first 3 or 4 results (the
 Discogs page of the release usually says it all), then search the title by itself (Discogs, MusicBrainz, Bandcamp, Wikipedia, VGMdb, the
 artist's pages are good sources). Many are not ordinary releases: music from a video game, film, anime or TV series
 (then add genres like "video game music" or "soundtrack", give the year of the game or film, the composer as "ar",
