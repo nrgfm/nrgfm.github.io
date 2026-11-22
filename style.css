@@ -1697,3 +1697,12 @@ body[data-view="history"] .month-line .tr-title { -webkit-font-smoothing: antial
 .browse-mark:hover { color: var(--text); }
 .browse-mark.on { color: var(--jade); }
 .browse-mark:focus-visible { outline: 2px solid var(--jade); }
+/* Threads (laptop): "Add a track here" lines up with the tracks' thumbnails (the column moved with the bigger thumbnails) */
+@media (min-width: 641px) { body[data-view="threads"] .thread-foot { padding-left: 216px; } }
+/* Threads: titles in the system font (as Facebook: San Francisco on a Mac), smaller and regular weight */
+body[data-view="threads"] .t-title, body[data-view="threads"] .tr-title { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 400; }
+body[data-view="threads"] .t-title { font-size: 17px; line-height: 1.3; }
+body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
+/* the side list of opened posts: the track names in Facebook's light grey-white */
+.browse-row .side-name { color: #E4E6EB; }
+.browse-row.here .side-name { color: var(--jade); }

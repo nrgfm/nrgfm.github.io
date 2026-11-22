@@ -3537,6 +3537,10 @@ function placeSidePanel(box) {
   const top = headerBottom() + 10, d = $("#dock");
   let bottom = innerHeight - 16;
   if (!d.hidden) { const m = $("#media").getBoundingClientRect(), bar = d.querySelector(".bar").getBoundingClientRect(); bottom = (m.height && !d.classList.contains("idle") ? m.top : bar.top) - 10; }
+  if (box === browsePanel) { // never over the video window, also while it isn't there yet (its size and gap kept free above the player bar)
+    const barTop = d.hidden ? innerHeight - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-h")) || 90) : d.querySelector(".bar").getBoundingClientRect().top;
+    bottom = Math.min(bottom, barTop - 8 - 204 - 10);
+  }
   box.style.top = top + "px"; box.style.maxHeight = Math.max(160, bottom - top) + "px";
 }
 addEventListener("resize", () => { if (tagsView()) { if (!phone() && innerWidth < 966) tagPanel.box.hidden = true; else if (!phone()) drawTagPanel(); } });
