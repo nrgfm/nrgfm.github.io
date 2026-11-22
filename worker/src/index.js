@@ -108,12 +108,11 @@ async function readImage(env, id) { // (with the first key; when its quota is us
 }
 /* this month's Gemini use, shared with the GitHub jobs (scripts/budget.py: the same table, the same prices, kept on
    the high side). Reading stops when the month's budget is used up. */
-const COST_LIMIT = 0, PRICE = (m) => (m.endsWith("-lite") ? [0.3, 2.5] : m.includes("flash") ? [1.5, 7.5] : [4, 20]);
+const COST_LIMIT = 4.5, PRICE = (m) => (m.endsWith("-lite") ? [0.3, 2.5] : m.includes("flash") ? [1.5, 7.5] : [4, 20]);
 const pacific = () => { const d = new Date(Date.now() - 8 * 3600e3).toISOString(); return [d.slice(0, 7), d.slice(0, 10)]; };
 async function budgetLeft(env) {
-  const [m] = pacific();
-  const r = await env.DB.prepare("SELECT micro FROM gemini_usage WHERE month = ?1").bind(m).first();
-  return COST_LIMIT - ((r && r.micro) || 0) / 1e6;
+  const r = await env.DB.prepare("SELECT COALESCE(SUM(micro), 0) AS t FROM gemini_usage").first(); // (all months: the 5 euros paid in advance, and no more)
+  return COST_LIMIT - ((r && r.t) || 0) / 1e6;
 }
 async function budgetAdd(env, model, inTok, outTok) {
   const [m, d] = pacific(), [pi, po] = PRICE(model);

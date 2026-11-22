@@ -15,7 +15,10 @@ import json, os, time, urllib.request
 
 SEARCH_LIMIT = int(os.environ.get("GEMINI_SEARCH_LIMIT", "") or 4500)
 SEARCH_DAY = int(os.environ.get("GEMINI_SEARCH_DAY", "") or 1000)
-COST_LIMIT = float(os.environ.get("GEMINI_COST_LIMIT", "") or 0)  # (0: paused, no paid requests at all)
+COST_LIMIT = float(os.environ.get("GEMINI_COST_LIMIT", "") or 4.50)  # dollars a month (Google's own cap: 1 euro a month)
+# dollars in all, ever: the 5 euros paid in advance are used, and nothing more (counted on the high side, so a little
+# of the 5 euros is left over rather than the card being charged)
+TOTAL_LIMIT = float(os.environ.get("GEMINI_TOTAL_LIMIT", "") or 4.50)
 FREE_SEARCHES = 5000
 SEARCH_PRICE = 14 / 1000  # dollars per search over the free ones
 
@@ -73,8 +76,9 @@ def now():
          "requests INTEGER DEFAULT 0, day TEXT, day_searches INTEGER DEFAULT 0)")
     rows = _sql("SELECT * FROM gemini_usage WHERE month = ?", (m,))
     r = rows[0] if rows else {}
+    total = _sql("SELECT COALESCE(SUM(micro), 0) AS t FROM gemini_usage")[0]["t"]
     return {"searches": r.get("searches") or 0, "day_searches": (r.get("day_searches") or 0) if r.get("day") == d else 0,
-            "cost": (r.get("micro") or 0) / 1e6, "requests": r.get("requests") or 0}
+            "cost": (r.get("micro") or 0) / 1e6, "requests": r.get("requests") or 0, "total": total / 1e6}
 
 
 def search_cost(before, n):
@@ -94,6 +98,8 @@ def allowed(model, in_tokens, max_out, max_searches):
         return False, f"today's Google searches would pass {SEARCH_DAY} ({u['day_searches']} so far)"
     if u["cost"] + worst > COST_LIMIT:
         return False, f"this month's Gemini cost would pass ${COST_LIMIT:.2f} (${u['cost']:.3f} so far)"
+    if u["total"] + worst > TOTAL_LIMIT:
+        return False, f"the money paid in advance is used up (${u['total']:.3f} of ${TOTAL_LIMIT:.2f}): Gemini stays off"
     return True, ""
 
 

@@ -546,7 +546,7 @@ def main():
         # and the tracks one search found nothing about (never answered): the better model searches more
         unsure += [u for u, f, fp in todo["search"] if u not in ai and u in web and not web[u].get("esc")]
         unsure.sort(key=lambda u: -ts_of.get(u, 0))
-        unsure = unsure[:ESCALATE] if budget.now()["cost"] < budget.COST_LIMIT / 2 else []  # (the better model only while half the month's budget is left)
+        unsure = unsure[:ESCALATE] if budget.now()["total"] < budget.TOTAL_LIMIT / 2 else []  # (the better model only while half the money is left)
         if unsure:
             print(len(unsure), "unsure answers: asking", better[0])
         for i in range(0, len(unsure), PER_CALL["better"]):
