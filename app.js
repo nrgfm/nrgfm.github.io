@@ -77,7 +77,9 @@ function info(t) {
   const author = artist || channel;
   let thumb = m.thumbnail_url || (extra[t.url] || {}).cover || ""; // (the Bandcamp cover the lookup found, when the page itself couldn't be read)
   if (t.yt) thumb = `https://i.ytimg.com/vi/${t.yt}/mqdefault.jpg`;
-  let noEmbed = m.status === 401; // video exists but its owner blocks playing it on other sites
+  // video exists but can't play on other sites: its owner blocks it, or YouTube does (age restriction: the player here
+  // reported it and the track got the tag "plays on youtube only")
+  let noEmbed = m.status === 401 || !!(t.tags && t.tags[YT_ONLY]) || !!t._ytOnly;
   const alt = (m.dead || noEmbed) && altSource(t); // the main link is gone: the alternative link plays (and gives the picture)
   if (alt) {
     const am = meta[alt.url] || {};
@@ -85,7 +87,7 @@ function info(t) {
     if (!t.title && !fetched && !m.wb_title && am.title) title = flipDotTitle(am.title);
     return { title, author, thumb, dead: false, noEmbed: false, recovered, archive: "", untitled: !t.title && !m.title && !am.title, alt: true };
   }
-  return { title: noEmbed && !t.title ? "Plays on Youtube only" : title, author, thumb, dead: !!m.dead && !noEmbed, noEmbed, recovered, archive: m.wb_url || "", untitled: !t.title && !m.title };
+  return { title: noEmbed && !t.title && !m.title ? "Plays on Youtube only" : title, author, thumb, dead: !!m.dead && !noEmbed, noEmbed, recovered, archive: m.wb_url || "", untitled: !t.title && !m.title };
 }
 
 /* What search looks in, field by field (the filters next to the result count switch fields off) */
@@ -1477,7 +1479,23 @@ function autoNext() {
   for (let k = i + 1; k < t.tracks.length; k++) if (playable(t.tracks[k])) { play(t, k); return; }
 }
 function onEnded() { setPlayState(false); autoNext(); }
-function onError() { setPlayState(false); autoNext(); }
+const YT_ONLY = "plays on youtube only";
+/* YouTube's player said no: 101/150 = it can't play on other sites (the owner's choice, or age-restricted). The track gets
+   the tag "plays on youtube only" (with the key, or a level 2 login: saved; otherwise only for now), so autoplay skips it
+   and a backup link plays instead when it has one. Then on to the next track. */
+function onError(code) {
+  setPlayState(false);
+  const tr = playing && playing.thread.tracks[playing.index];
+  if (tr && (code === 101 || code === 150) && !(tr.tags && tr.tags[YT_ONLY])) {
+    tr._ytOnly = true; tr._hay = null;
+    if (canEdit()) {
+      const ts = Math.floor(Date.now() / 1000);
+      writeInbox({ action: "tag", ids: [tr.id], add: [YT_ONLY], remove: [], ts, auto: "player" }, "tag")
+        .then(() => { applyTags(tr, [...Object.keys(tr.tags || {}), YT_ONLY], ts); tr._hay = null; refreshTags(); }).catch(() => {});
+    }
+  }
+  autoNext();
+}
 const events = { state: setPlayState, time: setTime, ended: onEnded, error: onError };
 
 /* Each adapter wraps one platform's embed and exposes the same controls. */
@@ -1531,7 +1549,7 @@ function makeYouTube(tr) {
           else if (e.data === YT.PlayerState.PAUSED) events.state(false);
           else if (e.data === YT.PlayerState.ENDED) events.ended();
         },
-        onError: () => { if (yt.active) events.error(); },
+        onError: (e) => { if (yt.active) events.error(e && e.data); },
       },
     });
   }));
