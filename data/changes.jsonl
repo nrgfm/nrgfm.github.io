@@ -2223,3 +2223,4 @@
 {"action": "tag", "ids": ["t1795304932_0"], "add": ["hiphop"], "remove": [], "ts": 1795305840}
 {"action": "tag", "ids": ["t1739654619384588_0"], "add": ["soul"], "remove": [], "ts": 1795305978}
 {"action": "promote", "thread": "xt1739654619384588_0", "id": "t1750965751586808_0", "to": "original", "ts": 1795306007}
+{"action": "tag", "ids": ["t1752781711405212_0"], "add": ["soul"], "remove": [], "ts": 1795306166}
