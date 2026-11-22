@@ -2270,3 +2270,4 @@
 {"action": "tag", "ids": ["t6780515838631749_0"], "add": ["chillout room"], "remove": [], "ts": 1795350229}
 {"action": "edit", "thread": "p6717468528269814", "id": "t6780515838631749_0", "title": "Remote - Tracing Lines (2008)", "url": "https://www.youtube.com/watch?v=dscT9tzFhjs", "tags": ["chillout room"], "ts": 1795350273}
 {"action": "tag", "ids": ["t6618809561469045_0"], "add": ["hiphop"], "remove": [], "ts": 1795350299}
+{"action": "tag", "ids": ["t1667629419920442_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795350560, "auto": "player"}
