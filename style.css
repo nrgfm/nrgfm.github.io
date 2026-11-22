@@ -1498,8 +1498,7 @@ body.side-open .tag-panel { visibility: hidden; }
 .tg-jumps { font-family: "Schibsted Grotesk", system-ui, sans-serif; } /* the letter bar: the font's own # (not the straight one) */
 /* Activity → Logs (laptop only): right end of the filters' line; a line per change */
 .act-logs { margin-left: auto; font-size: 14px; } /* (as All devices) */
-.act-log { grid-template-columns: 48px 108px minmax(0, 1fr) minmax(0, auto); }
-.act-log > :nth-child(3) { margin-left: 64px; } /* (the tracks a little further right, away from the action) */
+.act-log { grid-template-columns: 48px 104px minmax(0, 1fr) minmax(0, auto); }
 .act-log .tr-title { font-size: 13.5px; font-weight: 400; }
 .act-what { color: var(--muted); font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; } /* (two lines when it's long: "Moved to its own post (dated)") */
 .act-more { color: var(--muted); font-size: 13px; text-align: right; }
