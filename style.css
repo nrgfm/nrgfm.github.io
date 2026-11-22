@@ -1663,6 +1663,8 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 .af-actions:has(.af-time:not([hidden])) .tag-area { flex: 1 1 0; min-width: 60px; } /* shorter tag field first; a new line only below 60px */
 .af-actions:has(.af-time:not([hidden])) .tag-box { min-width: 0; width: 100%; }
 .af-actions .af-time > .btn { flex: none; }
-/* Clear: not bold; Clear and ▾ light up a little when hovered (like Delete and Save) */
-.btn.ghost.af-clear { font-weight: 400; }
-.add-form .btn.ghost.af-clear:hover, .add-form .btn.ghost.more-info-btn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+/* Clear and the ▾: like Promote (grey, the outline and text light up when hovered); Clear's text as big as the times */
+.btn.ghost.af-clear { font-weight: 400; color: var(--muted); font-size: 14px; }
+.add-form .btn.ghost.af-clear:hover, .add-form .btn.ghost.more-info-btn:hover { color: var(--text); border-color: var(--muted); }
+.af-time .tag-field .tag-input.af-time-in { text-align: center; }
+@media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
