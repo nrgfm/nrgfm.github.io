@@ -3706,7 +3706,7 @@ async function drawActList(token) {
       el("button", { class: "play month-play", disabled: !tr || null, onclick: () => tr && play(at.t, at.i) },
         img(x ? x.thumb : "", "mini"),
         el("span", { class: "act-text" }, el("span", { class: "tr-title" }, x ? x.title : p.title || p.url),
-          full ? null : el("span", { class: "act-sub" }, `played ${fmtTime(p.sec)} of ${fmtTime(p.dur)}`))),
+          null)),
       el("button", { class: "when-link act-dev", onclick: () => { act.who = p.who; act.flagged = false; act.day = null; renderActivity(); } }, deviceLabel(d || { who: p.who, city: p.city })),
       flagBtn));
   }

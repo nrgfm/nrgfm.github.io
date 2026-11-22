@@ -1498,7 +1498,9 @@ body.side-open .tag-panel { visibility: hidden; }
 .tg-jumps { font-family: "Schibsted Grotesk", system-ui, sans-serif; } /* the letter bar: the font's own # (not the straight one) */
 /* Activity → Logs (laptop only): right end of the filters' line; a line per change */
 .act-logs { margin-left: auto; font-size: 14px; } /* (as All devices) */
-.act-log { grid-template-columns: 48px 132px minmax(0, 1fr) minmax(0, auto); }
+.act-log { grid-template-columns: 48px 108px minmax(0, 1fr) minmax(0, auto); }
+.act-log > :nth-child(3) { margin-left: 64px; } /* (the tracks a little further right, away from the action) */
+.act-log .tr-title { font-size: 13.5px; font-weight: 400; }
 .act-what { color: var(--muted); font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; } /* (two lines when it's long: "Moved to its own post (dated)") */
 .act-more { color: var(--muted); font-size: 13px; text-align: right; }
 .act-gone { padding: 4px 0 4px 52px; opacity: .6; } /* (in line with the titles that have a picture) */
@@ -1631,7 +1633,7 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 /* Threads: Sort in the menu, left of uBlock (by the main post's date, or the latest added track) */
 /* (the same spot on Threads, Archive and Tags: "Sort:" stays put, the word after it changes) */
 .menu .menu-sort { margin-left: auto; width: 150px; text-align: left; color: var(--muted); font-size: 14px; line-height: 1.4; }
-.menu .menu-sort:not([hidden]) + .menu-right { margin-left: 44px; }
+.menu .menu-sort:not([hidden]) + .menu-right { margin-left: 16px; }
 .menu .menu-sort .sort-val { color: var(--jade); }
 .menu .menu-sort:hover .sort-val { text-decoration: underline dotted; text-underline-offset: 3px; }
 .menu .menu-sort[hidden] { display: none; }
@@ -1650,4 +1652,4 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .act-lock { display: grid; place-items: center; width: 44px; flex: none; color: var(--muted); }
 .act-lock svg { width: 18px; height: 18px; }
 @media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }
-.side-row.side-main .side-name { color: var(--jade); }
+.side-row.side-main .side-name { font-weight: 600; font-size: 15px; } /* (History: the post's main track) */
