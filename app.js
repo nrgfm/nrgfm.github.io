@@ -1559,7 +1559,32 @@ function onError(code) {
   }
   autoNext();
 }
-const events = { state: setPlayState, time: setTime, ended: onEnded, error: onError };
+/* a section of a long video (the track's start and end): the player starts there, shows only that part,
+   and when the end is reached it counts as the track ending (autoplay goes on to the next) */
+let section = null;
+function sectionState(on) {
+  const sc = section;
+  if (sc && on) {
+    sc.live = true;
+    if (sc.done) { sc.done = false; sc.rawSeek && sc.rawSeek(sc.s); } // Play again after the end: from the start of the section
+  }
+  setPlayState(on);
+}
+function sectionTime(cur, dur) {
+  const sc = section;
+  if (sc) {
+    if (!sc.live) { setTime(0, sc.e ? sc.e - sc.s : 0); return; } // (until it really plays: the times may still be the last video's)
+    if (!sc.started && dur > 0) { sc.started = true; if (sc.s && cur < sc.s - 2 && sc.rawSeek) { sc.rawSeek(sc.s); return; } }
+    if (sc.e && cur >= sc.e) {
+      if (!sc.done) { sc.done = true; try { adapter && adapter.pause(); } catch {} onEnded(); }
+      setTime(sc.e - sc.s, sc.e - sc.s); return;
+    }
+    const end = sc.e && (!dur || sc.e < dur) ? sc.e : dur;
+    cur = Math.max(0, cur - sc.s); dur = Math.max(0, end - sc.s);
+  }
+  setTime(cur, dur);
+}
+const events = { state: sectionState, time: sectionTime, ended: onEnded, error: onError };
 
 /* Each adapter wraps one platform's embed and exposes the same controls. */
 /* One YouTube player is kept for the whole visit and reused for every YouTube track.
@@ -1580,25 +1605,25 @@ function makeYouTube(tr) {
   if (yt.ready) {
     // load straight away, inside the click, so the browser still counts it as the person's action
     try { if (IOS) yt.player.unMute(); } catch {} // iPhone: sound on before loading, still inside the tap
-    yt.player.loadVideoById(tr.yt);
+    yt.player.loadVideoById({ videoId: tr.yt, startSeconds: tr.start || 0 });
     try { if (IOS) yt.player.unMute(); else { yt.player.setVolume(volume); volume ? yt.player.unMute() : yt.player.mute(); } } catch {}
     a.ready = Promise.resolve();
     return a;
   }
-  yt.pending = tr.yt;
+  yt.pending = tr.yt; yt.pendingStart = tr.start || 0;
   a.ready = loadYT().then(() => new Promise((res) => {
     yt.waiters.push(res);
     if (yt.player) return; // still starting up; it will load yt.pending when ready
     const host = el("div"); ytSlot().replaceChildren(host);
     yt.player = new YT.Player(host, {
       videoId: yt.pending, host: "https://www.youtube-nocookie.com", width: "100%", height: "100%",
-      playerVars: { autoplay: 1, mute: 0, rel: 0, playsinline: 1, vq: "hd1080" },
+      playerVars: { autoplay: 1, mute: 0, rel: 0, playsinline: 1, vq: "hd1080", start: Math.floor(yt.pendingStart || 0) },
       events: {
         onReady: () => {
           yt.ready = true;
           try { if (IOS) yt.player.unMute(); else { yt.player.setVolume(volume); if (!volume) yt.player.mute(); } } catch {}
           const vid = yt.player.getVideoData && yt.player.getVideoData().video_id;
-          if (yt.pending && vid !== yt.pending) yt.player.loadVideoById(yt.pending);
+          if (yt.pending && vid !== yt.pending) yt.player.loadVideoById({ videoId: yt.pending, startSeconds: yt.pendingStart || 0 });
           yt.timer = setInterval(() => { if (yt.active && yt.player.getCurrentTime) events.time(yt.player.getCurrentTime(), yt.player.getDuration()); }, 250);
           yt.waiters.splice(0).forEach((f) => f());
         },
@@ -1687,6 +1712,8 @@ function play(t, i) {
   $("#prevBtn").disabled = i === 0;
   $("#nextBtn").disabled = i === t.tracks.length - 1;
   setPlayState(false); setTime(0, 0);
+  section = (tr.start || tr.end) && ["youtube", "soundcloud", "vimeo"].includes(tr.platform)
+    ? { s: tr.start || 0, e: tr.end || 0, live: false, started: false, done: false } : null;
 
   let kind = "video";
   if (x.nolink) {
@@ -1715,6 +1742,10 @@ function play(t, i) {
     kind = "note";
     box.append(el("p", { class: "nolink" }, `${PLATFORM[tr.platform] || "These"} links can't play in the player.`));
   }
+  if (section && adapter && adapter.controllable) { // the slider and the ±5 work inside the section
+    const sc = section, raw = adapter.seek; sc.rawSeek = raw;
+    adapter.seek = (x) => { sc.done = false; raw(Math.max(0, x) + sc.s); };
+  } else section = null;
   $("#media").dataset.kind = kind;
   const controllable = !!(adapter && adapter.controllable);
   $("#dock").classList.toggle("no-transport", !controllable);
@@ -2182,6 +2213,7 @@ function addForm(thread, edit, row) {
       if (wrap && wrap.previousElementSibling) focusRow(wrap.previousElementSibling, true, "top", "top"); // the track stays at the top
       else if (open) revealWhole(form);
     } }, "▾");
+  const sec = sectionFields(tr);
   const form = el("form", { class: "add-form" + (edit ? " edit-form" : ""), autocomplete: "off" },
     el("div", { class: "af-field" }, inBtn(edit && "Google", "https://www.google.com/search?q=",
       el("input", { name: "title", type: "text", "aria-label": "Title", placeholder: "Artist – Track (optional, filled in automatically)" }))),
@@ -2191,9 +2223,11 @@ function addForm(thread, edit, row) {
       tags.box,
       el("span", { class: "af-gap" }),
 
+      edit ? sec.box : null,
       edit ? arrow : null,
       el("span", { class: "af-msg hint", role: "status" }),
       edit ? el("button", { type: "button", class: "btn ghost danger key-only", onclick: (e) => deleteTrack(form, edit, e.currentTarget) }, "Delete") : null,
+      edit ? null : sec.box,
       edit ? null : arrow,
       el("button", { type: "submit", class: "btn" }, "Save")),
     more);
@@ -2202,8 +2236,8 @@ function addForm(thread, edit, row) {
     new ResizeObserver(() => { if (save.offsetWidth) form.style.setProperty("--save-w", save.offsetWidth + "px"); }).observe(save);
   }
   if (tr) { form.title.value = tr.title ? flipDotTitle(tr.title) : info(tr).title; form.url.value = tr.url; } // YouTube's "Title · Artist" shown as "Artist – Title", as on the page
-  form.url.addEventListener("input", () => form.url.setCustomValidity(""));
-  form.tags = tags;
+  form.url.addEventListener("input", () => { form.url.setCustomValidity(""); sec.fromLink(form.url.value); });
+  form.tags = tags; form.section = sec;
   form.addEventListener("submit", (ev) => { ev.preventDefault(); edit ? saveEdit(form, edit) : saveTrack(form, thread); });
   // Shift+Enter saves from any field, the tag field included
   form.addEventListener("keydown", (ev) => {
@@ -2310,6 +2344,72 @@ function moreInfo(tr, edit, tags) {
     box.append(el("p", { class: "hint af-later" }, "Suggested genres, year and the uploader are looked up after saving (every few hours)."));
   }
   return box;
+}
+/* Start and End of a section of a long video: shown when a link with a time is pasted (or the track has a section).
+   Clear takes the time out of the link and leaves the whole video. */
+const hms = (sec) => { sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, x = String(sec % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${m}:${x}`; };
+function readHms(v) { // "1:45:35", "105:35", "6335" -> seconds; "" -> 0; not a time -> null
+  v = String(v || "").trim(); if (!v) return 0;
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(v)) return null;
+  return v.split(":").reduce((a, n) => a * 60 + +n, 0);
+}
+function timeInLink(u) { // t=7225, t=7225s, t=2h0m25s, t=1:02:05, start=, #t= -> seconds, or null
+  const m = String(u || "").match(/[?&#](?:t|start|time_continue)=([\dhms:.]+)/i);
+  if (!m) return null;
+  const v = m[1].replace(/\.\d+$/, "");
+  if (/^\d+s?$/.test(v)) return parseInt(v, 10);
+  if (/^[\d:]+$/.test(v)) return readHms(v);
+  const p = v.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/i);
+  return p ? (+p[1] || 0) * 3600 + (+p[2] || 0) * 60 + (+p[3] || 0) : null;
+}
+function linkWithoutTime(u) {
+  try {
+    const x = new URL(u.trim());
+    for (const k of ["t", "start", "time_continue", "si", "feature", "pp"]) x.searchParams.delete(k);
+    for (const k of [...x.searchParams.keys()]) if (/^(fbclid|utm_)/.test(k)) x.searchParams.delete(k);
+    if (/^#t=/.test(x.hash)) x.hash = "";
+    return x.toString();
+  } catch { return u; }
+}
+function videoLength(u) { // the whole video's length when it's already known (seconds), else 0
+  const id = (String(u || "").match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1];
+  return ((extra[u] || extra[linkWithoutTime(u)] || (id && extra["https://www.youtube.com/watch?v=" + id]) || {}).d) || 0;
+}
+function sectionFields(tr) {
+  const field = (label, name) => {
+    const input = el("input", { type: "text", name, class: "tag-input af-time-in", inputmode: "numeric", autocomplete: "off", spellcheck: "false", "aria-label": label, placeholder: "0:00" });
+    input.addEventListener("input", () => input.setCustomValidity(""));
+    return [el("span", { class: "tag-field af-time-f", onmousedown: (e) => { if (e.target !== input) { e.preventDefault(); input.focus(); } } },
+      el("span", { class: "af-time-l" }, label), input), input];
+  };
+  const [sf, start] = field("Start", "secStart"), [ef, end] = field("End", "secEnd");
+  let url = tr ? tr.url : "", cleared = false;
+  const had = !!(tr && (tr.start || tr.end));
+  const box = el("span", { class: "af-time", hidden: !had }, sf, ef,
+    el("button", { type: "button", class: "btn ghost", onclick: () => {
+      const f = box.closest("form"); f.url.value = linkWithoutTime(f.url.value);
+      start.value = end.value = ""; box.hidden = true; cleared = true;
+    } }, "Clear"));
+  const fillEnd = () => { const d = videoLength(url); end.placeholder = d ? hms(d) : "—"; if (!end.value && d) end.value = hms(d); };
+  if (had) { start.value = hms(tr.start || 0); if (tr.end) end.value = hms(tr.end); fillEnd(); }
+  return {
+    box,
+    fromLink(v) { // the link field changed: a time in it opens Start and End
+      url = v.trim();
+      const t = timeInLink(url);
+      if (t === null) return;
+      cleared = false; box.hidden = false; start.value = hms(t); fillEnd();
+    },
+    // {start, end} in seconds (0 = none); null: no section; false: a field isn't a time (it says so)
+    get() {
+      if (box.hidden) return had && cleared ? { start: 0, end: 0 } : null;
+      const s = readHms(start.value), e = readHms(end.value), d = videoLength(url);
+      if (s === null) { start.setCustomValidity("A time like 1:45:35"); start.reportValidity(); return false; }
+      if (e === null || (e && e <= s)) { end.setCustomValidity(e === null ? "A time like 1:45:35" : "After the start"); end.reportValidity(); return false; }
+      return { start: s, end: d && e && Math.abs(e - d) <= 1 ? 0 : e }; // the end of the video: no end needed
+    },
+  };
 }
 const mixTags = (form) => form.tags.get(); // ("mix" is an ordinary tag: the Mixes page shows tracks tagged "mix")
 /* Edit card: a small button inside the field (right), searching the web for the title in the title field, in a new tab */
@@ -2535,7 +2635,12 @@ function rerenderThread(t, flashIndex) {
 async function saveEdit(form, { t, i }) {
   const tr = t.tracks[i];
   const fromThread = form.closest(".thread") ? form.closest(".thread").id.slice(3) : t.id; // where the track was edited (a tag thread or its own)
-  const url = form.url.value.trim() || tr.url, title = form.title.value.trim();
+  const typed = form.url.value.trim();
+  let url = (typed && timeInLink(typed) !== null ? linkWithoutTime(typed) : typed) || tr.url;
+  if (tr.yt && LINK_RE.test(url) && parseLocal(url).yt === tr.yt) url = tr.url; // the same video (with a time, or as youtu.be): not a new link
+  const title = form.title.value.trim();
+  const sec = form.section.get();
+  if (sec === false) return;
   if (url && !LINK_RE.test(url)) {
     form.url.setCustomValidity("Use a Youtube, Soundcloud, Bandcamp, Vimeo or Mixcloud link.");
     form.url.reportValidity();
@@ -2552,6 +2657,7 @@ async function saveEdit(form, { t, i }) {
     return;
   }
   if (alt !== (tr.alt || "")) item.alt = alt;
+  if (sec && (sec.start !== (tr.start || 0) || sec.end !== (tr.end || 0))) { item.start = sec.start; item.end = sec.end; }
   const rel = form.querySelector(".af-more")?.releaseChanged?.();
   if (rel) item.release = rel;
   const yr = form.querySelector(".af-more")?.yearChanged?.();
@@ -2577,6 +2683,7 @@ async function saveEdit(form, { t, i }) {
   applyTags(tr, item.tags, item.ts);
   if ("notes" in item) { if (notes) tr.notes = notes; else delete tr.notes; }
   if ("alt" in item) { if (alt) tr.alt = alt; else delete tr.alt; }
+  if ("start" in item) { for (const k of ["start", "end"]) { if (item[k]) tr[k] = item[k]; else delete tr[k]; } }
   if (item.release) tr.release = item.release;
   if ("year" in item) { tr.year = item.year; setYear(tr); }
   if ("genres" in item) { tr.genres = item.genres; setGenresOf(tr); }
@@ -2929,7 +3036,11 @@ async function saveTrack(form, thread) {
     return;
   }
   const ts = Math.floor(Date.now() / 1000);
-  const item = { url, title: form.title.value.trim(), thread: thread ? thread.id : "", tags: mixTags(form), ts };
+  const sec = form.section.get();
+  if (sec === false) return;
+  const item = { url: url ? linkWithoutTime(url) : url, title: form.title.value.trim(), thread: thread ? thread.id : "", tags: mixTags(form), ts };
+  if (sec && sec.start) item.start = sec.start;
+  if (sec && sec.end) item.end = sec.end;
   if (form.notes.value.trim()) item.notes = form.notes.value.trim();
   const msg = form.querySelector(".af-msg"), btn = form.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Saving…"; msg.textContent = "";
@@ -2948,6 +3059,8 @@ function showLocally(item) {
   if (yt) tr.yt = yt;
   if (item.title) tr.title = item.title;
   if (item.notes) tr.notes = item.notes;
+  if (item.start) tr.start = item.start;
+  if (item.end) tr.end = item.end;
   if (item.tags && item.tags.length) applyTags(tr, item.tags, item.ts);
   let th = item.thread && threads.find((x) => x.id === item.thread);
   if (th) th.tracks.push(tr);
@@ -3118,7 +3231,10 @@ const tagPref = (k, def) => { try { return localStorage.getItem("nrgfm-tags-" + 
 const setTagPref = (k, v) => { try { localStorage.setItem("nrgfm-tags-" + k, v); } catch {} };
 const tp = { active: null, pinned: false, editing: false, order: {}, years: {}, lens: {}, open: new Set(), hoverT: 0, terms: [], q: "" };
 const yearOf = (tr) => (extra[tr.url] || {}).y || null;
-const lenOf = (tr) => (extra[tr.url] || {}).d || null; // seconds
+const lenOf = (tr) => { // seconds (a section of a long video: its own length)
+  const d = (extra[tr.url] || {}).d || 0, s = tr.start || 0, e = tr.end && (!d || tr.end < d) ? tr.end : d;
+  return e > s ? e - s : null;
+};
 /* a tag's page: "+30 min" (30 min up to an hour) and "+1 hour" can be left out of its list */
 const LONG = { "+30 min": (d) => d >= 1800 && d < 3600, "+1 hour": (d) => d >= 3600 };
 function tagYears(t) { const ys = t.tracks.map(yearOf).filter(Boolean).sort((a, b) => a - b); return ys; }
@@ -3534,7 +3650,7 @@ function endPlayLog() {
 function startPlayLog(tr, x) {
   endPlayLog();
   plog = { id: (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, ""), ts: Math.floor(Date.now() / 1000),
-    url: tr.url, tid: tr.id, title: x.title, sec: 0, dur: (extra[tr.url] || {}).d || 0, prev: 0, sent: false };
+    url: tr.url, tid: tr.id, title: x.title, sec: 0, dur: lenOf(tr) || 0, prev: 0, sent: false };
 }
 function logTick(cur, dur) { // seconds really played: the time moving forward in small steps (a jump is a seek)
   if (!plog || plog.sec === null) return;

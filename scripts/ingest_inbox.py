@@ -58,6 +58,22 @@ def find(data, thread_id, track_id):
     return None, None
 
 
+def set_section(tr, item):
+    """start/end in seconds: a section of a long video (0 or missing = from the start / to the end)."""
+    for k in ("start", "end"):
+        if k in item:
+            try:
+                v = max(0, int(item[k] or 0))
+            except (TypeError, ValueError):
+                v = 0
+            if v:
+                tr[k] = v
+            else:
+                tr.pop(k, None)
+    if tr.get("end") and tr["end"] <= tr.get("start", 0):
+        tr.pop("end", None)
+
+
 def apply_add(data, by_id, item):
     url = item.get("url", "").strip()
     t = parse(url) if url else ({"platform": "none", "url": ""} if (item.get("title") or "").strip() else None)  # (no link: just the title)
@@ -71,6 +87,7 @@ def apply_add(data, by_id, item):
         set_tags(tr, item["tags"], ts)
     if (item.get("notes") or "").strip():
         tr["notes"] = item["notes"].strip()[:4000]
+    set_section(tr, item)
     th = by_id.get(item.get("thread") or "")
     if th:
         th["tracks"].append(tr)
@@ -99,6 +116,7 @@ def apply_edit(data, item):
             item["tags"] = [g for g in item["tags"] if g not in ("broken link", "plays on youtube only")]
         for g in ("broken link", "plays on youtube only"):
             (tr.get("tags") or {}).pop(g, None)
+    set_section(tr, item)
     if "alt" in item:  # the alternative link ("" removes it): plays when the main link stops working
         alt = (item["alt"] or "").strip()
         a = parse(alt) if alt else None

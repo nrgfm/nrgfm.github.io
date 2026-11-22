@@ -1653,3 +1653,12 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 @media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }
 .side-row.side-main .side-name { font-weight: 600; font-size: 15px; } /* (History: the post's main track) */
 body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in its normal order) */
+
+/* a section of a long video: Start, End and Clear before the ▾ (only with a time in the link); the tag field gives way */
+.af-time { display: flex; align-items: center; gap: 8px; flex: none; }
+.af-time[hidden] { display: none; }
+.af-time .tag-field.af-time-f { width: auto; flex: none; gap: 6px; padding: 0 4px 0 10px; }
+.af-time-l { color: color-mix(in srgb, var(--text) 50%, transparent); white-space: nowrap; }
+.af-time .tag-field .tag-input.af-time-in { flex: none; min-width: 0; width: 9ch !important; }
+.af-actions:has(.af-time:not([hidden])) .tag-box { min-width: 90px; }
+.af-actions .af-time > .btn { flex: none; }
