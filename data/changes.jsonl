@@ -2308,3 +2308,4 @@
 {"action": "tag", "ids": ["t1718235941526456_0"], "add": ["anime theme"], "remove": [], "ts": 1795377524}
 {"action": "edit", "thread": "p1795376479", "id": "t1795377239_0", "title": "Adriana - Contigo (1977)", "url": "https://www.youtube.com/watch?v=HbTf4y_iJ1Q", "tags": ["latin"], "ts": 1795377740}
 {"action": "edit", "thread": "p1795376479", "id": "t1795377239_0", "title": "Adriana - Contigo (1977)", "url": "https://www.youtube.com/watch?v=HbTf4y_iJ1Q", "tags": ["latin"], "ts": 1795385439}
+{"action": "tag", "ids": ["t25269038802686172_0"], "add": ["emotional"], "remove": [], "ts": 1795386185, "via": "password"}
