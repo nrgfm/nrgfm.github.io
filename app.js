@@ -229,6 +229,7 @@ function refreshTags() {
 /* ---------- search ---------- */
 function runSearch() {
   query = fold($("#q").value);
+  try { drawBrowse(); } catch {} // (the side list of opened posts; not yet there while the page starts)
   fixedRows.clear(); scrollOn.clear(); keptHeight.clear(); expanded.clear(); activeId = null;
   const terms = query.split(" ").filter(Boolean);
   $("#viewHead").hidden = true;
@@ -676,6 +677,48 @@ function showHistPanel(th, row) {
   histPanel.hidden = false;
   placeSidePanel(histPanel);
 }
+/* Threads (level 1, laptop): the posts opened by their date, newest on top, in the side space. A bookmarked post
+   stays at the top (above the others, the newest bookmark first) until its bookmark is taken off. Kept on this device. */
+const browsePanel = el("aside", { class: "tag-panel hist-panel browse-panel", hidden: true });
+document.body.append(browsePanel);
+const BROWSE_KEY = "nrgfm-browse", BROWSE_MAX = 300;
+let browse = { seen: [], marks: [] }; // seen: post ids, newest first; marks: bookmarked post ids, newest first
+try { const b = JSON.parse(localStorage.getItem(BROWSE_KEY) || "null"); if (b && Array.isArray(b.seen)) browse = { seen: b.seen, marks: Array.isArray(b.marks) ? b.marks : [] }; } catch {}
+const saveBrowse = () => { try { localStorage.setItem(BROWSE_KEY, JSON.stringify(browse)); } catch {} };
+function browseAdd(id) {
+  if (level() !== 1 || !id) return;
+  browse.seen = [id, ...browse.seen.filter((x) => x !== id)].slice(0, BROWSE_MAX);
+  saveBrowse(); drawBrowse();
+}
+function browseMark(id) {
+  browse.marks = browse.marks.includes(id) ? browse.marks.filter((x) => x !== id) : [id, ...browse.marks];
+  saveBrowse(); drawBrowse();
+}
+const BOOKMARK_SVG = (on) => { const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18"); svg.setAttribute("aria-hidden", "true");
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", "M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.6-6.5 4.6v-16a1 1 0 0 1 1-1z");
+  p.setAttribute("fill", on ? "currentColor" : "none"); p.setAttribute("stroke", "currentColor"); p.setAttribute("stroke-width", "1.6"); p.setAttribute("stroke-linejoin", "round");
+  svg.append(p); return svg; };
+function drawBrowse() {
+  const byId = (id) => threads.find((t) => t.id === id && t.kind !== "tag" && isBase(t));
+  const marks = browse.marks.map(byId).filter(Boolean), rest = browse.seen.filter((id) => !browse.marks.includes(id)).map(byId).filter(Boolean);
+  if (level() !== 1 || phone() || innerWidth < 966 || view !== "threads" || (!marks.length && !rest.length)) { browsePanel.hidden = true; return; }
+  const cur = (location.hash.match(/^#t\/(.+)$/) || [])[1];
+  const row = (t) => { const x = info(t.tracks[0]), on = browse.marks.includes(t.id);
+    return el("div", { class: "side-row browse-row" + (cur && decodeURIComponent(cur) === t.id ? " here" : "") + (x.dead ? " dead" : ""), role: "button", tabindex: "0",
+        onclick: (e) => { if (e.target.closest(".browse-mark")) return; if (e.metaKey || e.ctrlKey) { openThreadTab(t.id); return; } goToThread(t); markThread(t.id, true); } },
+      img(x.thumb, "side-thumb"),
+      el("span", { class: "browse-text" }, el("span", { class: "side-name" }, x.title), el("span", { class: "browse-date" }, fmtDay(postDate(t)))),
+      el("button", { type: "button", class: "browse-mark" + (on ? " on" : ""), "aria-label": on ? "Remove bookmark" : "Bookmark", "aria-pressed": String(on),
+        onclick: () => browseMark(t.id) }, BOOKMARK_SVG(on))); };
+  const y = browsePanel.querySelector(".tp-p-list") ? browsePanel.querySelector(".tp-p-list").scrollTop : 0;
+  browsePanel.replaceChildren(el("div", { class: "tp-p-list" }, marks.map(row), rest.map(row)));
+  browsePanel.querySelector(".tp-p-list").scrollTop = y;
+  browsePanel.hidden = false;
+  placeSidePanel(browsePanel);
+}
+addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
   const [y, mo] = t.month.split("-");
   return el("li", { class: "month", id: "th-" + t.id },
@@ -914,9 +957,10 @@ function duplicatesOf(tr) {
 let dupFilter = null; // {q, ids}: the search shows exactly these tracks (cleared when the search changes)
 /* a post's date (and "source" in the player): Cmd+click (Ctrl+click on Windows) opens that thread in a new tab */
 const openThreadTab = (id) => open(location.pathname + "#t/" + encodeURIComponent(id), "_blank");
-const markThread = (id) => { // the address remembers the post (a reload comes back to it); Backspace too, also from other pages
+const markThread = (id, fromBrowse) => { // the address remembers the post (a reload comes back to it); Backspace too, also from other pages
   history.replaceState(null, "", location.pathname + "#t/" + encodeURIComponent(id));
   try { sessionStorage.setItem("nrgfm-last-post", id); } catch {}
+  if (fromBrowse) drawBrowse(); else browseAdd(id); // (opened from the side list: it keeps its place there)
 };
 /* Backspace (not while typing): back to the post in the address, or the last one that was there before going to
    another page; the address points at it again. (Cmd+Esc was tried: on a Mac it doesn't reach the page.) */
@@ -3260,7 +3304,7 @@ const lenOf = (tr) => { // seconds (a section of a long video: its own length)
 /* a tag's page: "+30 min" (30 min up to an hour) and "+1 hour" can be left out of its list */
 const LONG = { "+30 min": (d) => d >= 1800 && d < 3600, "+1 hour": (d) => d >= 3600 };
 function tagYears(t) { const ys = t.tracks.map(yearOf).filter(Boolean).sort((a, b) => a - b); return ys; }
-function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "–" + ys[ys.length - 1]; }
+function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "—" + ys[ys.length - 1]; }
 /* the tracks of a tag as they will play: in the year range picked, in the order picked */
 function tagPlaylist(t) {
   const [lo, hi] = tp.years[t.name] || [];
@@ -3487,7 +3531,7 @@ function openTagPanel(g, pin) {
   const r = document.querySelector(`.tp-row[data-tag="${CSS.escape(g)}"]`); if (r && !phone() && tp.pinned) r.classList.add("on");
   drawTagPanel(true);
 }
-function placeTagPanel() { placeSidePanel(tagPanel.box); placeSidePanel(histPanel); }
+function placeTagPanel() { placeSidePanel(tagPanel.box); placeSidePanel(histPanel); placeSidePanel(browsePanel); }
 function placeSidePanel(box) {
   if (box.hidden || phone()) return;
   const top = headerBottom() + 10, d = $("#dock");

@@ -1651,7 +1651,6 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .act-lock { display: grid; place-items: center; width: 44px; flex: none; color: var(--muted); }
 .act-lock svg { width: 18px; height: 18px; }
 @media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }
-.side-row.side-main .side-name { font-weight: 600; font-size: 15px; } /* (History: the post's main track) */
 body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in its normal order) */
 
 /* a section of a long video: Start, End and Clear before the ▾ (only with a time in the link); the tag field gives way */
@@ -1669,3 +1668,31 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 .af-time .tag-field .tag-input.af-time-in { text-align: center; }
 @media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
 body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-weight: 400; } /* Threads: the titles not bold (the main track too) */
+
+/* Threads (laptop): the thumbnails 122% bigger (×2.22: the tracks' 48×36 → 107×80, the post's 160×90 → 356×200);
+   what sits under or beside them moves along. Only the pictures, not the text. */
+@media (min-width: 641px) {
+  body[data-view="threads"] .thread-head { grid-template-columns: 356px 1fr; }
+  body[data-view="threads"] .tracks { padding-left: 372px; }
+  body[data-view="threads"] .track { grid-template-columns: 107px 1fr auto; }
+  body[data-view="threads"] .track .chip { width: 107px; height: 80px; }
+  body[data-view="threads"] .t-when { top: 220px; width: 356px; }
+  body[data-view="threads"] .thread-more { top: 256px; width: 348px; }
+  body[data-view="threads"] .thread-more-search { width: 356px; }
+  body[data-view="threads"] .thread.searching { min-height: 278px; }
+  body[data-view="threads"] .thread.searching .search-foot > .more-pos,
+  body[data-view="threads"] .thread.searching .mid-pos { width: 356px; }
+}
+/* History: the posts' titles thinner on a Mac (light text on a dark background otherwise looks bold there; the weight is already regular) */
+body[data-view="history"] .month-line .tr-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/* Threads (level 1): the posts opened by their date, in the side space; bookmarked ones on top */
+.browse-row { gap: 10px; }
+.browse-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.browse-text .side-name { line-height: 1.3; }
+.browse-date { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.browse-row.here .side-name { color: var(--jade); }
+.browse-row.dead .side-name { text-decoration: line-through; }
+.browse-mark { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radius-sm); color: var(--muted); }
+.browse-mark:hover { color: var(--text); }
+.browse-mark.on { color: var(--jade); }
+.browse-mark:focus-visible { outline: 2px solid var(--jade); }
