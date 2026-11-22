@@ -43,7 +43,7 @@ jobs:
         run: |
           git config user.name "nrgproduct"
           git config user.email "nrgproduct@users.noreply.github.com"
-          git add data/ai.json data/gemini-status.json
+          git add data/ai.json data/gemini-status.json data/websearch.json
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           git commit -m "Gemini suggestions"
           git pull --rebase origin main
