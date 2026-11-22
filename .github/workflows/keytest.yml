@@ -8,6 +8,7 @@ jobs:
       K2: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - run: |
+          set +e
           G=https://generativelanguage.googleapis.com/v1beta
           for n in K1 K2; do
             K=${!n}; [ -z "$K" ] && { echo "$n: not set"; continue; }
