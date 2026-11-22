@@ -163,10 +163,27 @@ def set_thread_date(th, tr, date, ts, pos=None):
     th["pos_set"] = ts
 
 
+_meta = None
+
+
+def load_meta():
+    global _meta
+    if _meta is None:
+        path = os.path.join(ROOT, "data", "meta.json")
+        _meta = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    return _meta
+
+
 def apply_delete(data, by_id, item):
     th, i = find(data, item.get("thread"), item.get("id"))
     if th is None:
         return "delete: track not found"
+    tr = th["tracks"][i]
+    # the change log keeps what the track was (Activity's Logs show its title after it's gone)
+    item.setdefault("url", tr.get("url") or "")
+    title = tr.get("title") or (load_meta().get(tr.get("url") or "", {}) or {}).get("title") or ""
+    if title:
+        item.setdefault("title", title)
     th["tracks"].pop(i)
     if not th["tracks"]:
         data["threads"].remove(th)

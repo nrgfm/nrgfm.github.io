@@ -1498,8 +1498,8 @@ body.side-open .tag-panel { visibility: hidden; }
 .tg-jumps { font-family: "Schibsted Grotesk", system-ui, sans-serif; } /* the letter bar: the font's own # (not the straight one) */
 /* Activity → Logs (laptop only): right end of the filters' line; a line per change */
 .act-logs { margin-left: auto; font-size: 14px; } /* (as All devices) */
-.act-log { grid-template-columns: 48px minmax(0, 1fr) auto minmax(0, auto); }
-.act-what { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.act-log { grid-template-columns: 48px 132px minmax(0, 1fr) minmax(0, auto); }
+.act-what { color: var(--muted); font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; } /* (two lines when it's long: "Moved to its own post (dated)") */
 .act-more { color: var(--muted); font-size: 13px; text-align: right; }
 .act-gone { padding: 4px 0 4px 52px; opacity: .6; } /* (in line with the titles that have a picture) */
 /* phone, with the key: holding a track down opens the quick tag field (no text selection or link menu while holding) */
@@ -1629,8 +1629,9 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .lk-del.deleting, .lk-del.deleting:hover { color: #e06666; cursor: default; }
 .lk-done.saving, .lk-done.saving:hover { color: var(--seek, var(--accent-dim)); cursor: default; }
 /* Threads: Sort in the menu, left of uBlock (by the main post's date, or the latest added track) */
-.menu .menu-sort { margin-left: auto; color: var(--muted); font-size: 14px; line-height: 1.4; }
-.menu .menu-sort:not([hidden]) + .menu-right { margin-left: 18px; }
+/* (the same spot on Threads, Archive and Tags: "Sort:" stays put, the word after it changes) */
+.menu .menu-sort { margin-left: auto; width: 150px; text-align: left; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.menu .menu-sort:not([hidden]) + .menu-right { margin-left: 44px; }
 .menu .menu-sort .sort-val { color: var(--jade); }
 .menu .menu-sort:hover .sort-val { text-decoration: underline dotted; text-underline-offset: 3px; }
 .menu .menu-sort[hidden] { display: none; }
@@ -1642,10 +1643,11 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 /* Activity: titles as big as fit on two lines (as in Archive); in Logs the time goes to the post */
 .act-list .month-play .tr-title, .act-list .act-text .tr-title { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .act-time-link { all: unset; cursor: pointer; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; }
-.act-time-link:hover { color: var(--text); background: var(--surface-2); }
-.act-time-link:active { color: var(--bg); background: var(--jade); }
+.act-time-link:hover { color: var(--text); }
+.act-time-link:active { color: var(--jade); }
 .act-login-row, .act-login-row.act-gone { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0; }
 .act-login-row.act-gone .act-login { opacity: 1; }
 .act-lock { display: grid; place-items: center; width: 44px; flex: none; color: var(--muted); }
 .act-lock svg { width: 18px; height: 18px; }
 @media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }
+.side-row.side-main .side-name { color: var(--jade); }

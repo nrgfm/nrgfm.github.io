@@ -384,7 +384,7 @@ function drawThreadsSort() { // (the same button on Archive: Date posted or Shuf
   const on = view === "tagged" ? !!archiveShuffle : view === "tags" ? tagsByLatest : threadsByAdd;
   b.setAttribute("aria-pressed", String(on));
   b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" },
-    view === "tagged" ? (on ? "Shuffle" : "Date posted") : view === "tags" ? (on ? "Latest added" : "A – Z") : on ? "Latest added" : "Date posted"), " ▾");
+    view === "tagged" ? (on ? "Shuffle" : "Date posted") : view === "tags" ? (on ? "Latest added" : "Alphabetical") : on ? "Latest added" : "Date posted"), " ▾");
 }
 /* Archive shuffled: every track with a tag of its own, in random order, as one playlist (playing one: autoplay on,
    on through the shuffled list). Shown in small parts so the page stays quick. */
@@ -662,9 +662,9 @@ function showHistPanel(th, row) {
   document.querySelectorAll(".month-row.on").forEach((r) => r.classList.remove("on"));
   if (row) row.classList.add("on");
   const now = playing && playing.thread.tracks[playing.index];
-  histPanel.replaceChildren(el("div", { class: "tp-p-list" }, th.tracks.slice(1).map((tr, k) => { const x = info(tr), yy = yearOf(tr);
-    return el("button", { class: "side-row" + (now === tr ? " playing" : "") + (x.dead ? " dead" : ""), onclick: (e) => { if (quickClick(e, th, tr)) return; play(th, k + 1); showHistPanel(th); } },
-      img(x.thumb, "side-thumb"), el("span", { class: "side-name" }, x.title), yy ? el("span", { class: "tp-y" }, yy) : null); })));
+  histPanel.replaceChildren(el("div", { class: "tp-p-list" }, th.tracks.map((tr, k) => { const x = info(tr); // (the main track first, in the colour of a tag's name)
+    return el("button", { class: "side-row" + (k === 0 ? " side-main" : "") + (now === tr ? " playing" : "") + (x.dead ? " dead" : ""), onclick: (e) => { if (quickClick(e, th, tr)) return; play(th, k); showHistPanel(th); } },
+      img(x.thumb, "side-thumb"), el("span", { class: "side-name" }, x.title)); })));
   histPanel.hidden = false;
   placeSidePanel(histPanel);
 }
@@ -957,7 +957,7 @@ function trackRow(t, tr, i, hits) {
   return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}` },
     img(x.thumb, "chip"),
     el("button", { class: "play", onclick: () => play(t, i), "aria-label": `Play ${x.title}` },
-      el("span", { class: "tr-title" }, x.title, view === "tag" && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
+      el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
       el("span", { class: "tr-sub" }, tagLine(tr, x.recovered ? RECOVERED : null, t.mix ? genresOf(tr) : null))),
     rowLinks(t, i, x));
 }
@@ -3431,7 +3431,7 @@ function drawTagPanel(show, page) {
     const p = tagPlaylist(t);
     list.replaceChildren(...p.tracks.map((tr) => { const x = info(tr), y = yearOf(tr);
       return el("button", { class: "side-row" + (playing && playing.thread.tracks[playing.index] === tr ? " playing" : ""), onclick: (e) => { if (quickClick(e, t, tr)) return; playTag(t, tr); } },
-        img(x.thumb, "side-thumb"), el("span", { class: "side-name" }, x.title), y ? el("span", { class: "tp-y" }, y) : null); }));
+        img(x.thumb, "side-thumb"), el("span", { class: "side-name" }, x.title)); }));
     if (!p.tracks.length) list.append(el("p", { class: "hint" }, "No tracks in these years."));
   };
   if (!page) drawTagList();
@@ -3782,7 +3782,7 @@ function drawLogList() {
   const threadOf = (id) => threads.find((t) => t.id === id && isBase(t));
   const trackBtn = (f, fallback) => f
     ? el("button", { class: "play month-play", onclick: () => play(f.at.t, f.at.i) }, img(info(f.tr).thumb, "mini"), el("span", { class: "act-text" }, el("span", { class: "tr-title" }, info(f.tr).title)))
-    : el("span", { class: "act-text act-gone" }, el("span", { class: "tr-title" }, fallback || "A track no longer on the site"));
+    : el("span", { class: "act-text act-gone" }, el("span", { class: "tr-title" }, fallback || "A track no longer on the site (its title wasn't kept)"));
   const postLink = (id, label) => { const t = threadOf(id); return t ? el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, label) : null; };
   const tagList = (a) => (a || []).map(showTag).join(", ");
   const PROMOTE = { main: "Made the main track of its post", top: "Moved to its own post (new)", original: "Moved to its own post (dated)", isolate: "Moved to its own post" };
@@ -3791,7 +3791,7 @@ function drawLogList() {
     let what = a, track = null, more = [];
     if (a === "add") { what = "Added"; track = trackBtn(byUrl(c.url) || f, c.title || c.url); more.push(c.thread ? postLink(c.thread, "in a post") : "as a new post"); if (c.tags && c.tags.length) more.push("· " + tagList(c.tags)); }
     else if (a === "edit") { what = "Edited"; track = trackBtn(f, c.title || titles.get(c.id)); }
-    else if (a === "delete") { what = "Deleted"; track = trackBtn(null, titles.get(c.id)); more.push(postLink(c.thread, "from a post")); }
+    else if (a === "delete") { what = "Deleted"; track = trackBtn(null, c.title || titles.get(c.id) || (c.url ? c.url : "")); more.push(postLink(c.thread, "from a post")); }
     else if (a === "move") { what = "Moved"; track = trackBtn(f, titles.get(c.id)); more.push(postLink(c.to, "to another post")); }
     else if (a === "reorder") { what = "Moved"; track = trackBtn(f, titles.get(c.id)); more.push("within its post"); }
     else if (a === "promote") { what = PROMOTE[c.to] || "Moved"; track = trackBtn(f, titles.get(c.id)); }
@@ -3822,7 +3822,7 @@ function drawLogList() {
     const timeEl = realPost && a !== "login"
       ? el("button", { class: "act-time act-time-link", onclick: () => { setView("threads"); goToThread(realPost); markThread(realPost.id); } }, time)
       : el("span", { class: "act-time" }, time);
-    return el("li", { class: "act-line act-log" }, timeEl, track, el("span", { class: "act-what" }, what),
+    return el("li", { class: "act-line act-log" }, timeEl, el("span", { class: "act-what" }, what), track,
       el("span", { class: "act-more" }, more.filter(Boolean).flatMap((m, k) => (k ? [" ", m] : [m]))));
   };
   const day = act.logs.filter((c) => new Date(c.ts * 1000).toLocaleDateString("sv-SE") === act.day);
