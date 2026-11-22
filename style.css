@@ -1498,7 +1498,7 @@ body.side-open .tag-panel { visibility: hidden; }
 .tg-jumps { font-family: "Schibsted Grotesk", system-ui, sans-serif; } /* the letter bar: the font's own # (not the straight one) */
 /* Activity → Logs (laptop only): right end of the filters' line; a line per change */
 .act-logs { margin-left: auto; font-size: 14px; } /* (as All devices) */
-.act-log { grid-template-columns: 48px 150px minmax(0, 1fr) minmax(0, auto); }
+.act-log { grid-template-columns: 48px minmax(0, 1fr) auto minmax(0, auto); }
 .act-what { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .act-more { color: var(--muted); font-size: 13px; text-align: right; }
 .act-gone { padding: 4px 0 4px 52px; opacity: .6; } /* (in line with the titles that have a picture) */
@@ -1554,6 +1554,7 @@ body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body
 .lg-msg { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 1em; }
 .lg-foot { color: var(--muted); font-size: 13px; margin: 0; }
 .act-login { padding: 4px 0 4px 52px; }
+.act-login-row .act-login { padding: 4px 0; }
 /* close the player: a small square, the × grey as the lock until the pointer is on it; pressed: the square fills
    light blue and the × takes the page's dark blue */
 .btn.ghost.close-x { width: 26px; height: 26px; color: var(--muted); }
@@ -1638,3 +1639,13 @@ div.lk-thumb.lk-open-media { cursor: auto; }
 .tagged-thread.tg-shuffle:first-child { padding-top: 10px; }
 /* History: the post whose tracks are in the side panel */
 .month-row.on > .month-line { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: var(--radius-sm); }
+/* Activity: titles as big as fit on two lines (as in Archive); in Logs the time goes to the post */
+.act-list .month-play .tr-title, .act-list .act-text .tr-title { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.act-time-link { all: unset; cursor: pointer; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; }
+.act-time-link:hover { color: var(--text); background: var(--surface-2); }
+.act-time-link:active { color: var(--bg); background: var(--jade); }
+.act-login-row, .act-login-row.act-gone { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0; }
+.act-login-row.act-gone .act-login { opacity: 1; }
+.act-lock { display: grid; place-items: center; width: 44px; flex: none; color: var(--muted); }
+.act-lock svg { width: 18px; height: 18px; }
+@media (max-width: 640px) { .act-log { grid-template-columns: 42px minmax(0, 1fr); } .act-log .act-what, .act-log .act-more { grid-column: 2; } }

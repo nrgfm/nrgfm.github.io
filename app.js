@@ -374,19 +374,22 @@ function drawThreadsSort() { // (the same button on Archive: Date posted or Shuf
   if (!b) {
     b = el("button", { id: "threadsSort", class: "sf sf-order menu-sort", onclick: () => {
       if (view === "tagged") { archiveShuffle = archiveShuffle ? null : shuffledArchive(); runSearch(); pageScrollTo(0); return; }
+      if (view === "tags") { tagsByLatest = !tagsByLatest; tp.active = null; runSearch(); pageScrollTo(0); return; }
       threadsByAdd = !threadsByAdd; try { localStorage.setItem("nrgfm-threads-order", threadsByAdd ? "added" : "posted"); } catch {}
       if (view === "threads" && !$("#q").value.trim()) { runSearch(); pageScrollTo(0); } else drawThreadsSort();
     } });
     $('#menu [data-view="ublock"]').before(b);
   }
-  b.hidden = view !== "threads" && view !== "tagged";
-  const on = view === "tagged" ? !!archiveShuffle : threadsByAdd;
+  b.hidden = view !== "threads" && view !== "tagged" && view !== "tags";
+  const on = view === "tagged" ? !!archiveShuffle : view === "tags" ? tagsByLatest : threadsByAdd;
   b.setAttribute("aria-pressed", String(on));
-  b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" }, view === "tagged" ? (on ? "Shuffle" : "Date posted") : on ? "Latest added" : "Date posted"), " ▾");
+  b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" },
+    view === "tagged" ? (on ? "Shuffle" : "Date posted") : view === "tags" ? (on ? "Latest added" : "A – Z") : on ? "Latest added" : "Date posted"), " ▾");
 }
 /* Archive shuffled: every track with a tag of its own, in random order, as one playlist (playing one: autoplay on,
    on through the shuffled list). Shown in small parts so the page stays quick. */
 let archiveShuffle = null;
+let tagsByLatest = false; // Tags: A–Z (always, when Tags is opened from the menu), or the tags tracks were added to most recently first
 const SHUF_PART = 5; // (40 parts at a time: 200 tracks, like an ordinary Archive page)
 function shuffledArchive() {
   const all = [];
@@ -828,6 +831,7 @@ $("#menu").addEventListener("click", (e) => {
   if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // Ctrl/Cmd+click: the browser opens it in a new tab
   e.preventDefault();
   if (VIEW_NAMES[b.dataset.view] || (phone() && b.dataset.view === "random")) toggleMenu(false); // a page closes the menu (phone: Random too)
+  if (b.dataset.view === "tags") tagsByLatest = false; // (Tags opens A–Z)
   setView(b.dataset.view);
 });
 /* scrolling the page closes the menu; the page is moved back by the menu's height, so nothing jumps */
@@ -3110,7 +3114,7 @@ const lenOf = (tr) => (extra[tr.url] || {}).d || null; // seconds
 /* a tag's page: "+30 min" (30 min up to an hour) and "+1 hour" can be left out of its list */
 const LONG = { "+30 min": (d) => d >= 1800 && d < 3600, "+1 hour": (d) => d >= 3600 };
 function tagYears(t) { const ys = t.tracks.map(yearOf).filter(Boolean).sort((a, b) => a - b); return ys; }
-function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "–" + ys[ys.length - 1]; }
+function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + " – " + ys[ys.length - 1]; }
 /* the tracks of a tag as they will play: in the year range picked, in the order picked */
 function tagPlaylist(t) {
   const [lo, hi] = tp.years[t.name] || [];
@@ -3142,7 +3146,7 @@ const tagSection = (g) => {
 };
 const SECTION_ORDER = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0–9", "#", "Automatic"];
 function tagGridHead() {
-  const have = new Set(threads.filter((t) => t.kind === "tag").map((t) => tagSection(t.name)));
+  const have = new Set(threads.filter((t) => t.kind === "tag").map((t) => tagSection(t.name)).filter((k) => !tagsByLatest || k === "#")); // (Latest added: no letters)
   const jumps = SECTION_ORDER.filter((k) => k !== "Automatic" && (k !== "#" || level() <= 2)).map((k) => el("button", {
     class: "when-link tg-jump" + (have.has(k) ? "" : " none"), disabled: !have.has(k) || null,
     onclick: () => { const h = document.getElementById("tl-" + k); if (h) pageScrollTo(Math.max(0, (scroller() === window ? scrollY : document.body.scrollTop) + h.getBoundingClientRect().top - contentTop() - 8)); } }, k === "0–9" ? "0\u2060–\u20609" : k)); // (word joiners: 0–9 never breaks)
@@ -3154,8 +3158,9 @@ function renderTagsGrid() {
   const all = threads.filter((t) => t.kind === "tag" && tagVisible(t.name) && (!words.length || words.some((w) => tagMatches(t.name, w.replace(/^#/, "")) || tagMatches(t.name, w))))
     .sort((a, b) => a.name.replace(/^#/, "").localeCompare(b.name.replace(/^#/, "")));
   if (!all.length) { list.replaceChildren(el("p", { class: "view-note tp-none" }, "No tags match.")); hideTagPanel(); return; }
-  const groups = new Map(SECTION_ORDER.map((k) => [k, []]));
-  for (const t of all) groups.get(tagSection(t.name)).push(t);
+  const groups = new Map((tagsByLatest ? ["Latest", "#", "Automatic"] : SECTION_ORDER).map((k) => [k, []]));
+  if (tagsByLatest) all.sort((a, b) => b.last - a.last); // (playlists and automatic tags still last)
+  for (const t of all) { const k = tagSection(t.name); groups.get(tagsByLatest && k !== "#" && k !== "Automatic" ? "Latest" : k).push(t); }
   const card = (t) => {
     const ys = tagYears(t);
     const b = el("a", { class: "tg-card", href: "#/tag/" + encodeURIComponent(t.name), "data-tag": t.name,
@@ -3166,7 +3171,7 @@ function renderTagsGrid() {
     return b;
   };
   const out = [];
-  for (const [k, ts] of groups) if (ts.length) out.push(el("h2", { class: "tg-letter", id: "tl-" + k }, k === "#" ? "# Playlists" : k === "Automatic" ? "Automatic tags" : k), el("div", { class: "tg-grid" }, ts.map(card)));
+  for (const [k, ts] of groups) if (ts.length) out.push(el("h2", { class: "tg-letter", id: "tl-" + k }, k === "#" ? "# Playlists" : k === "Automatic" ? "Automatic tags" : k === "Latest" ? "Latest added" : k), el("div", { class: "tg-grid" }, ts.map(card)));
   list.replaceChildren(el("div", { class: "tg-page" }, out));
   const first = [...groups.values()].flat()[0]; // (the first box on the page: A, not an automatic tag)
   if (!phone() && (!tp.active || !all.some((t) => t.name === tp.active))) tp.active = first.name;
@@ -3615,7 +3620,10 @@ async function drawTopList(token) {
       el("span", { class: "act-count" }, `${r.n} ${r.n === 1 ? "play" : "plays"}`),
       flagBtn);
   })));
+  fitActTitles();
 }
+/* Activity's lists: a long title gets smaller until it fits (two lines at most), as in Archive */
+function fitActTitles() { requestAnimationFrame(() => { const l = document.querySelector("#threads .act-list"); if (l) fitTitles([l]); }); }
 function drawActHead() {
   const go = (fn) => () => { fn(); renderActivity(); };
   const top = act.mode === "top", logs = act.mode === "logs", logins = act.mode === "logins";
@@ -3703,6 +3711,7 @@ async function drawActList(token) {
       flagBtn));
   }
   list.replaceChildren(el("ul", { class: "act-list" }, out));
+  fitActTitles();
 }
 /* Logins: set (or change, or turn off) the two passwords. Level 2: mine; level 3: friends'. Every login shows in Logs */
 function drawLoginsPanel(set) {
@@ -3793,7 +3802,9 @@ function drawLogList() {
     }
     else if (a === "login") {
       what = { 1: "Logged in", 0: "Wrong password", "-1": "Login refused", 2: "Logged out" }[c.ok] || "Login";
-      track = el("span", { class: "act-text act-login" + (c.ok === 1 || c.ok === 2 ? "" : " act-gone") }, el("span", { class: "tr-title" }, c.level ? `Level ${c.level}` : c.ok === -1 ? "locked: 5 wrong passwords within an hour" : ""));
+      const lock = el("span", { class: "act-lock" }); lock.innerHTML = LOCK_SVG(c.ok === 1);
+      track = el("span", { class: "act-login-row" + (c.ok === 1 || c.ok === 2 ? "" : " act-gone") }, lock,
+        el("span", { class: "act-text act-login" }, el("span", { class: "tr-title" }, c.level ? `Level ${c.level}` : c.ok === -1 ? "Locked: 5 wrong passwords within an hour" : "")));
       more.push(c.name || "Unnamed device" + (c.city ? " · " + c.city : c.country ? " · " + c.country : ""));
     }
     else if (a === "tagrename") { what = "Renamed a tag"; track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, showTag(c.from) + " → " + showTag(c.to))); }
@@ -3802,11 +3813,21 @@ function drawLogList() {
     else if (a === "recheck") { what = "Checked links"; track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, Object.keys(c.meta_set || {}).length + " changed")); }
     else track = el("span", { class: "act-text" }, el("span", { class: "tr-title" }, ""));
     const time = new Date(c.ts * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    return el("li", { class: "act-line act-log" }, el("span", { class: "act-time" }, time), el("span", { class: "act-what" }, what), track,
+    // the time: to the post the change was made in (or to, or from)
+    const home = (id) => { const g = id && byId(id); return g ? g.at.t : null; };
+    const post = a === "add" ? ((byUrl(c.url) || f || {}).at || {}).t || threadOf(c.thread)
+      : a === "delete" ? threadOf(c.thread) : a === "move" ? threadOf(c.to) || home(c.id)
+      : a === "tag" ? home((c.ids || [])[0]) : c.id ? home(c.id) || threadOf(c.thread) : null;
+    const realPost = post && isBase(post) ? (threads.find((x) => x.id === post.id && isBase(x)) || post) : post;
+    const timeEl = realPost && a !== "login"
+      ? el("button", { class: "act-time act-time-link", onclick: () => { setView("threads"); goToThread(realPost); markThread(realPost.id); } }, time)
+      : el("span", { class: "act-time" }, time);
+    return el("li", { class: "act-line act-log" }, timeEl, track, el("span", { class: "act-what" }, what),
       el("span", { class: "act-more" }, more.filter(Boolean).flatMap((m, k) => (k ? [" ", m] : [m]))));
   };
   const day = act.logs.filter((c) => new Date(c.ts * 1000).toLocaleDateString("sv-SE") === act.day);
   list.replaceChildren(day.length ? el("ul", { class: "act-list" }, day.map(row)) : el("p", { class: "view-note" }, "Nothing changed that day."));
+  fitActTitles();
 }
 /* "edit" in the player: the playing track's edit card */
 $("#editBtn").onclick = () => editPlaying(false);
