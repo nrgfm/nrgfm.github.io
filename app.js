@@ -2334,9 +2334,10 @@ function toggleEditForm(t, i, row) {
 }
 
 async function writeInbox(item, kind) {
+  if (!item.ts) item.ts = Math.floor(Date.now() / 1000);
   if (!getToken() && level() === 2) { // level 2: saved through the Activity server (which holds a GitHub key of its own)
     const r = await fetch(ACT_URL + "/inbox", { method: "POST", headers: { Authorization: "Session " + session().token, "Content-Type": "text/plain" }, body: JSON.stringify({ item, kind: kind || "" }) });
-    if (r.ok) { watchPublish(); return; }
+    if (r.ok) { watchPublish(item); return; }
     const why = (await r.json().catch(() => ({}))).error || "";
     if (r.status === 401) throw new Error("The login ran out. Log in again with the lock at the top right. Nothing was saved.");
     if (r.status === 403) throw new Error("This can only be done with the key. Nothing was saved.");
@@ -2357,15 +2358,20 @@ async function writeInbox(item, kind) {
     if (r.status === 401) throw new Error("The saved key no longer works (expired or deleted). Open the site with #setup and paste a new one.");
     throw new Error(`GitHub answered ${r.status}. Nothing was saved; try again.`);
   }
-  watchPublish();
+  watchPublish(item);
 }
 /* After a save: once the site has been published again (a minute or two later), the archive is loaded again quietly,
    so promoted, moved and added tracks are as on the server (searchable, with their own addresses) without a reload.
    Only index.html (6 KB) is looked at, every 15 s, for up to 6 minutes after the last save; then tracks.json and
-   meta.json once. Waits while a card or the quick tag field is open, and keeps the page where it is. */
-let pub = null;
+   meta.json once. Waits while a card or the quick tag field is open, and keeps the page where it is.
+   Only when every save made here has reached the server's data (data/changes.jsonl lists them): an older version
+   would take away what was just saved (tags on the next track, say) until the next one. */
+let pub = null, pendingSaves = [], saveSeq = 0;
+const saveKey = (c) => [c.action || "", c.ts, JSON.stringify(c.ids || c.id || c.url || c.from || "")].join("|");
 const siteVersion = () => fetch("index.html?check=" + Date.now(), { cache: "no-store" }).then((r) => r.text()).then((h) => (h.match(/app\.js\?v=([\w-]+)/) || [])[1] || "").catch(() => "");
-async function watchPublish() {
+async function watchPublish(item) {
+  saveSeq++;
+  if (item && item.action !== "tagdesc") pendingSaves.push({ key: saveKey(item), at: Date.now() }); // (a tag's description isn't in the change log)
   const until = Date.now() + 6 * 60000;
   if (pub) { pub.until = until; return; }
   pub = { until, base: await siteVersion() };
@@ -2382,6 +2388,17 @@ async function watchPublish() {
 async function freshData() {
   const busy = () => document.querySelector(".add-form") || quick || (document.activeElement && document.activeElement.closest && document.activeElement.closest("input, textarea, [contenteditable]") && document.activeElement !== $("#q"));
   if (busy()) { setTimeout(freshData, 10000); return; } // (not while something is being edited: later)
+  const seq = saveSeq;
+  // which saves the published data holds: the end of the change log
+  pendingSaves = pendingSaves.filter((p) => Date.now() - p.at < 10 * 60000); // (one that never arrives doesn't hold it up forever)
+  if (pendingSaves.length) {
+    let tail = "";
+    try { tail = await fetch("data/changes.jsonl?fresh=" + Date.now(), { cache: "no-store", headers: { Range: "bytes=-60000" } }).then((r) => (r.ok ? r.text() : "")); } catch {}
+    const done = new Set();
+    for (const line of tail.split("\n")) { try { done.add(saveKey(JSON.parse(line))); } catch {} }
+    pendingSaves = pendingSaves.filter((p) => !done.has(p.key));
+    if (pendingSaves.length) return; // not all there yet: the next publish
+  }
   let d, m;
   try {
     [d, m] = await Promise.all([
@@ -2390,6 +2407,7 @@ async function freshData() {
     ]);
   } catch { return; }
   if (busy()) { setTimeout(freshData, 10000); return; }
+  if (saveSeq !== seq) return; // saved again meanwhile: wait for that one to be published
   // where the page is: the first post (or row) on screen and how far down it sits
   const top = headerBottom(), anchor = [...document.querySelectorAll("#threads [id^='th-']")].find((n) => n.getBoundingClientRect().bottom > top + 4);
   const anchorId = anchor && anchor.id, anchorAt = anchor ? anchor.getBoundingClientRect().top : 0;
