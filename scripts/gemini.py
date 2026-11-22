@@ -19,54 +19,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 MAX = int(sys.argv[1]) if len(sys.argv) > 1 else 400
 MINUTES = float(sys.argv[2]) if len(sys.argv) > 2 else 50
-# the keys, in the order they are used: NRGFM_GEMINI (the second Google account) first, then GEMINI_API_KEY.
-# When one key's quota is used up (every model says 429), the next key carries on.
-KEYS = [k for k in dict.fromkeys(os.environ.get(n, "").strip() for n in ("NRGFM_GEMINI", "GEMINI_API_KEY")) if k]
-KEY = KEYS[0] if KEYS else ""
-# Google Search lookups per calendar month, at most (with billing on, Google gives 5,000 searches a month free on
-# Gemini 3 and newer, then charges): counted from Gemini's own report of the searches it made, in data/gemini-usage.json
-SEARCH_LIMIT = int(os.environ.get("GEMINI_SEARCH_LIMIT", "4500") or 4500)
+KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 MODEL = os.environ.get("GEMINI_MODEL", "").strip()
 API = "https://generativelanguage.googleapis.com/v1beta/"
 VERSION = 3  # 3: no limit on genres and mood words; 2: also mood words, from the title, description and YouTube comments (everything is asked again once)
-PER_CALL = {"bandcamp": 8, "sources": 50, "search": 10}  # tracks per request
-PAUSE = 7  # seconds between requests (the free tier allows only a few per minute)
+PER_CALL = {"bandcamp": 8, "sources": 50, "search": 10, "better": 10}  # tracks per request
+# the most each answer may be (tokens, thinking included): keeps every request's worst case known, so the budget
+# check before it is real
+MAX_OUT = {"bandcamp": 6000, "sources": 12000, "search": 6000, "better": 6000}
+# Google searches one request may make at most, as counted before sending it (Gemini usually makes one or two a track)
+MAX_SEARCHES = {"bandcamp": 40, "sources": 0, "search": 40, "better": 40}
+ESCALATE = int(os.environ.get("GEMINI_ESCALATE", "") or 40)  # tracks asked again with the better model, at most, per run
+MAX_REQUESTS = int(os.environ.get("GEMINI_MAX_REQUESTS", "") or 150)  # requests per run, at most
+PAUSE = 4  # seconds between requests
 START = time.time()
+import budget  # noqa: E402  (scripts/budget.py: this month's Gemini use, shared with the Activity server)
 
 
-def next_key():
-    """Use the next key (the current one's quota is used up). False when there is none."""
-    global KEY
-    i = KEYS.index(KEY) if KEY in KEYS else -1
-    if i + 1 >= len(KEYS):
-        return False
-    KEY = KEYS[i + 1]
-    return True
-
-
-USAGE = os.path.join(DATA, "gemini-usage.json")
-
-
-def usage():
-    month = time.strftime("%Y-%m", time.gmtime())
-    try:
-        u = json.load(open(USAGE, encoding="utf-8"))
-    except Exception:  # noqa: BLE001
-        u = {}
-    return u if u.get("month") == month else {"month": month, "searches": 0, "requests": 0}
-
-
-def count_searches(d):
-    u = usage()
-    u["requests"] += 1
-    u["searches"] += sum(len((c.get("groundingMetadata") or {}).get("webSearchQueries") or []) for c in d.get("candidates", []))
-    json.dump(u, open(USAGE, "w", encoding="utf-8"), indent=1)
-
-
-def call(path, body=None):
+def call(path, body=None, timeout=180):
     req = urllib.request.Request(API + path, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json", "x-goog-api-key": KEY})
-    with urllib.request.urlopen(req, timeout=180) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
 
@@ -79,26 +52,29 @@ def why(e):
 
 
 def pick_models():
-    """The stable Flash models this key can use, newest first (or GEMINI_MODEL if set). When the newest one is
-    overloaded, the next one is used."""
+    """Two lists, newest first: the Flash-Lite models (quick and cheap: every track is asked with these first) and
+    the Flash models (better at weighing sources: a track the first answer wasn't sure about is asked again with
+    one). Gemini 2.5 and older are left out (retired for this key). GEMINI_MODEL, when set, is used for both."""
     if MODEL:
-        return [MODEL]
+        return [MODEL], [MODEL]
     names = []
     page = ""
     while True:
-        d = call("models?pageSize=200" + (f"&pageToken={page}" if page else ""))
+        d = call("models?pageSize=200" + (f"&pageToken={page}" if page else ""), timeout=60)
         for m in d.get("models", []):
             n = m["name"].split("/")[-1]
-            if "generateContent" in m.get("supportedGenerationMethods", []) and re.fullmatch(r"gemini-\d+(\.\d+)?-flash(-lite)?", n):
+            v = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash(-lite)?", n)
+            if v and float(v.group(1)) >= 3 and "generateContent" in m.get("supportedGenerationMethods", []):
                 names.append(n)
         page = d.get("nextPageToken")
         if not page:
             break
-    if not names:
+    ver = lambda n: -float(re.search(r"\d+(\.\d+)?", n).group())  # noqa: E731
+    lite = sorted({n for n in names if n.endswith("-lite")}, key=ver)
+    full = sorted({n for n in names if not n.endswith("-lite")}, key=ver)
+    if not lite and not full:
         raise SystemExit("no Gemini Flash model available for this key")
-    # the Flash models first (newest first), then the Lite ones: each has its own free daily quota, so when the
-    # Flash ones are used up or overloaded the Lite ones carry on (they also search Google)
-    return sorted(set(names), key=lambda n: (n.endswith("-lite"), -float(re.search(r"\d+(\.\d+)?", n).group())))
+    return lite or full, full or lite
 
 
 def title_of(tr, meta):
@@ -193,6 +169,9 @@ Answer with JSON only, no other text: an array with one object per track, in the
 
 Tracks:
 {tracks}"""
+HOW_BETTER = """
+A quicker model already answered for these tracks but wasn't sure ("first_answer"). Check it: search for what is
+missing or doubtful and correct it; keep what is right. Say "high" only when a source confirms it."""
 HOW = {
     "sources": """Use the "found" data (from MusicBrainz, Discogs and the video description) and your own knowledge.
 The found data is often a wrong match: another song with the same name, a cover, a later compilation.
@@ -221,20 +200,48 @@ tells the country ("co"). Also give, for these tracks only:
 }
 
 
+class Stop(Exception):
+    """Nothing more this run (Google refuses, keeps failing, or this run's limit is reached)."""
+
+
+class Budget(Exception):
+    """This month's (or today's) Gemini limit would be passed: stop for this run."""
+
+
 def ask(model, how, batch, vocab):
     tracks = "\n".join(json.dumps({"i": k, **f}, ensure_ascii=False) for k, (_, f) in enumerate(batch))
-    body = {"contents": [{"role": "user", "parts": [{"text": PROMPT.format(vocab=", ".join(vocab), how=HOW[how], tracks=tracks)}]}],
-            "generationConfig": {"temperature": 0.2}}
-    if how == "search":
+    kind = "search" if how == "better" else how
+    text = PROMPT.format(vocab=", ".join(vocab), how=HOW[kind] + (HOW_BETTER if how == "better" else ""), tracks=tracks)
+    body = {"contents": [{"role": "user", "parts": [{"text": text}]}],
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUT[how], "thinkingConfig": {"thinkingLevel": "low"}}}
+    if kind == "search":
         body["tools"] = [{"google_search": {}}]
     elif how == "bandcamp":
         body["tools"] = [{"url_context": {}}, {"google_search": {}}]
     else:
         body["generationConfig"]["responseMimeType"] = "application/json"
-    d = call(f"models/{model}:generateContent", body)
-    if how in ("search", "bandcamp"):
-        count_searches(d)
-    text = "".join(p.get("text", "") for c in d.get("candidates", [])[:1] for p in c.get("content", {}).get("parts", []))
+    # the worst this request could cost must still fit this month's budget (a Bandcamp page read counts as input:
+    # up to 30,000 tokens a page)
+    est_in = len(text) // 3 + (30000 * len(batch) if how == "bandcamp" else 0) + 2000
+    ok, reason = budget.allowed(model, est_in, MAX_OUT[how], MAX_SEARCHES[how])
+    if not ok:
+        raise Budget(reason)
+    try:
+        try:
+            d = call(f"models/{model}:generateContent", body)
+        except urllib.error.HTTPError as e:
+            if e.code != 400 or "thinking" not in why(e).lower():
+                raise
+            del body["generationConfig"]["thinkingConfig"]  # (a model that doesn't take the thinking setting)
+            d = call(f"models/{model}:generateContent", body)
+    except urllib.error.HTTPError:
+        raise  # (Google refused it: not made, not billed)
+    except Exception:
+        budget.add(model, est_in, MAX_OUT[how], MAX_SEARCHES[how])  # sent, answer lost (timeout): counted as the worst case
+        raise
+    inp, out, searches = budget.used(d)
+    budget.add(model, inp, out, searches)
+    text = "".join(p.get("text", "") for c in d.get("candidates", [])[:1] for p in c.get("content", {}).get("parts", []) if not p.get("thought"))
     s, e = text.find("["), text.rfind("]")
     if s < 0 or e < s:
         raise ValueError("no JSON in the answer: " + text[:200])
@@ -302,7 +309,7 @@ def main():
         json.dump(status, open(os.path.join(DATA, "gemini-status.json"), "w", encoding="utf-8"), indent=1)
 
     if not KEY:
-        status["state"] = "off (no GEMINI_API_KEY or NRGFM_GEMINI secret)"
+        status["state"] = "off (no GEMINI_API_KEY secret)"
         return save()
 
     # the genres already in use, most used first: Gemini picks from these when one fits
@@ -318,6 +325,7 @@ def main():
         for tr in th["tracks"]:
             ts_of[tr["url"]] = max(ts_of.get(tr["url"], 0), tr.get("ts") or 0)
     todo = {"bandcamp": [], "sources": [], "search": []}
+    facts_of = {}
     seen = set()
     for th in tracks["threads"]:
         for tr in th["tracks"]:
@@ -331,6 +339,7 @@ def main():
             fp = hashlib.sha1(json.dumps(f, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:10]
             if ai.get(u, {}).get("in") == fp and ai[u].get("v") == VERSION:
                 continue
+            facts_of[u] = (f, fp)
             if ai.get(u, {}).get("how") == "research":  # looked up by hand (Claude, with web research): never asked again
                 continue
             todo["bandcamp" if f.get("url") else "sources" if has_sources(f) else "search"].append((u, f, fp))
@@ -342,105 +351,130 @@ def main():
     print("to ask:", len(todo["sources"]), "with sources,", len(todo["search"]), "to look up,", len(todo["bandcamp"]), "Bandcamp pages")
 
     try:
-        models = pick_models()
+        lite, better = pick_models()
     except urllib.error.HTTPError as e:
         status["state"] = "error: " + why(e)
         return save()
-    print("models", models)
+    print("first:", lite, "better:", better)
+    try:
+        u0 = budget.now()
+    except Exception as e:  # noqa: BLE001  (no budget, no Gemini)
+        status["state"] = "stopped: the budget can't be checked (" + str(e)[:200] + ")"
+        return save()
+    print(f"this month so far: {u0['searches']} searches, ${u0['cost']:.3f}, {u0['requests']} requests")
+    status["month"] = {"searches": u0["searches"], "cost": round(u0["cost"], 3)}
 
-    left, fails = MAX, 0
+    rank = {"low": 0, "medium": 1, "high": 2}
+    state = {"left": MAX, "requests": 0, "fails": 0, "escalated": 0}
     status["state"] = "ok"
-    # first every track never asked (a track just added gets its answer on the next run, whatever kind it is),
-    # then the ones asked again because what is known about them changed
-    passes = [(how, [x for x in todo[how] if x[0] not in ai]) for how in ("bandcamp", "sources", "search")] + \
-             [(how, [x for x in todo[how] if x[0] in ai]) for how in ("bandcamp", "sources", "search")]
-    for how, items in passes:
-        i = -PER_CALL[how]
-        while True:
-            i += PER_CALL[how]
-            if i >= len(items):
-                break
-            if how in ("search", "bandcamp") and usage()["searches"] >= SEARCH_LIMIT:
-                print(f"{how}: this month's Google searches reached the limit ({SEARCH_LIMIT}): skipped until next month")
-                status["searches"] = "monthly limit reached"
-                break
-            if left <= 0 or time.time() - START > MINUTES * 60:
-                status["state"] = "ok (stopped for this run, continues next run)"
-                return save()
-            batch = [(u, f) for u, f, _ in items[i:i + PER_CALL[how]]]
-            for u, f in batch:  # the listeners' comments (only for the tracks being asked now; not part of the fingerprint)
+
+    def run(how, batch, models, fps):
+        """Ask one batch, with the first model that isn't overloaded. Returns the answers, or None (skipped).
+        Raises Budget (stop the run) and Stop (Google refuses: stop the run)."""
+        if state["requests"] >= MAX_REQUESTS or time.time() - START > MINUTES * 60:
+            raise Stop("this run's limit (requests or time) reached: continues next run")
+        for u, f in batch:  # the listeners' comments (only for the tracks being asked now; not part of the fingerprint)
+            if "comments" not in f:
                 c = yt_comments(yt_of.get(u))
                 if c:
                     f["comments"] = c
-            fps = {u: fp for u, _, fp in items[i:i + PER_CALL[how]]}
+        for attempt in range(6):  # overloaded (503) or a per-minute limit: wait and try again, then the next model
+            model = models[min(attempt // 2, len(models) - 1)]
+            state["requests"] += 1
             try:
-                answers = None
-                for attempt in range(8):  # "high demand" (503) usually passes after a short wait
-                    try:
-                        answers = ask(models[0], how, batch, vocab)
-                        status["model"] = models[0]
-                        break
-                    except urllib.error.HTTPError as e:
-                        if e.code == 404 and len(models) > 1:  # retired for this key: drop it
-                            print(models.pop(0), "not available:", why(e))
-                            continue
-                        if how == "bandcamp" and e.code in (400, 429):  # the URL tool has its own (small) quota: skip the Bandcamp pages
-                            raise
-                        if e.code == 429 and attempt == 0:  # a per-minute limit passes; a daily one doesn't (stop then)
-                            print("rate limit:", why(e)[:120], "- waiting a minute")
-                            time.sleep(65)
-                            continue
-                        if e.code == 429 and len(models) > 1:  # this model's free quota is used up: the next model has its own
-                            print(models.pop(0), "out of quota, trying", models[0])
-                            continue
-                        if e.code not in (500, 503) or attempt == 7:
-                            raise
-                        print(models[0], "busy:", why(e), "- waiting")
-                        time.sleep(20 * (attempt + 1))
+                answers = ask(model, how, batch, vocab)
+                status["model"] = model
+                state["fails"] = 0
+                return answers, model
+            except Budget:
+                raise
             except urllib.error.HTTPError as e:
-                if e.code == 429 and next_key():  # this key's quota is used up: the next key, the same tracks again
-                    print("quota used up: the next key")
-                    try:
-                        models[:] = pick_models()
-                    except urllib.error.HTTPError as e2:
-                        status["state"] = "error: " + why(e2)
-                        return save()
-                    i -= PER_CALL[how]
-                    continue
-                if how == "bandcamp" and e.code in (400, 429):  # the URL tool isn't available (or out of quota): skip the Bandcamp pages
-                    print("Bandcamp pages skipped:", why(e))
+                w = why(e)
+                if e.code in (401, 402, 403) or (e.code == 429 and "quota" in w.lower() and attempt >= 1):
+                    raise Stop("Google refused: " + w)  # key, billing or the spend cap: nothing more this run
+                if how == "bandcamp" and e.code == 400:
+                    raise Stop("Bandcamp pages skipped: " + w)
+                if e.code not in (429, 500, 503, 504):
+                    print("skipped a batch:", w)
                     break
-                status["state"] = "error: " + why(e)
-                print(status["state"])
-                fails += 1
-                if e.code in (429, 403, 400, 401, 404) or fails >= 4:  # out of quota, key/model not allowed, or Google keeps failing: stop
-                    return save()
-                time.sleep(30)
-                continue
-            except Exception as e:  # noqa: BLE001
-                status["state"] = "error: " + type(e).__name__ + " " + str(e)[:200]
-                print("skipped a batch:", status["state"])
-                fails += 1
-                if fails >= 4:
-                    return save()
+                print(model, "busy:", w[:120], "- waiting")
+                time.sleep(20 * (attempt + 1))
+            except Exception as e:  # noqa: BLE001  (a timeout, or an answer that couldn't be read)
+                print("skipped a batch:", type(e).__name__, str(e)[:200])
+                break
+        state["fails"] += 1
+        if state["fails"] >= 3:
+            raise Stop("Gemini keeps failing: stopped for this run")
+        return None, None
+
+    # 1. every track not answered yet (newest first), then the ones asked again because what is known changed: with
+    #    the quick model. Tracks never asked come before anything asked again.
+    passes = [(how, [x for x in todo[how] if x[0] not in ai]) for how in ("bandcamp", "sources", "search")] + \
+             [(how, [x for x in todo[how] if x[0] in ai]) for how in ("bandcamp", "sources", "search")]
+    try:
+        for how, items in passes:
+            for i in range(0, len(items), PER_CALL[how]):
+                if state["left"] <= 0:
+                    raise Stop("asked as many as this run may")
+                chunk = items[i:i + PER_CALL[how]]
+                batch = [(u, f) for u, f, _ in chunk]
+                answers, model = run(how, batch, lite, None)
+                if answers is None:
+                    if how == "bandcamp":
+                        break
+                    continue
+                for a in answers if isinstance(answers, list) else []:
+                    k = a.get("i") if isinstance(a, dict) else None
+                    if isinstance(k, int) and 0 <= k < len(batch):
+                        u = batch[k][0]
+                        ai[u] = {**clean_answer(a), "how": how, "m": model, "in": chunk[k][2], "v": VERSION}
+                status["asked"] += len(batch)
+                state["left"] -= len(batch)
+                print(how, status["asked"], "asked")
+                save()
                 time.sleep(PAUSE)
+        # 2. what the quick model wasn't sure about ("low"), newest first: once more with the better model, searching
+        #    Google. Each track at most once (until what is known about it changes).
+        unsure = [u for u, x in ai.items() if x.get("conf") == "low" and x.get("v") == VERSION and u in facts_of
+                  and x.get("how") != "research" and not x.get("esc") and x.get("in") == facts_of[u][1]
+                  and x.get("m", "").endswith("-lite") and better[0] != x.get("m")]
+        unsure.sort(key=lambda u: -ts_of.get(u, 0))
+        unsure = unsure[:ESCALATE]
+        if unsure:
+            print(len(unsure), "unsure answers: asking", better[0])
+        for i in range(0, len(unsure), PER_CALL["better"]):
+            if state["left"] <= 0:
+                raise Stop("asked as many as this run may")
+            us = unsure[i:i + PER_CALL["better"]]
+            batch = [(u, {**facts_of[u][0], "first_answer": {k: ai[u].get(k) for k in ("rl", "y", "g", "ar", "co", "about")}}) for u in us]
+            answers, model = run("better", batch, better, None)
+            for u in us:  # (asked once: never again, whatever the answer)
+                ai[u]["esc"] = model or "failed"
+            if answers is None:
                 continue
-            fails = 0
-            status["state"] = "ok"
             for a in answers if isinstance(answers, list) else []:
                 k = a.get("i") if isinstance(a, dict) else None
-                if not isinstance(k, int) or not 0 <= k < len(batch):
-                    continue
-                u = batch[k][0]
-                ai[u] = {**clean_answer(a), "how": how, "m": status["model"], "in": fps[u], "v": VERSION}
-            status["asked"] += len(batch)
-            left -= len(batch)
-            print(how, status["asked"], "asked")
-            if status["asked"] % 100 < PER_CALL[how]:
-                save()
+                if isinstance(k, int) and 0 <= k < len(batch):
+                    u, new = batch[k][0], clean_answer(a)
+                    if rank[new["conf"]] >= rank[ai[u].get("conf", "low")]:  # (kept only when at least as sure)
+                        ai[u] = {**new, "how": "better", "m": model, "in": facts_of[u][1], "v": VERSION, "esc": model}
+            state["escalated"] += len(us)
+            state["left"] -= len(us)
+            save()
             time.sleep(PAUSE)
+    except Budget as e:
+        status["state"] = "stopped for this month: " + str(e)
+        print(status["state"])
+    except Stop as e:
+        status["state"] = "ok (" + str(e) + ")"
+        print(status["state"])
+    try:
+        u1 = budget.now()
+        status["month"] = {"searches": u1["searches"], "cost": round(u1["cost"], 3)}
+        print(f"this month now: {u1['searches']} searches, ${u1['cost']:.3f}, {u1['requests']} requests; escalated {state['escalated']}")
+    except Exception:  # noqa: BLE001
+        pass
     save()
-
 
 if __name__ == "__main__":
     main()

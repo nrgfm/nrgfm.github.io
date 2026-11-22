@@ -43,3 +43,6 @@ CREATE TABLE IF NOT EXISTS lookup (
   final TEXT                -- what was typed together from them to search for
 );
 CREATE INDEX IF NOT EXISTS lookup_ts ON lookup(ts);
+-- this month's Gemini use (Google's billing month), shared by the GitHub jobs (scripts/budget.py) and Lookup
+CREATE TABLE IF NOT EXISTS gemini_usage (month TEXT PRIMARY KEY, searches INTEGER DEFAULT 0, micro INTEGER DEFAULT 0,
+  requests INTEGER DEFAULT 0, day TEXT, day_searches INTEGER DEFAULT 0);

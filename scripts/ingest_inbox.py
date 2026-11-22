@@ -445,6 +445,7 @@ def main():
         return
     data = json.load(open(TRACKS, encoding="utf-8"))
     by_id = {t["id"]: t for t in data["threads"]}
+    added = 0
     for f in files:
         try:
             item = json.load(open(f, encoding="utf-8"))
@@ -477,6 +478,7 @@ def main():
         else:
             res = apply_add(data, by_id, item)
         print(os.path.basename(f), res)
+        added += res == "added"
         if res in ("added", "edited", "deleted", "moved", "tagged", "rechecked", "split", "regrouped", "promoted", "reordered"):
             item.setdefault("ts", int(time.time()))
             with open(CHANGES, "a", encoding="utf-8") as log:
@@ -484,6 +486,10 @@ def main():
         os.remove(f)
     sort_threads(data)
     data["generated"] = datetime.date.today().isoformat()
+    out = os.environ.get("GITHUB_OUTPUT")  # (the workflow looks the new tracks up right after: only when some were added)
+    if out:
+        with open(out, "a") as fh:
+            fh.write(f"added={added}\n")
     json.dump(data, open(TRACKS, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 
 

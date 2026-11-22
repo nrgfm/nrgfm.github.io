@@ -78,7 +78,7 @@ async function geminiModels(env) {
   const r = await fetch(GEMINI + "models?pageSize=200", { headers: { "x-goog-api-key": env.GEMINI_KEY } });
   if (!r.ok) throw new Error("Gemini answered " + r.status);
   const names = ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
-    .map((m) => m.name.split("/").pop()).filter((n) => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n));
+    .map((m) => m.name.split("/").pop()).filter((n) => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n) && parseFloat(n.slice(7)) >= 3); // (2.5 and older: retired)
   if (!names.length) throw new Error("no Gemini Flash model for this key");
   // the "lite" models first: reading text is easy for them and they answer in a second or two (the newest Flash models
   // were overloaded or took minutes on the free key, Nov 2026); newest first within each
@@ -106,11 +106,27 @@ async function readImage(env, id) { // (with the first key; when its quota is us
   }
   return r || readImageWith(env, id);
 }
+/* this month's Gemini use, shared with the GitHub jobs (scripts/budget.py: the same table, the same prices, kept on
+   the high side). Reading stops when the month's budget is used up. */
+const COST_LIMIT = 0.8, PRICE = (m) => (m.endsWith("-lite") ? [0.3, 2.5] : m.includes("flash") ? [1.5, 7.5] : [4, 20]);
+const pacific = () => { const d = new Date(Date.now() - 8 * 3600e3).toISOString(); return [d.slice(0, 7), d.slice(0, 10)]; };
+async function budgetLeft(env) {
+  const [m] = pacific();
+  const r = await env.DB.prepare("SELECT micro FROM gemini_usage WHERE month = ?1").bind(m).first();
+  return COST_LIMIT - ((r && r.micro) || 0) / 1e6;
+}
+async function budgetAdd(env, model, inTok, outTok) {
+  const [m, d] = pacific(), [pi, po] = PRICE(model);
+  const micro = Math.round((inTok * pi + outTok * po)) + 1; // (dollars per million tokens × tokens = millionths of a dollar)
+  await env.DB.prepare("INSERT INTO gemini_usage (month, searches, micro, requests, day, day_searches) VALUES (?1, 0, ?2, 1, ?3, 0) " +
+    "ON CONFLICT(month) DO UPDATE SET micro = micro + excluded.micro, requests = requests + 1").bind(m, micro, d).run();
+}
 async function readImageWith(env, id) {
   const now = () => Math.floor(Date.now() / 1000), t0 = Date.now();
   const wait = (ms) => ({ signal: AbortSignal.timeout(ms) });
   try {
     if (!env.GEMINI_KEY) throw new Error("no Gemini key on the server");
+    if ((await budgetLeft(env)) < 0.02) throw new Error("this month's Gemini budget is used up (it starts again on the 1st)");
     const obj = await env.SHOTS.get(id);
     if (!obj) throw new Error("image not found");
     const size = obj.size, type = await typeOf(env, id, obj), isVid = type.startsWith("video/");
@@ -139,12 +155,16 @@ async function readImageWith(env, id) {
       try {
         r = await fetch(GEMINI + `models/${m}:generateContent`, { method: "POST", ...wait(isVid ? 90000 : 40000), headers: { "x-goog-api-key": env.GEMINI_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ file_data: { mime_type: type, file_uri: file.uri } }, { text: READ_PROMPT }] }],
-          generationConfig: { temperature: 0, responseMimeType: "application/json",
+          generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 4000, thinkingConfig: { thinkingLevel: "low" },
             responseSchema: { type: "OBJECT", properties: { lines: { type: "ARRAY", items: { type: "STRING" } } }, required: ["lines"] } } }) });
-      } catch (e) { step(id, t0, m + " didn't answer"); last = "Gemini took too long: try Read again"; continue; } // (overloaded: the next one)
+      } catch (e) { // (overloaded: the next one; it may still have been made, so it counts as the worst case)
+        step(id, t0, m + " didn't answer"); last = "Gemini took too long: try Read again";
+        await budgetAdd(env, m, isVid ? 300000 : 3000, 4000); continue; }
       step(id, t0, m + " answered " + r.status);
       if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429) quota429 = true; if (r.status === 429 || r.status >= 500 || r.status === 404 || r.status === 400) continue; break; }
       const d = await r.json();
+      const um = d.usageMetadata || {};
+      await budgetAdd(env, m, (um.promptTokenCount || 0) + (um.toolUsePromptTokenCount || 0), (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0));
       const text = ((d.candidates || [])[0]?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
       let a; try { a = JSON.parse(text.slice(Math.min(...["{", "["].map((c) => (text.indexOf(c) < 0 ? 1e9 : text.indexOf(c))))) .replace(/[^\]}]*$/, "")); } catch { last = "Gemini's answer couldn't be read"; continue; }
       const raw = Array.isArray(a) ? a : Array.isArray(a.lines) ? a.lines : [];

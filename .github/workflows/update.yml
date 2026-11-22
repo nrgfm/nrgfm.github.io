@@ -36,8 +36,7 @@ jobs:
       - name: Add new tracks from inbox
         id: ingest
         run: |
-          # (tracks added on the site are inbox/<time>.json: they get looked up right after, see the end)
-          echo "added=$(ls inbox 2>/dev/null | grep -cE '^[0-9]+\.json$' || true)" >> "$GITHUB_OUTPUT"
+          # (it says how many tracks were added: those get looked up right after, see the end)
           python3 scripts/ingest_inbox.py
       - name: Fetch missing titles
         run: python3 scripts/fetch_meta.py
