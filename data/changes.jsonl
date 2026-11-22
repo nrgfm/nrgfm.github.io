@@ -2297,3 +2297,4 @@
 {"url": "https://www.youtube.com/watch?v=9xpMVQ0bvuw", "title": "RQ - Surface Tension (Original Mix) 2012", "thread": "p1688205284529522", "tags": [], "ts": 1795375906}
 {"url": "https://www.youtube.com/watch?v=m4sIr8Nsv2o", "title": "Cmetric - Debris (1992)", "thread": "p1688205284529522", "tags": [], "ts": 1795375929}
 {"action": "tag", "ids": ["t1783322195017830_0"], "add": ["vgm"], "remove": [], "ts": 1795375981}
+{"action": "promote", "thread": "p1668179013198816", "id": "t1795342879_0", "to": "original", "ts": 1795376409}
