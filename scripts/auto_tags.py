@@ -2,7 +2,7 @@
 
   duplicate                 the same link (same YouTube video, same page) is in the archive more than once,
                             or two tracks have the same title once noise like "(Official Video)" is left out
-  +30 min / +1 hour        tracks this long (length from data/extra.json "d", in seconds); only the biggest one
+  +30 min / +1 hour        tracks this long (length from data/extra.json "d", in seconds; a section: end - start); only the biggest one
   japanese characters      the title has kana (hiragana/katakana), or Han characters (kanji) and the track isn't Chinese
   chinese characters       the title has Han characters (hanzi), no kana, and the track's country is China, Taiwan, Hong Kong,
                            Macau or Singapore (titles with only Han characters are mostly Japanese in this archive)
@@ -90,6 +90,9 @@ def main():
         if id(tr) in dup:
             want.add("duplicate")
         d = (extra.get(tr["url"]) or {}).get("d") or 0
+        if tr.get("start") or tr.get("end"):  # a section of a long video: its own length counts
+            e = tr["end"] if tr.get("end") and (not d or tr["end"] < d) else d
+            d = max(0, e - (tr.get("start") or 0))
         if d > 3600:
             want.add("+1 hour")
         elif d > 1800:
