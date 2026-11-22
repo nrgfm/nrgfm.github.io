@@ -2378,7 +2378,7 @@ function videoLength(u) { // the whole video's length when it's already known (s
 }
 function sectionFields(tr) {
   const field = (label, name) => {
-    const input = el("input", { type: "text", name, class: "tag-input af-time-in", inputmode: "numeric", autocomplete: "off", spellcheck: "false", "aria-label": label, placeholder: "0:00" });
+    const input = el("input", { type: "text", name, class: "tag-input af-time-in", inputmode: "numeric", autocomplete: "off", spellcheck: "false", "aria-label": label });
     input.addEventListener("input", () => input.setCustomValidity(""));
     return [el("span", { class: "tag-field af-time-f", onmousedown: (e) => { if (e.target !== input) { e.preventDefault(); input.focus(); } } },
       el("span", { class: "af-time-l" }, label), input), input];
@@ -2391,7 +2391,7 @@ function sectionFields(tr) {
       const f = box.closest("form"); f.url.value = linkWithoutTime(f.url.value);
       start.value = end.value = ""; box.hidden = true; cleared = true;
     } }, "Clear"));
-  const fillEnd = () => { const d = videoLength(url); end.placeholder = d ? hms(d) : "—"; if (!end.value && d) end.value = hms(d); };
+  const fillEnd = () => { const d = videoLength(url); end.placeholder = ""; if (!end.value && d) end.value = hms(d); };
   if (had) { start.value = hms(tr.start || 0); if (tr.end) end.value = hms(tr.end); fillEnd(); }
   return {
     box,
