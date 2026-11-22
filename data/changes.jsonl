@@ -2288,3 +2288,4 @@
 {"url": "https://www.youtube.com/watch?v=vMITHAotM0o", "title": "B-Zet - Everlasting Pictures (Right Through Infinity) (1995)", "thread": "p1688205284529522", "tags": ["anime", "2000s pop", "ethereal"], "ts": 1795375515}
 {"action": "promote", "thread": "p1688205284529522", "id": "t1795375515_0", "to": "main", "ts": 1795375522}
 {"action": "tag", "ids": ["t1795375462_0"], "add": [], "remove": ["anime", "ethereal", "2000s pop"], "ts": 1795375527}
+{"action": "edit", "thread": "p1688205284529522", "id": "t1795375515_0", "title": "B-Zet - Everlasting Pictures (Right Through Infinity) (1995)", "url": "https://www.youtube.com/watch?v=WiVZUqHG_Iw", "tags": ["anime", "2000s pop", "ethereal"], "ts": 1795375558}
