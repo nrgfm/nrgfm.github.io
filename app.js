@@ -3114,7 +3114,7 @@ const lenOf = (tr) => (extra[tr.url] || {}).d || null; // seconds
 /* a tag's page: "+30 min" (30 min up to an hour) and "+1 hour" can be left out of its list */
 const LONG = { "+30 min": (d) => d >= 1800 && d < 3600, "+1 hour": (d) => d >= 3600 };
 function tagYears(t) { const ys = t.tracks.map(yearOf).filter(Boolean).sort((a, b) => a - b); return ys; }
-function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + " – " + ys[ys.length - 1]; }
+function yearsText(ys) { return !ys.length ? "" : ys[0] === ys[ys.length - 1] ? String(ys[0]) : ys[0] + "–" + ys[ys.length - 1]; }
 /* the tracks of a tag as they will play: in the year range picked, in the order picked */
 function tagPlaylist(t) {
   const [lo, hi] = tp.years[t.name] || [];
