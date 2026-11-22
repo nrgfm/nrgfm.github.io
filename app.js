@@ -25,6 +25,7 @@ let playing = null; // playing = {thread, index}
 const fold = (s) => (s || "").toLowerCase()
   .replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "a").replace(/ß/g, "ss")
   .normalize("NFD").replace(/[̀-ͯ]/g, "").normalize("NFC") // (NFC again: Korean and Japanese letters stay whole)
+  .replace(/['’‘`´ʼ]/g, "") // apostrophes don't count: "dont" finds "don't", "rocknroll" "rock'n'roll"
   .replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // letters of every script are kept (Japanese, Korean, Chinese, Greek…)
 
 const PLATFORM = { youtube: "Youtube", soundcloud: "Soundcloud", bandcamp: "Bandcamp", vimeo: "Vimeo", mixcloud: "Mixcloud", spotify: "Spotify" };

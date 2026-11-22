@@ -96,7 +96,17 @@ Follow, Reply, Subscribe, Home, Search and so on), and numbers of likes, views a
 In a video, give every different line seen anywhere in it, each once.
 Answer JSON only: {"lines": ["...", "..."]} ("lines" is empty when there is no text).`;
 const step = (id, t0, what) => console.log(`lookup ${id}: ${what} after ${Date.now() - t0} ms`);
-async function readImage(env, id) {
+async function readImage(env, id) { // (with the first key; when its quota is used up, with the second)
+  const keys = [env.GEMINI_KEY, env.GEMINI_KEY2].filter(Boolean);
+  let r = null;
+  for (const key of keys) {
+    r = await readImageWith({ ...env, GEMINI_KEY: key }, id);
+    if (!r.quota) return r;
+    models = null; goodModel = null; // (the next key may have other models)
+  }
+  return r || readImageWith(env, id);
+}
+async function readImageWith(env, id) {
   const now = () => Math.floor(Date.now() / 1000), t0 = Date.now();
   const wait = (ms) => ({ signal: AbortSignal.timeout(ms) });
   try {
@@ -122,7 +132,7 @@ async function readImage(env, id) {
     }
     if (file.state === "PROCESSING") throw new Error("the video took too long to read: try Read again");
     if (file.state === "FAILED") throw new Error("Gemini couldn't open it");
-    let last = null;
+    let last = null, quota429 = false;
     const list = await geminiModels(env), order = goodModel && list.includes(goodModel) ? [goodModel, ...list.filter((m) => m !== goodModel)] : list;
     for (const m of order) {
       let r;
@@ -133,7 +143,7 @@ async function readImage(env, id) {
             responseSchema: { type: "OBJECT", properties: { lines: { type: "ARRAY", items: { type: "STRING" } } }, required: ["lines"] } } }) });
       } catch (e) { step(id, t0, m + " didn't answer"); last = "Gemini took too long: try Read again"; continue; } // (overloaded: the next one)
       step(id, t0, m + " answered " + r.status);
-      if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429 || r.status >= 500 || r.status === 404 || r.status === 400) continue; break; }
+      if (!r.ok) { last = "Gemini answered " + r.status; if (r.status === 429) quota429 = true; if (r.status === 429 || r.status >= 500 || r.status === 404 || r.status === 400) continue; break; }
       const d = await r.json();
       const text = ((d.candidates || [])[0]?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
       let a; try { a = JSON.parse(text.slice(Math.min(...["{", "["].map((c) => (text.indexOf(c) < 0 ? 1e9 : text.indexOf(c))))) .replace(/[^\]}]*$/, "")); } catch { last = "Gemini's answer couldn't be read"; continue; }
@@ -143,12 +153,13 @@ async function readImage(env, id) {
       await env.DB.prepare("UPDATE lookup SET lines = ?2, read_ts = ?3, read_err = NULL WHERE id = ?1").bind(id, JSON.stringify(lines.map((t) => ({ t }))), now()).run();
       return { ok: true };
     }
+    if (quota429 && last && last.endsWith("429")) { const err = new Error("Gemini's free quota is used up for today"); err.quota = true; throw err; }
     throw new Error(last || "no answer");
   } catch (e) {
     const msg = e && e.name === "TimeoutError" ? "Gemini took too long: try Read again" : String(e && e.message || e).slice(0, 200);
     step(id, t0, "failed: " + msg);
     await env.DB.prepare("UPDATE lookup SET read_ts = ?2, read_err = ?3 WHERE id = ?1").bind(id, now(), msg).run();
-    return { error: msg };
+    return { error: msg, quota: !!(e && e.quota) };
   }
 }
 const TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic", "image/heif": "heif", "image/webp": "webp", "image/gif": "gif",

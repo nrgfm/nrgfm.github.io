@@ -32,6 +32,7 @@ jobs:
       - name: Ask Gemini
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NRGFM_GEMINI: ${{ secrets.NRGFM_GEMINI }}
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
         run: python3 scripts/gemini.py ${{ inputs.max || '1000' }} 75
       - name: Save and republish
@@ -41,6 +42,7 @@ jobs:
           git config user.name "nrgproduct"
           git config user.email "nrgproduct@users.noreply.github.com"
           git add data/ai.json data/gemini-status.json
+          [ -f data/gemini-usage.json ] && git add data/gemini-usage.json
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           git commit -m "Gemini suggestions"
           git pull --rebase origin main

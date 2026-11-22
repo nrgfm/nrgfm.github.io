@@ -19,13 +19,48 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 MAX = int(sys.argv[1]) if len(sys.argv) > 1 else 400
 MINUTES = float(sys.argv[2]) if len(sys.argv) > 2 else 50
-KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# the keys, in the order they are used: NRGFM_GEMINI (the second Google account) first, then GEMINI_API_KEY.
+# When one key's quota is used up (every model says 429), the next key carries on.
+KEYS = [k for k in dict.fromkeys(os.environ.get(n, "").strip() for n in ("NRGFM_GEMINI", "GEMINI_API_KEY")) if k]
+KEY = KEYS[0] if KEYS else ""
+# Google Search lookups per calendar month, at most (with billing on, Google gives 5,000 searches a month free on
+# Gemini 3 and newer, then charges): counted from Gemini's own report of the searches it made, in data/gemini-usage.json
+SEARCH_LIMIT = int(os.environ.get("GEMINI_SEARCH_LIMIT", "4500") or 4500)
 MODEL = os.environ.get("GEMINI_MODEL", "").strip()
 API = "https://generativelanguage.googleapis.com/v1beta/"
 VERSION = 3  # 3: no limit on genres and mood words; 2: also mood words, from the title, description and YouTube comments (everything is asked again once)
 PER_CALL = {"bandcamp": 8, "sources": 50, "search": 10}  # tracks per request
 PAUSE = 7  # seconds between requests (the free tier allows only a few per minute)
 START = time.time()
+
+
+def next_key():
+    """Use the next key (the current one's quota is used up). False when there is none."""
+    global KEY
+    i = KEYS.index(KEY) if KEY in KEYS else -1
+    if i + 1 >= len(KEYS):
+        return False
+    KEY = KEYS[i + 1]
+    return True
+
+
+USAGE = os.path.join(DATA, "gemini-usage.json")
+
+
+def usage():
+    month = time.strftime("%Y-%m", time.gmtime())
+    try:
+        u = json.load(open(USAGE, encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        u = {}
+    return u if u.get("month") == month else {"month": month, "searches": 0, "requests": 0}
+
+
+def count_searches(d):
+    u = usage()
+    u["requests"] += 1
+    u["searches"] += sum(len((c.get("groundingMetadata") or {}).get("webSearchQueries") or []) for c in d.get("candidates", []))
+    json.dump(u, open(USAGE, "w", encoding="utf-8"), indent=1)
 
 
 def call(path, body=None):
@@ -197,6 +232,8 @@ def ask(model, how, batch, vocab):
     else:
         body["generationConfig"]["responseMimeType"] = "application/json"
     d = call(f"models/{model}:generateContent", body)
+    if how in ("search", "bandcamp"):
+        count_searches(d)
     text = "".join(p.get("text", "") for c in d.get("candidates", [])[:1] for p in c.get("content", {}).get("parts", []))
     s, e = text.find("["), text.rfind("]")
     if s < 0 or e < s:
@@ -265,7 +302,7 @@ def main():
         json.dump(status, open(os.path.join(DATA, "gemini-status.json"), "w", encoding="utf-8"), indent=1)
 
     if not KEY:
-        status["state"] = "off (no GEMINI_API_KEY secret)"
+        status["state"] = "off (no GEMINI_API_KEY or NRGFM_GEMINI secret)"
         return save()
 
     # the genres already in use, most used first: Gemini picks from these when one fits
@@ -318,7 +355,15 @@ def main():
     passes = [(how, [x for x in todo[how] if x[0] not in ai]) for how in ("bandcamp", "sources", "search")] + \
              [(how, [x for x in todo[how] if x[0] in ai]) for how in ("bandcamp", "sources", "search")]
     for how, items in passes:
-        for i in range(0, len(items), PER_CALL[how]):
+        i = -PER_CALL[how]
+        while True:
+            i += PER_CALL[how]
+            if i >= len(items):
+                break
+            if how in ("search", "bandcamp") and usage()["searches"] >= SEARCH_LIMIT:
+                print(f"{how}: this month's Google searches reached the limit ({SEARCH_LIMIT}): skipped until next month")
+                status["searches"] = "monthly limit reached"
+                break
             if left <= 0 or time.time() - START > MINUTES * 60:
                 status["state"] = "ok (stopped for this run, continues next run)"
                 return save()
@@ -353,6 +398,15 @@ def main():
                         print(models[0], "busy:", why(e), "- waiting")
                         time.sleep(20 * (attempt + 1))
             except urllib.error.HTTPError as e:
+                if e.code == 429 and next_key():  # this key's quota is used up: the next key, the same tracks again
+                    print("quota used up: the next key")
+                    try:
+                        models[:] = pick_models()
+                    except urllib.error.HTTPError as e2:
+                        status["state"] = "error: " + why(e2)
+                        return save()
+                    i -= PER_CALL[how]
+                    continue
                 if how == "bandcamp" and e.code in (400, 429):  # the URL tool isn't available (or out of quota): skip the Bandcamp pages
                     print("Bandcamp pages skipped:", why(e))
                     break

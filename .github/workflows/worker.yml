@@ -26,6 +26,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WRITE_TOKEN: ${{ secrets.NRGFM_WRITE_TOKEN }}
       GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_KEY_2: ${{ secrets.NRGFM_GEMINI }}
       CI: "true"
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +59,9 @@ jobs:
           # level-2 password logins save edits through the server with this key (repository secret NRGFM_WRITE_TOKEN)
           if [ -n "$WRITE_TOKEN" ]; then printf %s "$WRITE_TOKEN" | $W secret put GH_WRITE; else echo "::warning::No NRGFM_WRITE_TOKEN secret: level-2 logins can look but not save."; fi
           # Lookup reads the artist and title in each image with the repository's Gemini key
-          if [ -n "$GEMINI_KEY" ]; then printf %s "$GEMINI_KEY" | $W secret put GEMINI_KEY; else echo "::warning::No GEMINI_API_KEY secret: Lookup can't read the images."; fi
+          # (NRGFM_GEMINI, the second Google account's key, is used first; GEMINI_API_KEY when it's used up)
+          if [ -n "$GEMINI_KEY_2" ]; then printf %s "$GEMINI_KEY_2" | $W secret put GEMINI_KEY; [ -n "$GEMINI_KEY" ] && printf %s "$GEMINI_KEY" | $W secret put GEMINI_KEY2
+          elif [ -n "$GEMINI_KEY" ]; then printf %s "$GEMINI_KEY" | $W secret put GEMINI_KEY; else echo "::warning::No Gemini key secret: Lookup can't read the images."; fi
       - name: Save the address
         env:
           GH_TOKEN: ${{ github.token }}
