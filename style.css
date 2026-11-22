@@ -1669,19 +1669,20 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 @media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
 body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-weight: 400; } /* Threads: the titles not bold (the main track too) */
 
-/* Threads (laptop): the thumbnails 122% bigger (×2.22: the tracks' 48×36 → 107×80, the post's 160×90 → 356×200);
+/* Threads (laptop): the post's thumbnail 20% bigger (160×90 → 192×108), the tracks' under it 40% bigger (48×36 → 67×50);
    what sits under or beside them moves along. Only the pictures, not the text. */
 @media (min-width: 641px) {
-  body[data-view="threads"] .thread-head { grid-template-columns: 356px 1fr; }
-  body[data-view="threads"] .tracks { padding-left: 372px; }
-  body[data-view="threads"] .track { grid-template-columns: 107px 1fr auto; }
-  body[data-view="threads"] .track .chip { width: 107px; height: 80px; }
-  body[data-view="threads"] .t-when { top: 220px; width: 356px; }
-  body[data-view="threads"] .thread-more { top: 256px; width: 348px; }
-  body[data-view="threads"] .thread-more-search { width: 356px; }
-  body[data-view="threads"] .thread.searching { min-height: 278px; }
+  body[data-view="threads"] .thread-head { grid-template-columns: 192px 1fr; }
+  body[data-view="threads"] .tracks { padding-left: 208px; }
+  body[data-view="threads"] .track { grid-template-columns: 67px 1fr auto; }
+  body[data-view="threads"] .track .chip { width: 67px; height: 50px; }
+  body[data-view="threads"] .t-when { top: 128px; width: 192px; }
+  body[data-view="threads"] .thread-more { top: 164px; width: 184px; }
+  body[data-view="threads"] .thread-more-search { width: 192px; }
+  body[data-view="threads"] .thread.searching { min-height: 186px; }
   body[data-view="threads"] .thread.searching .search-foot > .more-pos,
-  body[data-view="threads"] .thread.searching .mid-pos { width: 356px; }
+  body[data-view="threads"] .thread.searching .mid-pos { width: 192px; }
+}
 }
 /* History: the posts' titles thinner on a Mac (light text on a dark background otherwise looks bold there; the weight is already regular) */
 body[data-view="history"] .month-line .tr-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
