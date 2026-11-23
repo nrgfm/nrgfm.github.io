@@ -2313,3 +2313,5 @@
 {"action": "tag", "ids": ["t1733737643309619_0"], "add": ["indie"], "remove": [], "ts": 1795429690}
 {"action": "tag", "ids": ["t1686939944656056_0"], "add": ["balearic", "downtempo"], "remove": [], "ts": 1795437199}
 {"action": "edit", "thread": "p1625910734092311", "id": "t1650773431606041_0", "title": "DJ Le Roy FT Bocachica - Yo Te Quiero (Original Mix) (1991)", "url": "https://www.youtube.com/watch?v=Gb9uy4N3_Cc", "tags": [], "ts": 1795437599}
+{"action": "tag", "ids": ["t1650773431606041_0"], "add": ["house"], "remove": [], "ts": 1795437612}
+{"action": "tag", "ids": ["t1650773291606055_0"], "add": ["house"], "remove": [], "ts": 1795437624}
