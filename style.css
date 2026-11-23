@@ -1764,3 +1764,12 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   .vol-wrap:hover, .vol-wrap.open { border-color: var(--muted); }
 }
 @media (max-width: 640px) { #infoBtn.done, #copyBtn.done { color: var(--jade); } }
+/* Prev / Next: a short flash, filled like Play, when used (button or Cmd+Left/Right) */
+.ctl.flash { background: var(--jade) !important; color: var(--jade-ink) !important; box-shadow: inset 0 0 0 2px var(--jade), inset 0 0 0 4px var(--surface); }
+/* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
+.vol-wrap.lit #volBtn { color: var(--jade) !important; }
+@media (min-width: 641px) { .vol-wrap.lit { border-color: var(--muted); } }
+/* Lookup: the suggested lines in San Francisco, as small as the titles in Logs; the search field as the Tags page's */
+.lk-line-plain, .lk-final-plain, .lk-line-text, .lk-line-in { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13.5px; }
+.lk-final { flex: 0 1 420px; max-width: 420px; height: 34px; box-sizing: border-box; padding: 0 12px; font-size: 14px; }
+@media (max-width: 640px) { .lk-final { flex: 1 1 auto; max-width: none; height: 38px; font-size: 16px; } }

@@ -1855,8 +1855,10 @@ function freezeScrolledResult(t) {
   rerenderKeep(t, entry.hits);
 }
 
-$("#prevBtn").onclick = () => playing && play(playing.thread, playing.index - 1);
-$("#nextBtn").onclick = () => playing && play(playing.thread, playing.index + 1);
+/* a button that was used flashes once, filled like Play (Prev/Next, also from Cmd+Left/Right); the volume lights up */
+function flashBtn(b, cls = "flash", ms = 260) { if (!b) return; b.classList.remove(cls); void b.offsetWidth; b.classList.add(cls); clearTimeout(b._fl); b._fl = setTimeout(() => b.classList.remove(cls), ms); }
+$("#prevBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); play(playing.thread, playing.index - 1); };
+$("#nextBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); play(playing.thread, playing.index + 1); };
 $("#playBtn").onclick = () => { if (!adapter) return; $("#playBtn").textContent === "Pause" ? adapter.pause() : adapter.play(); };
 
 const seekEl = $("#seek");
@@ -3250,7 +3252,7 @@ addEventListener("keydown", (e) => {
   } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !IOS) {
     e.preventDefault(); e.stopPropagation();
     const v = Math.max(0, Math.min(100, volume + (e.key === "ArrowUp" ? 2 : -2)));
-    $("#vol").value = v; $("#vol").dispatchEvent(new Event("input"));
+    $("#vol").value = v; $("#vol").dispatchEvent(new Event("input")); flashBtn($("#volWrap"), "lit", 900); // (the number and speaker light up while the keys change it)
   }
 }, true);
 /* Ctrl+I (Cmd+I): the Edit card of the playing track, on the row on screen, or in its thread.
@@ -4124,7 +4126,7 @@ document.addEventListener("keydown", (e) => {
   else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !IOS) { // volume in steps of 5
     e.preventDefault();
     const v = Math.max(0, Math.min(100, volume + (e.key === "ArrowUp" ? 5 : -5)));
-    $("#vol").value = v; $("#vol").dispatchEvent(new Event("input"));
+    $("#vol").value = v; $("#vol").dispatchEvent(new Event("input")); flashBtn($("#volWrap"), "lit", 900); // (the number and speaker light up while the keys change it)
   }
   else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && adapter && adapter.controllable) {
     e.preventDefault();
