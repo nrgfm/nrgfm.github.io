@@ -2330,3 +2330,4 @@
 {"action": "edit", "thread": "p1668179013198816", "id": "t1692419787441405_0", "title": "Oyama - Handsome Devil (2020)", "url": "https://www.youtube.com/watch?v=WG2aN2zX8kE", "tags": ["shoegaze"], "ts": 1795441877}
 {"action": "tag", "ids": ["t1795439420_0"], "add": ["new wave", "norway"], "remove": [], "ts": 1795442063}
 {"action": "tag", "ids": ["t1700579219958795_0"], "add": [], "remove": ["new wave", "norway"], "ts": 1795442565}
+{"action": "tag", "ids": ["t1774298899253493_0"], "add": ["prog"], "remove": [], "ts": 1795442885}
