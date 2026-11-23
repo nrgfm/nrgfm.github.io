@@ -2361,3 +2361,5 @@
 {"action": "tag", "ids": ["t7540417005974958_0"], "add": ["hyper"], "remove": [], "ts": 1795453520}
 {"action": "tag", "ids": ["t1365601096789944_0"], "add": ["eclectic 80s"], "remove": [], "ts": 1795476476}
 {"action": "promote", "thread": "p1329868433696544", "id": "t1794142487_0", "to": "original", "ts": 1795476541}
+{"action": "tag", "ids": ["t1342262675790453_0"], "add": ["trap"], "remove": [], "ts": 1795476580}
+{"action": "tag", "ids": ["t1342262675790453_0"], "add": ["zoinked"], "remove": [], "ts": 1795476583}
