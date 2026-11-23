@@ -1669,19 +1669,20 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 @media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
 body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-weight: 400; } /* Threads: the titles not bold (the main track too) */
 
-/* Threads (laptop): the post's thumbnail 20% bigger (160×90 → 192×108), the tracks' under it 40% bigger (48×36 → 67×50);
-   what sits under or beside them moves along. Only the pictures, not the text. */
+/* Threads (laptop): thumbnail size from − / + in the menu: th-s2 the post's 192×108 and the tracks' 67×50 (biggest),
+   th-s1 halfway (176×99, 58×43), th-s0 the original (160×90, 48×36: no rules). Search results always at the original size.
+   What sits under or beside the pictures moves along; the text stays. */
 @media (min-width: 641px) {
-  body[data-view="threads"] .thread-head { grid-template-columns: 192px 1fr; }
-  body[data-view="threads"] .tracks { padding-left: 208px; }
-  body[data-view="threads"] .track { grid-template-columns: 67px 1fr auto; }
-  body[data-view="threads"] .track .chip { width: 67px; height: 50px; }
-  body[data-view="threads"] .t-when { top: 130.5px; width: 192px; } /* (the gap under the picture 20% bigger too: 12 → 14.4px) */
-  body[data-view="threads"] .thread-more { top: 164px; width: 184px; }
-  body[data-view="threads"] .thread-more-search { width: 192px; }
-  body[data-view="threads"] .thread.searching { min-height: 186px; }
-  body[data-view="threads"] .thread.searching .search-foot > .more-pos,
-  body[data-view="threads"] .thread.searching .mid-pos { width: 192px; }
+  body[data-view="threads"]:not(.q-on).th-s2 { --mw: 192px; --mh: 108px; --cw: 67px; --ch: 50px; --when: 130.5px; }
+  body[data-view="threads"]:not(.q-on).th-s1 { --mw: 176px; --mh: 99px; --cw: 58px; --ch: 43px; --when: 120.25px; }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .thread-head { grid-template-columns: var(--mw) 1fr; }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .tracks { padding-left: calc(var(--mw) + 16px); }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track { grid-template-columns: var(--cw) 1fr auto; }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track .chip { width: var(--cw); height: var(--ch); }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .t-when { top: var(--when); width: var(--mw); }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .thread-more { top: calc(var(--mh) + 56px); width: calc(var(--mw) - 8px); }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .thread-foot { padding-left: calc(var(--mw) + 24px); }
+}
 }
 }
 }
@@ -1700,7 +1701,6 @@ body[data-view="history"] .month-line .tr-title { -webkit-font-smoothing: antial
 .browse-mark.on { color: var(--jade); }
 .browse-mark:focus-visible { outline: 2px solid var(--jade); }
 /* Threads (laptop): "Add a track here" lines up with the tracks' thumbnails (the column moved with the bigger thumbnails) */
-@media (min-width: 641px) { body[data-view="threads"] .thread-foot { padding-left: 216px; } }
 /* Threads: titles smaller and regular weight (the site font) */
 body[data-view="threads"] .t-title, body[data-view="threads"] .tr-title { font-weight: 400; }
 body[data-view="threads"] .t-title { font-size: 17px; line-height: 1.3; }
@@ -1727,3 +1727,18 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 /* Threads: "Add a track here" as big as Edit and Youtube */
 body[data-view="threads"] .add-here { font-size: 13px; }
 body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 1.33; } /* History: as the tracks on Threads */
+
+/* track titles everywhere in San Francisco (the Mac's system font; others get their own system font) */
+.t-title, .tr-title, .side-name, #nowTitle, .mh-title, .lk-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+/* Threads: thumbnail size − / + in the menu (between Random and Sort) */
+.menu .menu-size { display: inline-flex; gap: 2px; margin-left: 16px; }
+.menu .menu-size[hidden] { display: none; }
+.menu .menu-size .when-link { all: unset; cursor: pointer; color: var(--muted); padding: 2px 8px; border-radius: var(--radius-sm); user-select: none; font-size: 17px; line-height: 1; }
+.menu .menu-size .when-link:hover:not(:disabled) { color: var(--text); }
+.menu .menu-size .when-link:disabled { opacity: .35; cursor: default; }
+/* the key's lock: a click slides out switches to its left (tags under the tracks, the side list of opened posts) */
+.lock-opts { display: inline-flex; align-items: center; gap: 6px; overflow: hidden; max-width: 0; opacity: 0; margin-right: 0; transition: max-width .2s ease, opacity .2s ease, margin .2s ease; pointer-events: none; white-space: nowrap; }
+.lock.opts-open .lock-opts { max-width: 400px; opacity: 1; margin-right: 8px; pointer-events: auto; }
+.lock-opts .btn.ghost { font-weight: 400; color: var(--muted); font-size: 14px; height: 32px; padding: 0 12px; }
+.lock-opts .btn.ghost:hover { color: var(--text); border-color: var(--muted); }
+.lock-opts .btn.ghost.on { color: var(--jade); }

@@ -229,6 +229,7 @@ function refreshTags() {
 /* ---------- search ---------- */
 function runSearch() {
   query = fold($("#q").value);
+  document.body.classList.toggle("q-on", !!query); // (search results: thumbnails at the original size)
   try { drawBrowse(); } catch {} // (the side list of opened posts; not yet there while the page starts)
   fixedRows.clear(); scrollOn.clear(); keptHeight.clear(); expanded.clear(); activeId = null;
   const terms = query.split(" ").filter(Boolean);
@@ -378,7 +379,24 @@ function viewItems() {
 let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-order") === "added"; } catch { return false; } })();
 const byAddOn = () => threadsByAdd && level() <= 3; // (logged out: always by date)
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
+/* Threads (laptop): − / + in the menu between Random and Sort: the thumbnails' size in 3 steps (2 the biggest, 0 the original) */
+let thSize = (() => { try { const v = +localStorage.getItem("nrgfm-th-size"); return localStorage.getItem("nrgfm-th-size") === null ? 2 : Math.max(0, Math.min(2, v || 0)); } catch { return 2; } })();
+function applyThSize() { for (const k of [0, 1, 2]) document.body.classList.toggle("th-s" + k, thSize === k); }
+applyThSize();
+function drawMenuSize() {
+  let box = $("#menuSize");
+  const step = (d) => { keepMenuUntil = Date.now() + 600; thSize = Math.max(0, Math.min(2, thSize + d)); try { localStorage.setItem("nrgfm-th-size", String(thSize)); } catch {} applyThSize(); drawMenuSize(); };
+  if (!box) {
+    box = el("span", { id: "menuSize", class: "menu-size" },
+      el("button", { type: "button", class: "when-link", "aria-label": "Smaller thumbnails", onclick: () => step(-1) }, "−"),
+      el("button", { type: "button", class: "when-link", "aria-label": "Bigger thumbnails", onclick: () => step(1) }, "+"));
+    $('#menu [data-view="random"]').after(box);
+  }
+  box.hidden = view !== "threads" || phone();
+  box.children[0].disabled = thSize <= 0; box.children[1].disabled = thSize >= 2;
+}
 function drawThreadsSort() { // (the same button on Archive: Date posted or Shuffle)
+  drawMenuSize();
   let b = $("#threadsSort");
   if (!b) {
     b = el("button", { id: "threadsSort", class: "sf sf-order menu-sort", onclick: () => {
@@ -703,7 +721,7 @@ const BOOKMARK_SVG = (on) => { const svg = document.createElementNS("http://www.
 function drawBrowse() {
   const byId = (id) => threads.find((t) => t.id === id && t.kind !== "tag" && isBase(t));
   const marks = browse.marks.map(byId).filter(Boolean), rest = browse.seen.filter((id) => !browse.marks.includes(id)).map(byId).filter(Boolean);
-  if (level() !== 1 || phone() || innerWidth < 966 || view !== "threads" || (!marks.length && !rest.length)) { browsePanel.hidden = true; return; }
+  if (level() !== 1 || !browseOn() || phone() || innerWidth < 966 || view !== "threads" || (!marks.length && !rest.length)) { browsePanel.hidden = true; return; }
   const cur = (location.hash.match(/^#t\/(.+)$/) || [])[1];
   const row = (t) => { const x = info(t.tracks[0]), on = browse.marks.includes(t.id);
     return el("div", { "data-id": t.id, class: "side-row browse-row" + (cur && decodeURIComponent(cur) === t.id ? " here" : "") + (x.dead ? " dead" : ""), role: "button", tabindex: "0",
@@ -889,7 +907,7 @@ addEventListener("hashchange", () => { // back/forward and links between pages
   else if (!location.hash && view !== "threads") setView("threads", true);
 });
 $("#menu").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-view]");
+  const b = e.target.closest("#menu [data-view]"); // (not the page itself: <body> has a data-view too)
   if (!b) return;
   if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // Ctrl/Cmd+click: the browser opens it in a new tab
   e.preventDefault();
@@ -898,8 +916,9 @@ $("#menu").addEventListener("click", (e) => {
   setView(b.dataset.view);
 });
 /* scrolling the page closes the menu; the page is moved back by the menu's height, so nothing jumps */
+let keepMenuUntil = 0; // (a size change moves the page a little: that doesn't close the menu)
 function closeMenuByScroll() {
-  if ($("#menu").hidden) return;
+  if ($("#menu").hidden || Date.now() < keepMenuUntil) return;
   const h = $(".top").getBoundingClientRect().height;
   toggleMenu(false);
   const dh = h - $(".top").getBoundingClientRect().height;
@@ -2071,19 +2090,33 @@ function applyLevel() {
 const LOCK_SVG = (open) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="${open ? "M8 11V7a4 4 0 0 1 7.8-1.2" : "M8 11V7a4 4 0 0 1 8 0v4"}"/></svg>`;
 function drawLock() {
   const b = $("#lockBtn"); if (!b) return;
-  const lv = level(), on = lv <= 3 && !keyHidden();
+  const lv = level(), on = lv <= 3;
   b.innerHTML = LOCK_SVG(on);
   $("#lock").classList.toggle("on", on);
   document.body.classList.toggle("tags-off", keyHidden());
-  b.setAttribute("aria-label", getToken() ? (on ? "Hide the tags under the tracks" : "Show the tags under the tracks") : on ? "Log out" : "Log in");
+  b.setAttribute("aria-label", getToken() ? "Options" : on ? "Log out" : "Log in");
+  drawLockOpts();
 }
+/* the key (level 1) can't log out: its lock slides out switches instead: the tags under the tracks, and the side list
+   of opened posts on Threads (each on or off, remembered on this browser) */
+const browseOn = () => { try { return localStorage.getItem("nrgfm-browse-on") !== "0"; } catch { return true; } };
+function drawLockOpts() {
+  let box = $("#lockOpts");
+  if (!getToken()) { if (box) box.remove(); $("#lock").classList.remove("opts-open"); return; }
+  if (!box) { box = el("span", { id: "lockOpts", class: "lock-opts" }); $("#lockPw").before(box); }
+  box.onclick = (e) => e.stopPropagation(); // (a switch redraws itself: the click mustn't count as one outside, closing them)
+  const tagsOn = !keyHidden(), listOn = browseOn();
+  box.replaceChildren(
+    el("button", { type: "button", class: "btn ghost" + (tagsOn ? " on" : ""), "aria-pressed": String(tagsOn), tabindex: $("#lock").classList.contains("opts-open") ? 0 : -1,
+      onclick: () => { try { localStorage.setItem("nrgfm-key-hidden", tagsOn ? "1" : "0"); } catch {} drawLock(); } }, tagsOn ? "Hide tags" : "Show tags"),
+    el("button", { type: "button", class: "btn ghost" + (listOn ? " on" : ""), "aria-pressed": String(listOn), tabindex: $("#lock").classList.contains("opts-open") ? 0 : -1,
+      onclick: () => { try { localStorage.setItem("nrgfm-browse-on", listOn ? "0" : "1"); } catch {} drawLockOpts(); drawBrowse(); } }, listOn ? "Hide side list" : "Show side list"));
+}
+document.addEventListener("click", (e) => { const l = $("#lock"); if (l && l.classList.contains("opts-open") && !l.contains(e.target)) { l.classList.remove("opts-open"); drawLockOpts(); } });
 function closeLock() { $("#lock").classList.remove("open"); $("#lockPw").value = ""; $("#lockPw").placeholder = "Password"; $("#lockPw").tabIndex = -1; $("#lockPw").blur(); }
 $("#lockBtn").addEventListener("click", async () => {
   const lv = level();
-  if (getToken()) { // the key: the lock only hides (and shows again) the tags under the tracks; everything else stays
-    try { localStorage.setItem("nrgfm-key-hidden", keyHidden() ? "0" : "1"); } catch {}
-    drawLock(); return;
-  }
+  if (getToken()) { $("#lock").classList.toggle("opts-open"); drawLockOpts(); return; } // the key: the switches slide out (or back)
   if (lv <= 3) { // log out, quietly: only what's shown changes
     const s = session();
     try { localStorage.removeItem(SESSION_KEY); } catch {}
