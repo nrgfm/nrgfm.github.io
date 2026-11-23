@@ -1726,3 +1726,4 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 @media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 4px; } } /* (halfway to the picture) */
 /* Threads: "Add a track here" as big as Edit and Youtube */
 body[data-view="threads"] .add-here { font-size: 13px; }
+body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 1.33; } /* History: as the tracks on Threads */
