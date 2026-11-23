@@ -1133,6 +1133,7 @@ function setActive(id, clickedK) {
     if (row) { const box = row.closest(".scroll-list"); if (row.offsetTop < box.scrollTop || row.offsetTop + row.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = row.offsetTop; }
   }  requestAnimationFrame(fadeAll); // the fades come back when a result is unselected again
 }
+const searchLaptop = () => !phone() && !!$("#q").value.trim(); // (computer, searching: a click doesn't select a result)
 const selectable = (th) => !th.classList.contains("genre-mix") && (th.querySelector(".scroll-list") || (th.classList.contains("searching") && th.querySelector(".tracks")));
 document.addEventListener("click", (e) => {
   if (!e.target.closest || e.target.closest(".dock, .edit-btn, .add-form, .edit-wrap, .scroll-link")) return;
@@ -1141,7 +1142,7 @@ document.addEventListener("click", (e) => {
   const th = e.target.closest("#threads > .thread");
   if (th && th.classList.contains("active") && e.target.closest("button, a")) return; // playing, matches, links: stays selected
   const k = e.target.closest("[data-k]")?.dataset.k;
-  if (th && selectable(th) && !th.classList.contains("active")) setActive(th.id.slice(3), k); // select (and unselect another)
+  if (th && selectable(th) && !th.classList.contains("active") && !searchLaptop()) setActive(th.id.slice(3), k); // select (and unselect another)
   else if (activeId) setActive(null); // a click in the selected box or anywhere else unselects
 }, true);
 document.addEventListener("wheel", (e) => {
@@ -1182,7 +1183,10 @@ function toggleExpand(t, hits) {
   const fresh = rerenderKeep(t, hits);
   if (!fresh) return;
   if (wasOpen) { setActive(null); pageScrollBy(fresh.getBoundingClientRect().top - headerBottom() - 8); } // collapsed: the thread at the top
-  else setActive(t.id);
+  else {
+    setActive(t.id);
+    if (searchLaptop()) { const n = document.getElementById("th-" + t.id); if (n) { n.classList.remove("frame-fade"); void n.offsetWidth; n.classList.add("frame-fade"); } } // (search: the frame shows, then fades)
+  }
   fitList(fresh, !wasOpen);
   if (!wasOpen && hits && phone()) { // phone search: the whole thread, its main track at the top
     pageScrollBy(fresh.getBoundingClientRect().top - headerBottom() - 8);
@@ -1771,7 +1775,7 @@ function play(t, i) {
   if ((t.mix || t.shuffle || (t.kind === "tag" && view === "tag")) && !autoplay) { autoplay = true; $("#autoBtn").setAttribute("aria-pressed", "true"); $("#autoBtn").textContent = "Autoplay on"; } // a Genres playlist plays on
   const pn = document.getElementById("th-" + t.id);
   // the thread you play from gets the selected frame (in search results only the ones that scroll)
-  if (pn && activeId !== t.id && !addingId && selectable(pn)) setActive(t.id, `${t.id}:${i}`); // only boxes that scroll
+  if (pn && activeId !== t.id && !addingId && selectable(pn) && !searchLaptop()) setActive(t.id, `${t.id}:${i}`); // only boxes that scroll
   const token = ++loadToken;
   const tr0 = t.tracks[i], x = info(tr0);
   const tr = x.alt ? altSource(tr0) : tr0, m = meta[tr.url] || {}; // (the main link is gone: its alternative link plays)
