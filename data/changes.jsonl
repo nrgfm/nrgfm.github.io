@@ -2323,3 +2323,4 @@
 {"url": "https://www.youtube.com/watch?v=p8w9XT2gfNo", "title": "Boxbury Beat - Windows (Molla Version) 1985", "thread": "p1668179013198816", "tags": [], "ts": 1795439420}
 {"action": "promote", "thread": "p1668179013198816", "id": "t1795439420_0", "to": "main", "ts": 1795439495}
 {"action": "tag", "ids": ["t1700691483280902_0"], "add": ["jazz-fusion"], "remove": [], "ts": 1795439566}
+{"action": "delete", "thread": "p1668179013198816", "id": "t1718243934858990_0", "ts": 1795439706, "url": "https://www.youtube.com/watch?v=nTS_LKdIj0E", "title": "国分友里恵(スノッブな夜へ)"}
