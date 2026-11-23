@@ -1058,7 +1058,7 @@ function trackRow(t, tr, i, hits) {
   return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}` },
     img(x.thumb, "chip"),
     el("button", { class: "play", onclick: () => play(t, i), "aria-label": `Play ${x.title}` },
-      el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
+      el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && !query && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
       el("span", { class: "tr-sub" }, tagLine(tr, x.recovered ? RECOVERED : null, t.mix ? genresOf(tr) : null))),
     rowLinks(t, i, x));
 }
