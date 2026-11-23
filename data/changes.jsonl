@@ -2342,3 +2342,7 @@
 {"action": "tag", "ids": ["t7193002600716402_0"], "add": ["math", "emo", "alt rock"], "remove": [], "ts": 1795452050}
 {"action": "tag", "ids": ["t7193002600716402_0"], "add": ["shoegaze"], "remove": ["alt rock"], "ts": 1795452059}
 {"action": "delete", "thread": "p6959379927412005", "id": "t7449131678436825_0", "ts": 1795452075, "url": "https://www.youtube.com/watch?v=Bc--a58BHcQ", "title": "Superheaven - Youngest Daughter (Lyrics)"}
+{"action": "tag", "ids": ["t6959379927412005_0"], "add": ["k-pop"], "remove": [], "ts": 1795452079}
+{"action": "tag", "ids": ["t7449136318436361_0"], "add": ["emo"], "remove": ["duplicate"], "ts": 1795452095}
+{"action": "tag", "ids": ["t7449136318436361_0"], "add": ["alt rock"], "remove": [], "ts": 1795452103}
+{"action": "tag", "ids": ["t7466260316723961_0"], "add": ["alt rock", "emo"], "remove": [], "ts": 1795452118}
