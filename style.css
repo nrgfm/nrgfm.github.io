@@ -1771,23 +1771,23 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 #prevBtn, #nextBtn { position: relative; isolation: isolate; background: none !important; box-shadow: none !important; transition: color .31s ease, text-shadow .31s ease; }
 /* Prev | Play | Next as one rocker: Prev's and Next's fill is as tall as Play and runs right up to Play's outer ring,
    darkening towards it, so Play sits in a dip between them (as the buttons on an mp3 player) */
-#prevBtn::before, #nextBtn::before { content: ""; position: absolute; top: 0; bottom: 0; z-index: -1; pointer-events: none;
+#prevBtn::before, #nextBtn::before { content: ""; position: absolute; top: 2px; bottom: 2px; z-index: -1; pointer-events: none;
   --f: color-mix(in srgb, var(--surface-2) 55%, transparent); --d: color-mix(in srgb, var(--surface-2) 55%, #000 35%);
   transition: opacity .31s ease; }
-#prevBtn::before { left: 0; right: -4px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: linear-gradient(to right, var(--f) 0 45%, var(--d)); }
-#nextBtn::before { left: -4px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: linear-gradient(to left, var(--f) 0 45%, var(--d)); }
+#prevBtn::before { left: 0; right: -14px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: linear-gradient(to right, var(--f) 0 25%, var(--d)); }
+#nextBtn::before { left: -14px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: linear-gradient(to left, var(--f) 0 25%, var(--d)); }
 #prevBtn:disabled::before, #nextBtn:disabled::before { opacity: .35; }
 #prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
 /* hover and press: a second layer of the same shape, its outline drawn inside (the button doesn't grow) and the whole
    layer fading out towards Play, gone just before Play's ring. Hover: a grey outline. Press: outline and fill in Play's
    blue (10% darker), at once, then fading. */
-#prevBtn::after, #nextBtn::after { content: ""; position: absolute; top: 0; bottom: 0; z-index: -1; pointer-events: none; box-sizing: border-box;
+#prevBtn::after, #nextBtn::after { content: ""; position: absolute; top: 2px; bottom: 2px; z-index: -1; pointer-events: none; box-sizing: border-box;
   border: 1px solid transparent; background-color: transparent; opacity: 0;
   transition: opacity .31s ease, border-color .31s ease, background-color .31s ease; }
-#prevBtn::after { left: 0; right: -4px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); border-right: 0;
-  -webkit-mask-image: linear-gradient(to right, #000 0 55%, transparent calc(100% - 4px)); mask-image: linear-gradient(to right, #000 0 55%, transparent calc(100% - 4px)); }
-#nextBtn::after { left: -4px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: 0;
-  -webkit-mask-image: linear-gradient(to left, #000 0 55%, transparent calc(100% - 4px)); mask-image: linear-gradient(to left, #000 0 55%, transparent calc(100% - 4px)); }
+#prevBtn::after { left: 0; right: -14px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); border-right: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 0 15%, transparent calc(100% - 16px)); mask-image: linear-gradient(to right, #000 0 15%, transparent calc(100% - 16px)); }
+#nextBtn::after { left: -14px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: 0;
+  -webkit-mask-image: linear-gradient(to left, #000 0 15%, transparent calc(100% - 16px)); mask-image: linear-gradient(to left, #000 0 15%, transparent calc(100% - 16px)); }
 #prevBtn:hover:not(:disabled)::after, #nextBtn:hover:not(:disabled)::after { opacity: 1; border-color: var(--muted); }
 #prevBtn.flash::after, #nextBtn.flash::after { opacity: 1; transition: none;
   border-color: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); background-color: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); }
@@ -1834,3 +1834,6 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   animation: play-spin .9s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) { .ctl.play.loading::after { animation-duration: 2.4s; } }
+
+/* (Prev's and Next's fills run on under Play; Play sits on top of them) */
+.ctl.play { z-index: 1; }

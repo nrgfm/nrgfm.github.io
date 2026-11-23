@@ -2015,12 +2015,15 @@ if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
   const later = () => { clearTimeout(volTimer); volTimer = setTimeout(() => { byHover = false; closeVol(); }, 500); };
   wrap.addEventListener("mouseleave", (e) => { if (byHover && wrap.classList.contains("open") && !e.buttons) later(); }); // not while dragging the slider
   document.addEventListener("mouseup", (e) => { if (byHover && wrap.classList.contains("open") && !wrap.contains(e.target) && !wrap.matches(":hover")) later(); });
-  $("#volBtn").addEventListener("click", (e) => { // a click while it is open from hovering keeps it open (no timer)
-    if (!byHover) return;
-    byHover = false; clearTimeout(volTimer); e.stopImmediatePropagation();
+  // computer: a click on the volume mutes, the next one unmutes to the volume it had (the slider is already out from hovering)
+  $("#volBtn").addEventListener("click", (e) => {
+    e.stopImmediatePropagation(); e.stopPropagation();
+    let back = 100; try { back = +localStorage.getItem("nrgfm-volume-last") || 100; } catch {}
+    if (volume > 0) { try { localStorage.setItem("nrgfm-volume-last", String(volume)); } catch {} }
+    $("#vol").value = volume > 0 ? 0 : back; $("#vol").dispatchEvent(new Event("input"));
   }, true);
 }
-$("#volNum").onclick = (e) => $("#volBtn").onclick(e);
+$("#volNum").onclick = (e) => $("#volBtn").click();
 document.addEventListener("click", closeVol);
 $("#vol").addEventListener("input", () => {
   volume = +$("#vol").value; showVolume();
