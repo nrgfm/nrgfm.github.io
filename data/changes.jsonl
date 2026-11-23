@@ -2326,3 +2326,4 @@
 {"action": "delete", "thread": "p1668179013198816", "id": "t1718243934858990_0", "ts": 1795439706, "url": "https://www.youtube.com/watch?v=nTS_LKdIj0E", "title": "国分友里恵(スノッブな夜へ)"}
 {"action": "edit", "thread": "p1668179013198816", "id": "t1739500782733305_0", "title": "Absent Music - The Monkey House (2012)", "url": "https://www.youtube.com/watch?v=eAJ-B1XHnxc", "tags": ["zoinked"], "ts": 1795439759}
 {"action": "tag", "ids": ["t1749935785023138_0"], "add": ["indie"], "remove": [], "ts": 1795439771}
+{"action": "tag", "ids": ["t1700538479962869_0"], "add": ["funk", "eclectic 80s"], "remove": [], "ts": 1795439831}
