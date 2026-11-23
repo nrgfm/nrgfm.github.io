@@ -2321,3 +2321,4 @@
 {"action": "edit", "thread": "p1668179013198816", "id": "t1700579219958795_0", "title": "Boxbury Beat - Windows (1985)", "url": "https://www.youtube.com/watch?v=UF6yMyCdkM4", "tags": ["new wave"], "ts": 1795439031}
 {"action": "edit", "thread": "p1668179013198816", "id": "t1700579219958795_0", "title": "Boxbury Beat - Windows (1985)", "url": "https://www.youtube.com/watch?v=Oe4Be5GR--I", "tags": ["new wave", "norway"], "ts": 1795439183, "alt": "https://www.youtube.com/watch?v=UF6yMyCdkM4"}
 {"url": "https://www.youtube.com/watch?v=p8w9XT2gfNo", "title": "Boxbury Beat - Windows (Molla Version) 1985", "thread": "p1668179013198816", "tags": [], "ts": 1795439420}
+{"action": "promote", "thread": "p1668179013198816", "id": "t1795439420_0", "to": "main", "ts": 1795439495}
