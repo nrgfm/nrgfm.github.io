@@ -1,10 +1,10 @@
 {
- "date": "2026-11-22 20:44",
+ "date": "2026-11-23 10:50",
  "asked": 0,
  "done": 3670,
  "month": {
-  "searches": 737,
-  "cost": 1.286
+  "searches": 909,
+  "cost": 1.33
  },
  "state": "ok (this run's limit (requests or time) reached: continues next run)"
 }
