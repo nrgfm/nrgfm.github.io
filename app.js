@@ -227,7 +227,14 @@ function refreshTags() {
 }
 
 /* ---------- search ---------- */
+/* where you were before a search: Esc or × brings you back there (not to the post in the address) */
+let preSearch = null;
+function saveSpot() {
+  const top = headerBottom(), row = [...document.querySelectorAll("#threads [data-k]")].find((r) => r.offsetParent && r.getBoundingClientRect().bottom > top + 4);
+  preSearch = { view, k: row ? row.dataset.k : null, top: row ? row.getBoundingClientRect().top : 0, y: scroller() === window ? scrollY : document.body.scrollTop };
+}
 function runSearch() {
+  if (!query && fold($("#q").value)) saveSpot(); // (a search starts here)
   query = fold($("#q").value);
   document.body.classList.toggle("q-on", !!query); // (search results: thumbnails at the original size)
   try { drawBrowse(); } catch {} // (the side list of opened posts; not yet there while the page starts)
@@ -910,7 +917,7 @@ function setView(v, keepHash) {
   tp.focused = false; // (opening Tags puts the cursor in its search field)
   if (!keepHash) history.replaceState(null, "", view === "threads" ? location.pathname : view === "tag" ? "#/tag/" + encodeURIComponent(tagPageName) : "#/" + view);
   document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view || (view === "lookup" && b.dataset.view === "activity"))));
-  $("#q").value = ""; syncClear();
+  preSearch = null; $("#q").value = ""; syncClear();
   runSearch(); pageScrollTo(0);
   if (view === "tags" && tp.restoreY != null) { const y = tp.restoreY; tp.restoreY = null; requestAnimationFrame(() => pageScrollTo(y)); }
 }
@@ -1059,8 +1066,9 @@ const RECOVERED = "title recovered from Internet Archive";
 
 function trackRow(t, tr, i, hits) {
   const x = info(tr);
+  const chip = img(x.thumb, "chip"); chip.addEventListener("click", () => play(t, i)); chip.style.cursor = "pointer"; // (the thumbnail plays it too)
   return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}` },
-    img(x.thumb, "chip"),
+    chip,
     el("button", { class: "play", onclick: () => play(t, i), "aria-label": `Play ${x.title}` },
       el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && !query && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
       el("span", { class: "tr-sub" }, tagLine(tr, x.recovered ? RECOVERED : null, t.mix ? genresOf(tr) : null))),
@@ -1500,7 +1508,7 @@ function threadNode({ t, hits, one }) {
 
 /* "Thread": leave the search and show this thread where it sits in the feed */
 function goToThread(t, gap = 22) { // a little under the header: the dividing line of the thread before shows
-  $("#q").value = ""; syncClear(); $("#q").blur(); // (phone: the keyboard goes away first, so the page doesn't shift afterwards)
+  preSearch = null; $("#q").value = ""; syncClear(); $("#q").blur(); // (phone: the keyboard goes away first, so the page doesn't shift afterwards)
   if (view !== "threads") { view = "threads"; document.body.dataset.view = view; history.replaceState(null, "", location.pathname); document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === "threads"))); }
   expanded.delete(t.id);
   runSearch();
@@ -4192,6 +4200,13 @@ let timer;
 function syncClear() { $("#clearQ").hidden = !$("#q").value; }
 /* leaving a search while the address points at a post (#t/…): back at that post, not at the newest one */
 function endSearch() {
+  if (preSearch && preSearch.view === view) { // back to where you were before searching
+    const spot = preSearch; preSearch = null;
+    runSearch();
+    const row = spot.k && document.querySelector(`#threads [data-k="${CSS.escape(spot.k)}"]`);
+    if (row) pageScrollBy(row.getBoundingClientRect().top - spot.top); else pageScrollTo(spot.y);
+    return;
+  }
   const m = view === "threads" && location.hash.match(/^#t\/(.+)$/);
   let id = m && m[1]; try { id = id && decodeURIComponent(id); } catch {}
   const t = id && threads.find((x) => x.id === id && x.kind !== "tag");

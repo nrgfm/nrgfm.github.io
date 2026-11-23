@@ -1730,7 +1730,7 @@ body[data-view="threads"] .add-here { font-size: 13px; }
 body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 1.33; } /* History: as the tracks on Threads */
 
 /* track titles everywhere in San Francisco (the Mac's system font; others get their own system font) */
-.t-title, .tr-title, .side-name, #nowTitle, .mh-title, .lk-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.t-title, .tr-title, .side-name, .mh-title, .lk-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 /* Threads: thumbnail size − / + in the menu (between Random and Sort) */
 .menu .menu-size { display: inline-flex; gap: 2px; margin-left: 16px; }
 .menu .menu-size[hidden] { display: none; }
