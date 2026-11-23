@@ -1676,7 +1676,7 @@ body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-w
   body[data-view="threads"] .tracks { padding-left: 208px; }
   body[data-view="threads"] .track { grid-template-columns: 67px 1fr auto; }
   body[data-view="threads"] .track .chip { width: 67px; height: 50px; }
-  body[data-view="threads"] .t-when { top: 128px; width: 192px; }
+  body[data-view="threads"] .t-when { top: 130.5px; width: 192px; } /* (the gap under the picture 20% bigger too: 12 → 14.4px) */
   body[data-view="threads"] .thread-more { top: 164px; width: 184px; }
   body[data-view="threads"] .thread-more-search { width: 192px; }
   body[data-view="threads"] .thread.searching { min-height: 186px; }
@@ -1717,12 +1717,12 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 @media (min-width: 641px) {
   .tagged-thread .track { grid-template-columns: 134px 1fr auto; }
   .tagged-thread .track .chip { width: 134px; height: 76px; }
-  .tagged-thread .tr-title { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.33; }
+  .tagged-thread .tr-title { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 15.5px; font-weight: 400; line-height: 1.33; } /* (halfway between 16 and 15) */
 }
 /* the side list of opened posts: a soft fade at the bottom when there is more below */
 .browse-panel .tp-p-list { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
 .browse-panel .tp-p-list.at-end { -webkit-mask-image: none; mask-image: none; }
 /* Archive (and a tag's page): the date starts where the thumbnail picture starts (the row's highlight box is 8px further out) */
-@media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 8px; } }
+@media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 4px; } } /* (halfway to the picture) */
 /* Threads: "Add a track here" as big as Edit and Youtube */
 body[data-view="threads"] .add-here { font-size: 13px; }
