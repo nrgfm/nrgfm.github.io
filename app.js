@@ -4180,7 +4180,7 @@ document.addEventListener("keydown", (e) => {
   }
   else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && adapter && adapter.controllable) {
     e.preventDefault();
-    adapter.seek(Math.max(0, lastTime + (e.key === "ArrowRight" ? 5 : -5)));
+    adapter.seek(Math.max(0, lastTime + (e.key === "ArrowRight" ? 5 : -5))); flashBtn($(e.key === "ArrowRight" ? "#tDur" : "#tCur"), "tapped", 900); // (that side's time lights up, as clicking it does)
   }
 });
 
