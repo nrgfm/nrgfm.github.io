@@ -1742,3 +1742,13 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .lock-opts .btn.ghost { font-weight: 400; color: var(--muted); font-size: 14px; height: 32px; padding: 0 12px; }
 .lock-opts .btn.ghost:hover { color: var(--text); border-color: var(--muted); }
 .lock-opts .btn.ghost.on { color: var(--jade); }
+/* the player's volume, Autoplay, Copy info and Copy link: as tall as the × square; on hover the outline lights up
+   (as on the ×), no background */
+@media (min-width: 641px) {
+  #volBtn, #autoBtn, #infoBtn, #copyBtn { height: 26px; border: 1px solid transparent; box-sizing: border-box; }
+  #volBtn:hover:not(:disabled), #autoBtn:hover:not(:disabled), #infoBtn:hover:not(:disabled), #copyBtn:hover:not(:disabled) { background: none; border-color: var(--muted); }
+  #autoBtn[aria-pressed="true"] { background: none; }
+}
+/* Threads: − / + right before Sort */
+.menu .menu-size:not([hidden]) { margin-left: auto; }
+.menu .menu-size:not([hidden]) + .menu-sort { margin-left: 10px; }

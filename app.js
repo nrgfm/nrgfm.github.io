@@ -380,23 +380,24 @@ let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-ord
 const byAddOn = () => threadsByAdd && level() <= 3; // (logged out: always by date)
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
 /* Threads (laptop): − / + in the menu between Random and Sort: the thumbnails' size in 3 steps (2 the biggest, 0 the original) */
-let thSize = (() => { try { const v = +localStorage.getItem("nrgfm-th-size"); return localStorage.getItem("nrgfm-th-size") === null ? 2 : Math.max(0, Math.min(2, v || 0)); } catch { return 2; } })();
+const TH_KEY = "nrgfm-th-size2"; // (2: the middle step is the default)
+let thSize = (() => { try { const v = localStorage.getItem(TH_KEY); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } })();
 function applyThSize() { for (const k of [0, 1, 2]) document.body.classList.toggle("th-s" + k, thSize === k); }
 applyThSize();
 function drawMenuSize() {
   let box = $("#menuSize");
-  const step = (d) => { keepMenuUntil = Date.now() + 600; thSize = Math.max(0, Math.min(2, thSize + d)); try { localStorage.setItem("nrgfm-th-size", String(thSize)); } catch {} applyThSize(); drawMenuSize(); };
+  const step = (d) => { keepMenuUntil = Date.now() + 600; thSize = Math.max(0, Math.min(2, thSize + d)); try { localStorage.setItem(TH_KEY, String(thSize)); } catch {} applyThSize(); drawMenuSize(); };
   if (!box) {
     box = el("span", { id: "menuSize", class: "menu-size" },
       el("button", { type: "button", class: "when-link", "aria-label": "Smaller thumbnails", onclick: () => step(-1) }, "−"),
       el("button", { type: "button", class: "when-link", "aria-label": "Bigger thumbnails", onclick: () => step(1) }, "+"));
-    $('#menu [data-view="random"]').after(box);
   }
+  const sort = $("#threadsSort"); // right before Sort
+  if (sort && box.nextElementSibling !== sort) sort.before(box); else if (!sort && !box.isConnected) $('#menu [data-view="ublock"]').before(box);
   box.hidden = view !== "threads" || phone();
   box.children[0].disabled = thSize <= 0; box.children[1].disabled = thSize >= 2;
 }
 function drawThreadsSort() { // (the same button on Archive: Date posted or Shuffle)
-  drawMenuSize();
   let b = $("#threadsSort");
   if (!b) {
     b = el("button", { id: "threadsSort", class: "sf sf-order menu-sort", onclick: () => {
@@ -412,6 +413,7 @@ function drawThreadsSort() { // (the same button on Archive: Date posted or Shuf
   b.setAttribute("aria-pressed", String(on));
   b.replaceChildren(el("span", { class: "sort-label" }, "Sort: "), el("span", { class: "sort-val" },
     view === "tagged" ? (on ? "Shuffle" : "Date posted") : view === "tags" ? (on ? "Latest added" : "Alphabetical") : on ? "Latest added" : "Date posted"), " ▾");
+  drawMenuSize();
 }
 /* Archive shuffled: every track with a tag of its own, in random order, as one playlist (playing one: autoplay on,
    on through the shuffled list). Shown in small parts so the page stays quick. */
@@ -2112,11 +2114,17 @@ function drawLockOpts() {
     el("button", { type: "button", class: "btn ghost" + (listOn ? " on" : ""), "aria-pressed": String(listOn), tabindex: $("#lock").classList.contains("opts-open") ? 0 : -1,
       onclick: () => { try { localStorage.setItem("nrgfm-browse-on", listOn ? "0" : "1"); } catch {} drawLockOpts(); drawBrowse(); } }, listOn ? "Hide side list" : "Show side list"));
 }
+{ // the key: the switches slide out while the pointer is on the lock (or them), and back in a moment after it leaves
+  let t = null;
+  const lk = $("#lock");
+  lk.addEventListener("mouseenter", () => { if (!getToken()) return; clearTimeout(t); if (!lk.classList.contains("opts-open")) { lk.classList.add("opts-open"); drawLockOpts(); } });
+  lk.addEventListener("mouseleave", () => { if (!getToken()) return; clearTimeout(t); t = setTimeout(() => { lk.classList.remove("opts-open"); drawLockOpts(); }, 350); });
+}
 document.addEventListener("click", (e) => { const l = $("#lock"); if (l && l.classList.contains("opts-open") && !l.contains(e.target)) { l.classList.remove("opts-open"); drawLockOpts(); } });
 function closeLock() { $("#lock").classList.remove("open"); $("#lockPw").value = ""; $("#lockPw").placeholder = "Password"; $("#lockPw").tabIndex = -1; $("#lockPw").blur(); }
 $("#lockBtn").addEventListener("click", async () => {
   const lv = level();
-  if (getToken()) { $("#lock").classList.toggle("opts-open"); drawLockOpts(); return; } // the key: the switches slide out (or back)
+  if (getToken()) { if (!matchMedia("(hover: hover)").matches) { $("#lock").classList.toggle("opts-open"); drawLockOpts(); } return; } // the key: the switches (on hover; a touch screen: by tapping)
   if (lv <= 3) { // log out, quietly: only what's shown changes
     const s = session();
     try { localStorage.removeItem(SESSION_KEY); } catch {}
