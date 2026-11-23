@@ -1613,6 +1613,7 @@ function updateTitle() {
    ends when the player is in that state, or after 10 s (e.g. the iPhone didn't allow starting): then the button
    shows what the player really does. */
 let wantPlay = null, wantTimer = null, startedOnce = false; // (startedOnce: this track has really played; until then a "paused" may be the loading's)
+const setLoading = (on) => $("#playBtn").classList.toggle("loading", !!on); // the ring round Play turns while the player loads
 function showPlayBtn() {
   const on = wantPlay !== null ? wantPlay : soundOn;
   $("#playBtn").textContent = on ? "Pause" : "Play";
@@ -1620,10 +1621,11 @@ function showPlayBtn() {
 }
 function requestPlay(on) {
   wantPlay = on; clearTimeout(wantTimer);
-  wantTimer = setTimeout(() => { wantPlay = null; showPlayBtn(); }, 10000);
+  wantTimer = setTimeout(() => { wantPlay = null; setLoading(false); showPlayBtn(); }, 10000);
   showPlayBtn();
 }
 function setPlayState(isPlaying) {
+  setLoading(false); // (playing or paused: whatever was loading is there)
   if (soundOn !== isPlaying) { soundOn = isPlaying; updateTitle(); }
   if (isPlaying) startedOnce = true;
   if (wantPlay !== null) {
@@ -1657,7 +1659,7 @@ function autoNext() {
   }
   for (let k = i + 1; k < t.tracks.length; k++) if (playable(t.tracks[k])) { play(t, k); return; }
 }
-function onEnded() { wantPlay = null; clearTimeout(wantTimer); setPlayState(false); autoNext(); }
+function onEnded() { setLoading(false); wantPlay = null; clearTimeout(wantTimer); setPlayState(false); autoNext(); }
 const YT_ONLY = "plays on youtube only";
 /* YouTube's player said no: 101/150 = it can't play on other sites (the owner's choice, or age-restricted). The track gets
    the tag "plays on youtube only" (with the key, or a level 2 login: saved; otherwise only for now), so autoplay skips it
@@ -1751,6 +1753,7 @@ function makeYouTube(tr) {
             try { if (IOS || volume > 0) yt.player.unMute(); } catch {} // (iPhone: always; it can report "not muted" while it is)
           }
           else if (e.data === YT.PlayerState.PAUSED) events.state(false);
+          else if (e.data === YT.PlayerState.BUFFERING) setLoading(true); // (loading more while playing: the ring turns again)
           else if (e.data === YT.PlayerState.ENDED) events.ended();
         },
         onError: (e) => { if (yt.active) events.error(e && e.data); },
@@ -1827,7 +1830,7 @@ function play(t, i) {
   fitTitle();
   $("#prevBtn").disabled = i === 0;
   $("#nextBtn").disabled = i === t.tracks.length - 1;
-  wantPlay = null; startedOnce = false; setPlayState(false); setTime(0, 0); requestPlay(true); // (a new track: the button shows Pause at once)
+  wantPlay = null; startedOnce = false; setPlayState(false); setTime(0, 0); requestPlay(true); setLoading(true); // (a new track: the button shows Pause at once, its ring turns until it plays)
   section = (tr.start || tr.end) && ["youtube", "soundcloud", "vimeo"].includes(tr.platform)
     ? { s: tr.start || 0, e: tr.end || 0, live: false, started: false, done: false } : null;
 
@@ -1866,7 +1869,7 @@ function play(t, i) {
   const controllable = !!(adapter && adapter.controllable);
   $("#dock").classList.toggle("no-transport", !controllable);
   $("#playBtn").disabled = !controllable; $("#seek").disabled = !controllable; $("#volBtn").disabled = !controllable;
-  if (!controllable) { closeVol(); logUncounted(); soundOn = true; updateTitle(); }
+  if (!controllable) { setLoading(false); closeVol(); logUncounted(); soundOn = true; updateTitle(); }
   if (adapter) adapter.ready.catch(() => {
     if (token !== loadToken) return;
     ytSlot().hidden = true;
@@ -2054,7 +2057,7 @@ function idleDock() {
   d.hidden = false; d.classList.add("idle"); d.classList.remove("wide", "no-transport");
   $("#media").dataset.kind = "";
   $("#nowTitle").textContent = ""; closeThread();
-  wantPlay = null; clearTimeout(wantTimer); setPlayState(false); setTime(0, 0);
+  wantPlay = null; clearTimeout(wantTimer); setPlayState(false); setLoading(false); setTime(0, 0);
   for (const b of ["#prevBtn", "#playBtn", "#nextBtn", "#seek", "#infoBtn", "#copyBtn"]) $(b).disabled = true;
   $("#volBtn").disabled = false;
   if (!lockPlayerWidths.done) { lockPlayerWidths(); lockPlayerWidths.done = true; }

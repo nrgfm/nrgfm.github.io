@@ -1769,10 +1769,14 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
    (its size never changes). Under the pointer: the hover grey; used (button or Cmd+Left/Right): Play's blue, 10% darker
    and a little see-through, the text dark and bold for a moment */
 #prevBtn, #nextBtn { position: relative; isolation: isolate; background: none !important; box-shadow: none !important; transition: color .31s ease, text-shadow .31s ease; }
-#prevBtn::before, #nextBtn::before { content: ""; position: absolute; inset: 4px; z-index: -1; border-radius: var(--radius-sm); background: transparent; transition: background-color .31s ease; pointer-events: none; }
-#prevBtn:hover:not(:disabled)::before, #nextBtn:hover:not(:disabled)::before { background: var(--surface-2); }
+#prevBtn::before, #nextBtn::before { content: ""; position: absolute; inset: 4px; z-index: -1; border-radius: var(--radius-sm); pointer-events: none;
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent); box-shadow: 0 0 0 1px transparent; /* a faint fill always (as the ×) */
+  transition: background-color .31s ease, box-shadow .31s ease; }
+#prevBtn:hover:not(:disabled)::before, #nextBtn:hover:not(:disabled)::before { box-shadow: 0 0 0 1px var(--muted); } /* hover: an outline round the fill (as the ×) */
+#prevBtn:disabled::before, #nextBtn:disabled::before { background: transparent; }
 #prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
-#prevBtn.flash::before, #nextBtn.flash::before, #prevBtn.flash:hover::before, #nextBtn.flash:hover::before { /* (also with the pointer still on it) */ background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
+#prevBtn.flash::before, #nextBtn.flash::before, #prevBtn.flash:hover::before, #nextBtn.flash:hover::before { /* (also with the pointer still on it; the outline takes the fill's colour and fades with it) */
+  background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
 /* Play / Pause: its hover and press fade out the same way (nothing else about it changes) */
 .ctl.play { transition: filter .31s ease, background-color .31s ease, color .31s ease; }
 /* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
@@ -1802,3 +1806,17 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   body.q-on[data-view] .tagged-thread .track .chip { width: 160px; height: 90px; }
 }
 /* Prev / Next under the pointer: the same inner box as the flash (Play's rings' room left clear) */
+
+/* Play: while the player loads, its outer bright ring turns into a loading ring (a bright arc going round a dimmed ring) */
+@property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes play-spin { to { --spin: 360deg; } }
+.ctl.play { position: relative; }
+.ctl.play.loading { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--jade) 28%, var(--surface)), inset 0 0 0 4px var(--surface); }
+.ctl.play.loading::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none;
+  background: conic-gradient(from var(--spin), transparent 0deg 200deg, var(--jade) 320deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: play-spin .9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .ctl.play.loading::after { animation-duration: 2.4s; } }
