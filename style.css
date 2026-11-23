@@ -1776,7 +1776,7 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   transition: opacity .31s ease; }
 #prevBtn::before { left: 0; right: -14px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: linear-gradient(to right, var(--f) 0 25%, var(--d)); }
 #nextBtn::before { left: -14px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: linear-gradient(to left, var(--f) 0 25%, var(--d)); }
-#prevBtn:disabled::before, #nextBtn:disabled::before { opacity: .35; }
+#prevBtn:disabled, #nextBtn:disabled { opacity: 1; color: color-mix(in srgb, var(--muted) 55%, transparent); } /* not available: only the text greys out; the fill stays */
 #prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
 /* hover and press: a second layer of the same shape, its outline drawn inside (the button doesn't grow) and the whole
    layer fading out towards Play, gone just before Play's ring. Hover: a grey outline. Press: outline and fill in Play's

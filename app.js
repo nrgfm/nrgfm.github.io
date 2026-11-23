@@ -328,7 +328,7 @@ let whyTimer = 0, whyRow = null, whyXY = [0, 0];
 document.addEventListener("mousemove", (e) => {
   whyXY = [e.clientX, e.clientY];
   const title = e.target.closest && e.target.closest(".tr-title, .t-title"); // only over the highlighted title itself
-  const row = title && title.closest(".thread.searching .track.hit, .thread.searching .head-row.hit");
+  const row = title && title.closest(".thread.searching .track.hit, .thread.searching .head-row.hit, .result-item .track.hit");
   if (row === whyRow) return;
   whyRow = row; clearTimeout(whyTimer); whyBox.hidden = true;
   if (row) whyTimer = setTimeout(() => showWhy(row), 600);
@@ -1392,7 +1392,7 @@ const range = (a, b) => Array.from({ length: Math.max(0, b - a) }, (_, k) => a +
 function resultItemNode(t, i) {
   return el("li", { class: "thread tagged-thread result-item", id: "th-" + t.id + "-" + i },
     el("div", { class: "tg-when" }, el("button", { class: "when-link", "data-thread": t.id, onclick: () => goToThread(t) }, fmtDay(t.tracks[0].shown_date || t.tracks[0].date))),
-    el("ol", { class: "tracks tg-tracks" }, trackRow(t, t.tracks[i], i, null)));
+    el("ol", { class: "tracks tg-tracks" }, trackRow(t, t.tracks[i], i, new Set([i])))); // (highlighted as found, as in the posts view)
 }
 const forcedRank = (s, tr, terms) => (dupFilter && dupFilter.q === query ? 0 : matchRank(tr, terms));
 /* a track with one of the group's own tags (the automatic ones don't count) */
@@ -4203,8 +4203,12 @@ function endSearch() {
   if (preSearch && preSearch.view === view) { // back to where you were before searching
     const spot = preSearch; preSearch = null;
     runSearch();
+    if (spot.k) { // (a post far down isn't drawn yet after the page is rebuilt: draw down to it first)
+      const tid = spot.k.slice(0, spot.k.lastIndexOf(":")), at = shown.findIndex((x) => x.t.id === tid);
+      while (at >= 0 && rendered <= at && rendered < shown.length) renderMore();
+    }
     const row = spot.k && document.querySelector(`#threads [data-k="${CSS.escape(spot.k)}"]`);
-    if (row) pageScrollBy(row.getBoundingClientRect().top - spot.top); else pageScrollTo(spot.y);
+    if (row) holdAt(row, () => spot.top); else pageScrollTo(spot.y); // (holdAt: it stays there while pictures above load)
     return;
   }
   const m = view === "threads" && location.hash.match(/^#t\/(.+)$/);
@@ -4215,7 +4219,26 @@ function endSearch() {
 $("#q").addEventListener("input", () => { if (!$("#menu").hidden) toggleMenu(false); syncClear(); clearTimeout(timer); timer = setTimeout(() => ($("#q").value.trim() ? runSearch() : endSearch()), 70); });
 $("#clearQ").onclick = () => { $("#q").value = ""; syncClear(); endSearch(); if (phone()) $("#q").blur(); else $("#q").focus(); };
 // phones: Enter, or touching anywhere outside the search field, puts the keyboard away
-$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(timer); runSearch(); $("#q").blur(); } });
+/* Shift+Enter in the search field: plays the first result shown, then the next one each time (in the order shown) */
+let qPlay = { q: null, n: -1 };
+function playNextResult() {
+  const list = [];
+  for (const s of shown) {
+    if (s.one != null) list.push([s.t, s.one]);
+    else if (s.hits && s.t.kind !== "tag") for (const i of [...s.hits].sort((a, b) => a - b)) list.push([s.t, i]);
+  }
+  if (!list.length) return;
+  if (qPlay.q !== query) qPlay = { q: query, n: -1 };
+  qPlay.n = (qPlay.n + 1) % list.length;
+  const [t, i] = list[qPlay.n];
+  play(t, i);
+}
+$("#q").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault(); clearTimeout(timer);
+  if (e.shiftKey && !phone()) { if (fold($("#q").value) !== query) runSearch(); playNextResult(); return; } // (the cursor stays in the field)
+  runSearch(); $("#q").blur();
+});
 document.addEventListener("touchstart", (e) => { if (document.activeElement === $("#q") && !e.target.closest(".search")) $("#q").blur(); }, { passive: true });
 $("#home").onclick = (e) => {
   e.preventDefault();
