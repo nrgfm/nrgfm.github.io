@@ -2373,3 +2373,4 @@
 {"action": "move", "thread": "p1364149756935078", "id": "t1365601096789944_0", "to": "xt1349090965107624_0", "ts": 1795476873}
 {"action": "move", "thread": "p1364149756935078", "id": "t1365601120123275_0", "to": "xt1349090965107624_0", "ts": 1795476884}
 {"action": "delete", "thread": "p1407717525911634", "id": "t1438598872823499_0", "ts": 1795477040, "url": "https://www.youtube.com/watch?v=xJPguqnl8sU", "title": "David Moufang - Sergio Leone's Wet Dream"}
+{"action": "tag", "ids": ["t1547011778648874_0"], "add": ["ambient"], "remove": ["duplicate"], "ts": 1795477062}
