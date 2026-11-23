@@ -1772,7 +1772,7 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 #prevBtn::before, #nextBtn::before { content: ""; position: absolute; inset: 4px; z-index: -1; border-radius: var(--radius-sm); background: transparent; transition: background-color .31s ease; pointer-events: none; }
 #prevBtn:hover:not(:disabled)::before, #nextBtn:hover:not(:disabled)::before { background: var(--surface-2); }
 #prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
-#prevBtn.flash::before, #nextBtn.flash::before { background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
+#prevBtn.flash::before, #nextBtn.flash::before, #prevBtn.flash:hover::before, #nextBtn.flash:hover::before { /* (also with the pointer still on it) */ background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
 /* Play / Pause: its hover and press fade out the same way (nothing else about it changes) */
 .ctl.play { transition: filter .31s ease, background-color .31s ease, color .31s ease; }
 /* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
