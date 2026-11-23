@@ -3206,8 +3206,10 @@ function showLocally(item) {
 async function copyText(text, btn, done) {
   try { await navigator.clipboard.writeText(text); } catch { prompt("Copy this:", text); return; }
   if (!btn) return;
-  const old = btn.textContent; btn.textContent = done;
-  setTimeout(() => (btn.textContent = old), 1500);
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent; // (pressed again while it says "Copied": still goes back to its own name)
+  btn.textContent = done; btn.classList.add("done");
+  clearTimeout(btn._copied);
+  btn._copied = setTimeout(() => { btn.textContent = btn.dataset.label; btn.classList.remove("done"); delete btn.dataset.label; }, 2500);
 }
 function copyLink(t, btn) {
   copyText(`${location.origin}${location.pathname}#t/${t.id}`, btn, "Copied");

@@ -1751,4 +1751,16 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 }
 /* Threads: − / + right before Sort */
 .menu .menu-size:not([hidden]) { margin-left: auto; }
-.menu .menu-size:not([hidden]) + .menu-sort { margin-left: 10px; }
+.menu .menu-size:not([hidden]) + .menu-sort { margin-left: 29px; } /* (− / + about half a centimetre left of Sort) */
+
+/* the player's volume, Autoplay, Copy info and Copy link: a little dimmed until the pointer is on them (as the ×);
+   the volume's outline takes in the slider while it's out; "Copied" in blue (as Autoplay on) */
+@media (min-width: 641px) {
+  #volBtn, #autoBtn, #infoBtn, #copyBtn { color: color-mix(in srgb, var(--text) 75%, var(--bg)); transition: color .15s ease, border-color .15s ease; }
+  #volBtn:hover, #autoBtn:hover:not(:disabled), #infoBtn:hover:not(:disabled), #copyBtn:hover:not(:disabled), .vol-wrap.open #volBtn { color: var(--text); }
+  #autoBtn[aria-pressed="true"], #autoBtn[aria-pressed="true"]:hover, #volBtn.muted, #infoBtn.done, #infoBtn.done:hover, #copyBtn.done, #copyBtn.done:hover { color: var(--jade); }
+  .vol-wrap { height: 26px; box-sizing: border-box; border: 1px solid transparent; border-radius: var(--radius-sm); transition: border-color .15s ease; }
+  .vol-wrap #volBtn, .vol-wrap #volBtn:hover { border-color: transparent; height: 24px; }
+  .vol-wrap:hover, .vol-wrap.open { border-color: var(--muted); }
+}
+@media (max-width: 640px) { #infoBtn.done, #copyBtn.done { color: var(--jade); } }
