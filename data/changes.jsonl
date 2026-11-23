@@ -2346,3 +2346,5 @@
 {"action": "tag", "ids": ["t7449136318436361_0"], "add": ["emo"], "remove": ["duplicate"], "ts": 1795452095}
 {"action": "tag", "ids": ["t7449136318436361_0"], "add": ["alt rock"], "remove": [], "ts": 1795452103}
 {"action": "tag", "ids": ["t7466260316723961_0"], "add": ["alt rock", "emo"], "remove": [], "ts": 1795452118}
+{"action": "tag", "ids": ["t7193007110715951_0"], "add": ["pop-punk"], "remove": [], "ts": 1795452138}
+{"action": "tag", "ids": ["t7193007110715951_0"], "add": ["2000s pop"], "remove": [], "ts": 1795452148}
