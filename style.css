@@ -1669,19 +1669,20 @@ body.lv-4 .menu .menu-sort { display: none; } /* (logged out: Threads only in it
 @media (max-width: 640px) { .btn.ghost.af-clear { font-size: 16px; } } /* (phones: the fields are 16px there) */
 body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-weight: 400; } /* Threads: the titles not bold (the main track too) */
 
-/* Threads (laptop): the post's thumbnail +20% then +10% (160×90 → 211×119), the tracks' under it +40% then +10% (48×36 → 74×55);
+/* Threads (laptop): the post's thumbnail 20% bigger (160×90 → 192×108), the tracks' under it 40% bigger (48×36 → 67×50);
    what sits under or beside them moves along. Only the pictures, not the text. */
 @media (min-width: 641px) {
-  body[data-view="threads"] .thread-head { grid-template-columns: 211px 1fr; }
-  body[data-view="threads"] .tracks { padding-left: 227px; }
-  body[data-view="threads"] .track { grid-template-columns: 74px 1fr auto; }
-  body[data-view="threads"] .track .chip { width: 74px; height: 55px; }
-  body[data-view="threads"] .t-when { top: 139px; width: 211px; }
-  body[data-view="threads"] .thread-more { top: 175px; width: 203px; }
-  body[data-view="threads"] .thread-more-search { width: 211px; }
-  body[data-view="threads"] .thread.searching { min-height: 197px; }
+  body[data-view="threads"] .thread-head { grid-template-columns: 192px 1fr; }
+  body[data-view="threads"] .tracks { padding-left: 208px; }
+  body[data-view="threads"] .track { grid-template-columns: 67px 1fr auto; }
+  body[data-view="threads"] .track .chip { width: 67px; height: 50px; }
+  body[data-view="threads"] .t-when { top: 128px; width: 192px; }
+  body[data-view="threads"] .thread-more { top: 164px; width: 184px; }
+  body[data-view="threads"] .thread-more-search { width: 192px; }
+  body[data-view="threads"] .thread.searching { min-height: 186px; }
   body[data-view="threads"] .thread.searching .search-foot > .more-pos,
-  body[data-view="threads"] .thread.searching .mid-pos { width: 211px; }
+  body[data-view="threads"] .thread.searching .mid-pos { width: 192px; }
+}
 }
 }
 }
@@ -1699,7 +1700,7 @@ body[data-view="history"] .month-line .tr-title { -webkit-font-smoothing: antial
 .browse-mark.on { color: var(--jade); }
 .browse-mark:focus-visible { outline: 2px solid var(--jade); }
 /* Threads (laptop): "Add a track here" lines up with the tracks' thumbnails (the column moved with the bigger thumbnails) */
-@media (min-width: 641px) { body[data-view="threads"] .thread-foot { padding-left: 235px; } }
+@media (min-width: 641px) { body[data-view="threads"] .thread-foot { padding-left: 216px; } }
 /* Threads: titles in the system font (as Facebook: San Francisco on a Mac), smaller and regular weight */
 body[data-view="threads"] .t-title, body[data-view="threads"] .tr-title { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 400; }
 body[data-view="threads"] .t-title { font-size: 17px; line-height: 1.3; }
@@ -1721,3 +1722,7 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 /* the side list of opened posts: a soft fade at the bottom when there is more below */
 .browse-panel .tp-p-list { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
 .browse-panel .tp-p-list.at-end { -webkit-mask-image: none; mask-image: none; }
+/* Archive (and a tag's page): the date starts where the thumbnail picture starts (the row's highlight box is 8px further out) */
+@media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 8px; } }
+/* Threads: "Add a track here" as big as Edit and Youtube */
+body[data-view="threads"] .add-here { font-size: 13px; }
