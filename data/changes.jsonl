@@ -2310,3 +2310,4 @@
 {"action": "edit", "thread": "p1795376479", "id": "t1795377239_0", "title": "Adriana - Contigo (1977)", "url": "https://www.youtube.com/watch?v=HbTf4y_iJ1Q", "tags": ["latin"], "ts": 1795385439}
 {"action": "tag", "ids": ["t25269038802686172_0"], "add": ["emotional"], "remove": [], "ts": 1795386185, "via": "password"}
 {"action": "edit", "thread": "p1668127149870669", "id": "t1733737643309619_0", "title": "Planningtorock - The Breaks (2011)", "url": "https://www.youtube.com/watch?v=R_AkYgvxzDk", "tags": [], "ts": 1795429640}
+{"action": "tag", "ids": ["t1733737643309619_0"], "add": ["indie"], "remove": [], "ts": 1795429690}
