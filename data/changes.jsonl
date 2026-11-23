@@ -2334,3 +2334,4 @@
 {"action": "tag", "ids": ["t1774298899253493_0"], "add": ["gothic"], "remove": [], "ts": 1795442902}
 {"action": "tag", "ids": ["t1774298899253493_0"], "add": ["occult"], "remove": ["gothic"], "ts": 1795442915}
 {"action": "tag", "ids": ["t29810403628549644_0"], "add": ["zoinked"], "remove": [], "ts": 1795445747}
+{"action": "tag", "ids": ["t6920416457975019_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795451939, "auto": "player"}
