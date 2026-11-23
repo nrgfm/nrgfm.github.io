@@ -395,9 +395,13 @@ function drawMenuSize() {
   let box = $("#menuSize");
   const step = (d) => {
     const v = view === "tagged" ? "tagged" : "threads";
+    // keep the same tracks in view: the first row showing below the header stays where it is
+    const top = headerBottom(), rows = [...document.querySelectorAll("#threads .thread-head, #threads .track")];
+    const anchor = rows.find((r) => r.getBoundingClientRect().bottom > top + 4), was = anchor ? anchor.getBoundingClientRect().top : 0;
     keepMenuUntil = Date.now() + 600; sizes[v] = Math.max(0, Math.min(2, sizes[v] + d));
     try { localStorage.setItem(SIZE_KEYS[v], String(sizes[v])); } catch {}
     applyThSize(); drawMenuSize();
+    if (anchor && anchor.isConnected) pageScrollBy(anchor.getBoundingClientRect().top - was);
   };
   if (!box) {
     box = el("span", { id: "menuSize", class: "menu-size" },

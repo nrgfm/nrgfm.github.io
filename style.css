@@ -1769,14 +1769,22 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
    (its size never changes). Under the pointer: the hover grey; used (button or Cmd+Left/Right): Play's blue, 10% darker
    and a little see-through, the text dark and bold for a moment */
 #prevBtn, #nextBtn { position: relative; isolation: isolate; background: none !important; box-shadow: none !important; transition: color .31s ease, text-shadow .31s ease; }
-#prevBtn::before, #nextBtn::before { content: ""; position: absolute; inset: 4px; z-index: -1; border-radius: var(--radius-sm); pointer-events: none;
-  background: color-mix(in srgb, var(--surface-2) 45%, transparent); box-shadow: 0 0 0 1px transparent; /* a faint fill always (as the ×) */
-  transition: background-color .31s ease, box-shadow .31s ease; }
+/* Prev | Play | Next as one rocker: Prev's and Next's fill is as tall as Play and runs right up to Play's outer ring,
+   darkening towards it, so Play sits in a dip between them (as the buttons on an mp3 player) */
+#prevBtn::before, #nextBtn::before { content: ""; position: absolute; top: 0; bottom: 0; z-index: -1; pointer-events: none;
+  --f: color-mix(in srgb, var(--surface-2) 55%, transparent); --d: color-mix(in srgb, var(--surface-2) 55%, #000 35%);
+  box-shadow: 0 0 0 1px transparent; transition: background-color .31s ease, box-shadow .31s ease, opacity .31s ease; }
+#prevBtn::before { left: 0; right: -4px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: linear-gradient(to right, var(--f) 0 45%, var(--d)); }
+#nextBtn::before { left: -4px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: linear-gradient(to left, var(--f) 0 45%, var(--d)); }
 #prevBtn:hover:not(:disabled)::before, #nextBtn:hover:not(:disabled)::before { box-shadow: 0 0 0 1px var(--muted); } /* hover: an outline round the fill (as the ×) */
-#prevBtn:disabled::before, #nextBtn:disabled::before { background: transparent; }
+#prevBtn:disabled::before, #nextBtn:disabled::before { opacity: .35; }
 #prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
-#prevBtn.flash::before, #nextBtn.flash::before, #prevBtn.flash:hover::before, #nextBtn.flash:hover::before { /* (also with the pointer still on it; the outline takes the fill's colour and fades with it) */
-  background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
+/* the press: a second layer of the same shape in Play's blue (10% darker, darkening towards Play), shown at once, fading out */
+#prevBtn::after, #nextBtn::after { content: ""; position: absolute; top: 0; bottom: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .31s ease;
+  --j: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); box-shadow: 0 0 0 1px var(--j); }
+#prevBtn::after { left: 0; right: -4px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: linear-gradient(to right, var(--j) 0 45%, color-mix(in srgb, var(--jade) 62%, #000)); }
+#nextBtn::after { left: -4px; right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: linear-gradient(to left, var(--j) 0 45%, color-mix(in srgb, var(--jade) 62%, #000)); }
+#prevBtn.flash::after, #nextBtn.flash::after { opacity: 1; transition: none; }
 /* Play / Pause: its hover and press fade out the same way (nothing else about it changes) */
 .ctl.play { transition: filter .31s ease, background-color .31s ease, color .31s ease; }
 /* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
