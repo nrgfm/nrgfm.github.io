@@ -380,13 +380,25 @@ let threadsByAdd = (() => { try { return localStorage.getItem("nrgfm-threads-ord
 const byAddOn = () => threadsByAdd && level() <= 3; // (logged out: always by date)
 const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 0));
 /* Threads (laptop): − / + in the menu between Random and Sort: the thumbnails' size in 3 steps (2 the biggest, 0 the original) */
-const TH_KEY = "nrgfm-th-size2"; // (2: the middle step is the default)
-let thSize = (() => { try { const v = localStorage.getItem(TH_KEY); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } })();
-function applyThSize() { for (const k of [0, 1, 2]) document.body.classList.toggle("th-s" + k, thSize === k); }
+const SIZE_KEYS = { threads: "nrgfm-th-size2", tagged: "nrgfm-ar-size" }; // (Threads and Archive each keep their own; the middle step is the default)
+const readSize = (k) => { try { const v = localStorage.getItem(k); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } };
+const sizes = { threads: readSize(SIZE_KEYS.threads), tagged: readSize(SIZE_KEYS.tagged) };
+function applyThSize() {
+  let lv4 = false; try { lv4 = level() > 3; } catch {} // (without a password: always the middle size; at the very start the level isn't known yet)
+  for (const k of [0, 1, 2]) {
+    document.body.classList.toggle("th-s" + k, (lv4 ? 1 : sizes.threads) === k);
+    document.body.classList.toggle("ar-s" + k, (lv4 ? 1 : sizes.tagged) === k);
+  }
+}
 applyThSize();
 function drawMenuSize() {
   let box = $("#menuSize");
-  const step = (d) => { keepMenuUntil = Date.now() + 600; thSize = Math.max(0, Math.min(2, thSize + d)); try { localStorage.setItem(TH_KEY, String(thSize)); } catch {} applyThSize(); drawMenuSize(); };
+  const step = (d) => {
+    const v = view === "tagged" ? "tagged" : "threads";
+    keepMenuUntil = Date.now() + 600; sizes[v] = Math.max(0, Math.min(2, sizes[v] + d));
+    try { localStorage.setItem(SIZE_KEYS[v], String(sizes[v])); } catch {}
+    applyThSize(); drawMenuSize();
+  };
   if (!box) {
     box = el("span", { id: "menuSize", class: "menu-size" },
       el("button", { type: "button", class: "when-link", "aria-label": "Smaller thumbnails", onclick: () => step(-1) }, "−"),
@@ -394,8 +406,9 @@ function drawMenuSize() {
   }
   const sort = $("#threadsSort"); // right before Sort
   if (sort && box.nextElementSibling !== sort) sort.before(box); else if (!sort && !box.isConnected) $('#menu [data-view="ublock"]').before(box);
-  box.hidden = view !== "threads" || phone();
-  box.children[0].disabled = thSize <= 0; box.children[1].disabled = thSize >= 2;
+  box.hidden = (view !== "threads" && view !== "tagged") || phone() || level() > 3;
+  const cur = sizes[view === "tagged" ? "tagged" : "threads"];
+  box.children[0].disabled = cur <= 0; box.children[1].disabled = cur >= 2;
 }
 function drawThreadsSort() { // (the same button on Archive: Date posted or Shuffle)
   let b = $("#threadsSort");
@@ -882,6 +895,7 @@ function setView(v, keepHash) {
   const from = view;
   view = VIEW_NAMES[v] ? v : "threads";
   if (!viewAllowed(view)) view = "threads"; // (a page this level can't open)
+  document.body.dataset.view = view; // now, before the page is drawn (set a moment later, the new page showed for one frame with the old page's sizes)
   setTimeout(updateTitle, 0);
   if (view === "tags" && from !== "tags") { // Index: a fresh start, unless coming back from a tag's page opened from it
     const back = from === "tag" && tp.returnTo;
@@ -1483,7 +1497,7 @@ function threadNode({ t, hits, one }) {
 /* "Thread": leave the search and show this thread where it sits in the feed */
 function goToThread(t, gap = 22) { // a little under the header: the dividing line of the thread before shows
   $("#q").value = ""; syncClear(); $("#q").blur(); // (phone: the keyboard goes away first, so the page doesn't shift afterwards)
-  if (view !== "threads") { view = "threads"; history.replaceState(null, "", location.pathname); document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === "threads"))); }
+  if (view !== "threads") { view = "threads"; document.body.dataset.view = view; history.replaceState(null, "", location.pathname); document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === "threads"))); }
   expanded.delete(t.id);
   runSearch();
   const at = shown.findIndex((x) => x.t === t);
@@ -2077,6 +2091,7 @@ function updateCanAdd() {
   const s = !getToken() && session();
   if (s) levelTimer = setTimeout(applyLevel, Math.min(2 ** 31 - 1, s.exp * 1000 - Date.now() + 500)); // the 12 hours run out: back to level 4 by itself
   if (typeof drawLock === "function") drawLock();
+  applyThSize(); if (typeof drawMenuSize === "function" && $("#menuSize")) drawMenuSize();
   return lv;
 }
 /* after logging in or out: what's on screen follows the new level, without reloading (what plays keeps playing) */

@@ -1558,7 +1558,8 @@ body.lv-4 #menu a[data-view="tagged"], body.lv-4 #menu a[data-view="tags"], body
 .act-login-row .act-login { padding: 4px 0; }
 /* close the player: a small square, the × grey as the lock until the pointer is on it; pressed: the square fills
    light blue and the × takes the page's dark blue */
-.btn.ghost.close-x { width: 26px; height: 26px; color: var(--muted); }
+.btn.ghost.close-x { width: 26px; height: 26px; color: var(--muted); transition: color .15s ease, border-color .15s ease; }
+@media (min-width: 641px) { .btn.ghost.close-x:not(:hover):not(:active) { border-color: transparent; } } /* (no outline until the pointer is on it, as the buttons beside it) */
 .btn.ghost.close-x:hover { color: var(--text); border-color: var(--muted); }
 .btn.ghost.close-x svg { width: 11px; height: 11px; }
 .btn.ghost.close-x:active { background: var(--jade); border-color: var(--jade); color: var(--bg); }
@@ -1765,9 +1766,9 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 }
 @media (max-width: 640px) { #infoBtn.done, #copyBtn.done { color: var(--jade); } }
 /* Prev / Next: a short flash when used (button or Cmd+Left/Right): the hover box filled with the Play colour (a little see-through), the text bold; fades out */
-#prevBtn, #nextBtn { transition: background-color .36s ease, color .36s ease, text-shadow .36s ease; }
+#prevBtn, #nextBtn { transition: background-color .31s ease, color .31s ease, text-shadow .31s ease; }
 #prevBtn.flash, #nextBtn.flash { transition: none; }
-.ctl.flash { opacity: 1 !important; background: color-mix(in srgb, var(--jade) 88%, transparent) !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
+.ctl.flash { opacity: 1 !important; background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent) !important; box-shadow: inset 0 0 0 4px var(--surface); color: var(--jade-ink) !important; /* (only Play's inner fill: its 2 rings stay clear; 10% darker) */ text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
 /* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
 .vol-wrap.lit #volBtn { color: var(--text) !important; } /* (as under the pointer) */
 @media (min-width: 641px) { .vol-wrap.lit { border-color: var(--muted); } }
@@ -1780,3 +1781,12 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 /* search (computer): a result expanded with "15 tracks" shows its frame and light background, which then fade out */
 @keyframes frame-fade { 0%, 25% { opacity: 1; } 100% { opacity: 0; } }
 .thread.searching.active.frame-fade::before, .thread.searching.active.frame-fade::after { animation: frame-fade 1.5s ease forwards; }
+
+/* Archive (computer): thumbnail size from − / + in the menu: ar-s1 the middle (134×76, the default; also a tag's page),
+   ar-s0 the original 112×63, ar-s2 161×91 */
+@media (min-width: 641px) {
+  body[data-view="tagged"].ar-s0 .tagged-thread .track { grid-template-columns: 112px 1fr auto; }
+  body[data-view="tagged"].ar-s0 .tagged-thread .track .chip { width: 112px; height: 63px; }
+  body[data-view="tagged"].ar-s2 .tagged-thread .track { grid-template-columns: 161px 1fr auto; }
+  body[data-view="tagged"].ar-s2 .tagged-thread .track .chip { width: 161px; height: 91px; }
+}
