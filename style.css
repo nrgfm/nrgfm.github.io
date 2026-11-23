@@ -1765,10 +1765,16 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   .vol-wrap:hover, .vol-wrap.open { border-color: var(--muted); }
 }
 @media (max-width: 640px) { #infoBtn.done, #copyBtn.done { color: var(--jade); } }
-/* Prev / Next: a short flash when used (button or Cmd+Left/Right): the hover box filled with the Play colour (a little see-through), the text bold; fades out */
-#prevBtn, #nextBtn { transition: background-color .31s ease, color .31s ease, text-shadow .31s ease; }
-#prevBtn.flash, #nextBtn.flash { transition: none; }
-.ctl.flash { opacity: 1 !important; background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent) !important; box-shadow: inset 0 0 0 4px var(--surface); color: var(--jade-ink) !important; /* (only Play's inner fill: its 2 rings stay clear; 10% darker) */ text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
+/* Prev / Next: the fill is its own layer, inside the room Play's rings take, with Play's rounded corners; it only fades
+   (its size never changes). Under the pointer: the hover grey; used (button or Cmd+Left/Right): Play's blue, 10% darker
+   and a little see-through, the text dark and bold for a moment */
+#prevBtn, #nextBtn { position: relative; isolation: isolate; background: none !important; box-shadow: none !important; transition: color .31s ease, text-shadow .31s ease; }
+#prevBtn::before, #nextBtn::before { content: ""; position: absolute; inset: 4px; z-index: -1; border-radius: var(--radius-sm); background: transparent; transition: background-color .31s ease; pointer-events: none; }
+#prevBtn:hover:not(:disabled)::before, #nextBtn:hover:not(:disabled)::before { background: var(--surface-2); }
+#prevBtn.flash, #nextBtn.flash { opacity: 1 !important; color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; } /* (bold without changing the width) */
+#prevBtn.flash::before, #nextBtn.flash::before { background: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); transition: none; }
+/* Play / Pause: its hover and press fade out the same way (nothing else about it changes) */
+.ctl.play { transition: filter .31s ease, background-color .31s ease, color .31s ease; }
 /* volume changed with Cmd+Up/Down: the speaker and number light up for a moment */
 .vol-wrap.lit #volBtn { color: var(--text) !important; } /* (as under the pointer) */
 @media (min-width: 641px) { .vol-wrap.lit { border-color: var(--muted); } }
@@ -1796,4 +1802,3 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   body.q-on[data-view] .tagged-thread .track .chip { width: 160px; height: 90px; }
 }
 /* Prev / Next under the pointer: the same inner box as the flash (Play's rings' room left clear) */
-#prevBtn:hover:not(:disabled), #nextBtn:hover:not(:disabled) { box-shadow: inset 0 0 0 4px var(--surface); }
