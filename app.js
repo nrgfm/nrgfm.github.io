@@ -760,7 +760,6 @@ function drawBrowse() {
   const before = new Map(); // where each row was (to slide them from there)
   if (old && !browsePanel.hidden) for (const r of old.children) before.set(r.dataset.id, r.getBoundingClientRect().top);
   const list = el("div", { class: "tp-p-list" }, marks.map(row), rest.map(row));
-  list.addEventListener("scroll", () => fadeEnd(list), { passive: true });
   browsePanel.replaceChildren(list);
   list.scrollTop = y;
   browsePanel.hidden = false;
@@ -773,13 +772,15 @@ function drawBrowse() {
     else if (Math.abs(was - now) > 1) r.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 260, easing: "ease-out" }); // the others are pushed down
   }
 }
-function fadeEnd(list) {
-  list.classList.toggle("at-end", list.scrollTop + list.clientHeight >= list.scrollHeight - 2);
-  // the fade ends exactly where the first row that doesn't fit (scrolled to the top) begins: that row can't be seen at all
-  const box = list.getBoundingClientRect(), pad = parseFloat(getComputedStyle(list).paddingTop) || 0;
-  const at = (r) => r.getBoundingClientRect().top - box.top + list.scrollTop; // a row's place in the list, scrolled to the top
-  const cut = [...list.children].find((r) => at(r) + r.offsetHeight > list.clientHeight + 0.5);
-  if (cut) list.style.setProperty("--fe", Math.max(30, at(cut) - pad / 2) + "px");
+function fadeEnd(list) { // (the side list: the gap between rows so that exactly 11 fit when it's scrolled to the top, no row cut off)
+  const rows = [...list.children];
+  if (!rows.length) return;
+  const panel = list.parentElement, max = parseFloat(panel.style.maxHeight) || panel.offsetHeight;
+  const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height;
+  const room = max - (panel.offsetHeight - list.clientHeight) - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0); // (the most the list can be)
+  const n = Math.max(2, Math.min(11, Math.floor((room + 2) / (h + 2)))); // (11, or as many whole rows as a short window has room for)
+  const gap = Math.max(2, (room - n * h) / (n - 1));
+  list.style.setProperty("--bg-gap", gap.toFixed(2) + "px");
 }
 addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
