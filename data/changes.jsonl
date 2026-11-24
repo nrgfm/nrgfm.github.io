@@ -2477,3 +2477,4 @@
 {"action": "delete", "thread": "p3401768076506559", "id": "t3527462010603831_0", "ts": 1795547145, "url": "https://www.youtube.com/watch?v=03hQvwAsXus", "title": "Global Electronic Network - Time Square Part I [Mille Plateau - 1994]"}
 {"action": "tag", "ids": ["t3401768076506559_0"], "add": ["ethereal", "ambient"], "remove": [], "ts": 1795547206}
 {"action": "delete", "thread": "p3805488119467884", "id": "t4052372051446155_0", "ts": 1795547230, "url": "https://www.youtube.com/watch?v=k3UR59EJmnI", "title": "As One - Amalia (1992)"}
+{"action": "tag", "ids": ["t4055225674494126_0"], "add": ["steamy", "ambient"], "remove": [], "ts": 1795547267}
