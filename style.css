@@ -1854,17 +1854,9 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 
 
 /* square thumbnails for the tracks under a post (the post's own stays 16:9): Threads' smallest step and search results
-   48×48 (cut to fill, the sides trimmed) */
+   48×48 (cut to fill, the sides trimmed). Archive and tag pages keep their 16:9 ones. */
 @media (min-width: 641px) {
   body[data-view="threads"] .track .chip { height: 48px; object-fit: cover; }
   body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track .chip { height: var(--ch); }
-  /* Archive: square, 132×132 in the middle step (110 the smallest, 158 the biggest); a tag's page too (the middle) */
-  .tagged-thread .track { grid-template-columns: 132px 1fr auto; }
-  .tagged-thread .track .chip { width: 132px; height: 132px; object-fit: cover; }
-  body[data-view="tagged"].ar-s0 .tagged-thread .track { grid-template-columns: 110px 1fr auto; }
-  body[data-view="tagged"].ar-s0 .tagged-thread .track .chip { width: 110px; height: 110px; }
-  body[data-view="tagged"].ar-s2 .tagged-thread .track { grid-template-columns: 158px 1fr auto; }
-  body[data-view="tagged"].ar-s2 .tagged-thread .track .chip { width: 158px; height: 158px; }
-  body.q-on[data-view] .tagged-thread .track { grid-template-columns: 160px 1fr auto; }
-  body.q-on[data-view] .tagged-thread .track .chip { width: 160px; height: 90px; }
 }
+.track.row-plays { cursor: pointer; }

@@ -1075,7 +1075,9 @@ const RECOVERED = "title recovered from Internet Archive";
 function trackRow(t, tr, i, hits) {
   const x = info(tr);
   const chip = img(x.thumb, "chip"); chip.addEventListener("click", () => play(t, i)); chip.style.cursor = "pointer"; // (the thumbnail plays it too)
-  return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}` },
+  const wholeRow = view === "threads" && !phone(); // Threads (computer): anywhere on the row plays it, as on the post's own row (not its buttons, links or tags)
+  return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit", wholeRow && "row-plays"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}`,
+    onclick: wholeRow ? (e) => { if (e.target.closest("button, a, input, .tag, .chip, .edit-wrap, form")) return; play(t, i); } : null },
     chip,
     el("button", { class: "play", onclick: () => play(t, i), "aria-label": `Play ${x.title}` },
       el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && !query && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
@@ -1668,6 +1670,12 @@ function requestSeek(t) {
   t = Math.max(0, t);
   pendingSeek = { t, frac: !durKnown && max > 1 ? t / max : null, sent: 0, tries: 0 };
   showSeek(t, max);
+  if (!startedOnce && adapter.restartAt && max > 1) { // not started yet: YouTube ignores (or later undoes) a jump; loading it again from there is certain
+    const at = Math.min(t, Math.max(0, max - 1));
+    pendingSeek.t = at; pendingSeek.frac = null; pendingSeek.sent = Date.now(); pendingSeek.tries = 1;
+    try { adapter.restartAt(at); } catch {}
+    return;
+  }
   trySeek(lastTime, durKnown ? max : 0);
 }
 function trySeek(cur, dur) {
@@ -1779,6 +1787,7 @@ function makeYouTube(tr) {
     controllable: true,
     play: () => yt.player && yt.player.playVideo(), pause: () => yt.player && yt.player.pauseVideo(),
     seek: (s) => yt.player && yt.player.seekTo(s, true),
+    restartAt: (s) => { if (yt.ready) yt.player.loadVideoById({ videoId: tr.yt, startSeconds: s }); else { yt.pendingStart = s; yt.reloadAt = true; } }, // (before it has started: load it again from there)
     setVolume: (v) => { if (yt.ready) { if (IOS) { yt.player.unMute(); return; } yt.player.setVolume(v); v > 0 ? yt.player.unMute() : yt.player.mute(); } }, // iPhone: only its own buttons set the volume
     destroy: () => { yt.active = false; try { yt.ready && yt.player.pauseVideo(); } catch {} ytSlot().hidden = true; },
   };
@@ -1803,7 +1812,8 @@ function makeYouTube(tr) {
           yt.ready = true;
           try { if (IOS) yt.player.unMute(); else { yt.player.setVolume(volume); if (!volume) yt.player.mute(); } } catch {}
           const vid = yt.player.getVideoData && yt.player.getVideoData().video_id;
-          if (yt.pending && vid !== yt.pending) yt.player.loadVideoById({ videoId: yt.pending, startSeconds: yt.pendingStart || 0 });
+          if (yt.pending && (vid !== yt.pending || yt.reloadAt)) yt.player.loadVideoById({ videoId: yt.pending, startSeconds: yt.pendingStart || 0 });
+          yt.reloadAt = false;
           yt.timer = setInterval(() => { if (yt.active && yt.player.getCurrentTime) events.time(yt.player.getCurrentTime(), yt.player.getDuration()); }, 250);
           yt.waiters.splice(0).forEach((f) => f());
         },
@@ -1926,6 +1936,7 @@ function play(t, i) {
   if (section && adapter && adapter.controllable) { // the slider and the ±5 work inside the section
     const sc = section, raw = adapter.seek; sc.rawSeek = raw;
     adapter.seek = (x) => { sc.done = false; raw(Math.max(0, x) + sc.s); };
+    if (adapter.restartAt) { const rs = adapter.restartAt; adapter.restartAt = (x) => { sc.done = false; sc.started = true; rs(Math.max(0, x) + sc.s); }; }
   } else section = null;
   $("#media").dataset.kind = kind;
   const controllable = !!(adapter && adapter.controllable);
