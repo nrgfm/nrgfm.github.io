@@ -2471,3 +2471,4 @@
 {"action": "tag", "ids": ["t3653783097971721_0"], "add": ["soul"], "remove": [], "ts": 1795546726}
 {"action": "edit", "thread": "p3396771213672912", "id": "t3662341933782504_0", "title": "Bent - I Can't Believe It's Over (version 2) (2005)", "url": "https://www.youtube.com/watch?v=BGYQYiqjeOM", "tags": ["emotional", "house"], "ts": 1795546820}
 {"action": "promote", "thread": "p3396771213672912", "id": "t3662341933782504_0", "to": "original", "ts": 1795546853}
+{"action": "tag", "ids": ["t3805893436094019_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795546903, "auto": "player"}
