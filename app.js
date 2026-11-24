@@ -4555,11 +4555,12 @@ function openQuick(row, at, touch) {
   input.focus();
 }
 /* a click outside an open field with unsaved changes: it stays (Esc or Enter decides) */
-/* Cmd+click (Ctrl+click) on a track */
+/* Cmd+click (Ctrl+click) on a track (anywhere on its row) */
 document.addEventListener("click", (e) => {
   if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || !canEdit() || phone()) return;
-  const hit = e.target.closest && e.target.closest("#threads .track .play, #threads .head-row .thread-head, #threads .month-play");
-  if (!hit) return;
+  // anywhere on a track's row: its title, thumbnail or the box around it (not its own buttons, links or tags)
+  const hit = e.target.closest && e.target.closest("#threads .track, #threads .head-row, #threads .month-play");
+  if (!hit || (e.target.closest("a, button, input, textarea, .tag, form, .edit-wrap") && !e.target.closest(".play, .thread-head"))) return;
   const row = hit.closest("[data-k]"), at = row && trackAt(row.dataset.k);
   if (!at) return;
   e.preventDefault(); e.stopPropagation();
