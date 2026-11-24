@@ -1707,10 +1707,9 @@ body[data-view="threads"] .t-title, body[data-view="threads"] .tr-title { font-w
 body[data-view="threads"] .t-title { font-size: 17px; line-height: 1.3; }
 body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
 /* the side list of opened posts: the track names in Facebook's light grey-white */
-.browse-row .side-name { color: #E3E5E9; } /* (measured on Facebook: 227, 229, 233) */
 /* thinner and a little smaller (drawn thin on a Mac) */
 .browse-text { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-.browse-text .side-name { font-size: 13.5px; font-weight: 400; }
+.browse-text .side-name { font-size: 13.5px; }
 .browse-text .browse-date { font-size: 12px; font-weight: 400; }
 .browse-row.here .side-name { color: var(--jade); }
 
@@ -1838,14 +1837,10 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 /* (Prev's and Next's fills run on under Play; Play sits on top of them) */
 .ctl.play { z-index: 1; }
 
-/* (temporary) 10 versions of the side list's text to compare, chosen with ?sv=N in the address
-   (sv-1 is today's: thin Mac rendering, Facebook's white, 13.5px) */
-body.sv-2 .browse-row:not(.here) .side-name { color: var(--text); }
-body.sv-3 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; }
-body.sv-4 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-4 .browse-row:not(.here) .side-name { color: var(--text); }
-body.sv-5 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-5 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 85%, var(--bg)); }
-body.sv-6 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-6 .browse-row:not(.here) .side-name { color: var(--text); font-size: 14px; }
-body.sv-7 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 82%, var(--bg)); }
-body.sv-8 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 90%, var(--bg)); font-weight: 500; }
-body.sv-9 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-9 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 75%, var(--bg)); font-size: 14px; }
-body.sv-10 .t-title, body.sv-10 .tr-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; } /* the other way round: the page's titles as crisp as the side list */
+/* titles everywhere drawn in the Mac's thin, crisp mode (not the player bar's) */
+.t-title, .tr-title, .side-name, .mh-title, .lk-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/* titles in the side panels (Threads' side list, History's, the Tags panels): thin mode, a touch bolder, a little
+   dimmer than the page's titles; the side list's dates dimmed to match */
+.tag-panel .side-name { font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
+.tag-panel .side-row.here .side-name { color: var(--jade); }
+.browse-text .browse-date { color: color-mix(in srgb, var(--muted) 90%, var(--bg)); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
