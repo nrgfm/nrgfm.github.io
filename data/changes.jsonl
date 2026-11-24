@@ -2526,3 +2526,5 @@
 {"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Herbert – Rose", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": [], "ts": 1795548854}
 {"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Herbert – Rose [Wishmountain Is Dead] (2015)", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": ["idm", "leftfield"], "ts": 1795548931}
 {"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Wishmountain - Rose [Wishmountainisdead] 1998", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": ["leftfield", "experimental"], "ts": 1795548987}
+{"action": "tag", "ids": ["t3498759523474080_0"], "add": ["synth theme", "emotional"], "remove": [], "ts": 1795549109}
+{"action": "tag", "ids": ["t3498759523474080_0"], "add": ["new age"], "remove": [], "ts": 1795549113}
