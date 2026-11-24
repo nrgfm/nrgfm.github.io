@@ -1851,3 +1851,25 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .side .side-name { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
 .side .side-row.playing .side-name { color: var(--jade); }
 .side .side-title { color: var(--jade); }
+
+/* (temporary) 10 ways of square thumbnails on Threads, chosen with ?tq=N (main w×h, tracks w×h) */
+@media (min-width: 641px) {
+  body[data-view="threads"]:not(.q-on).tq-1 { --mw: 99px; --mh: 99px; --cw: 43px; --ch: 43px; --when: 120.5px; }
+  body[data-view="threads"]:not(.q-on).tq-2 { --mw: 176px; --mh: 176px; --cw: 58px; --ch: 58px; --when: 197.5px; }
+  body[data-view="threads"]:not(.q-on).tq-3 { --mw: 132px; --mh: 132px; --cw: 50px; --ch: 50px; --when: 153.5px; }
+  body[data-view="threads"]:not(.q-on).tq-4 { --mw: 120px; --mh: 120px; --cw: 58px; --ch: 58px; --when: 141.5px; }
+  body[data-view="threads"]:not(.q-on).tq-5 { --mw: 150px; --mh: 150px; --cw: 64px; --ch: 64px; --when: 171.5px; }
+  body[data-view="threads"]:not(.q-on).tq-6 { --mw: 110px; --mh: 110px; --cw: 50px; --ch: 50px; --when: 131.5px; }
+  body[data-view="threads"]:not(.q-on).tq-7 { --mw: 176px; --mh: 99px; --cw: 43px; --ch: 43px; --when: 120.5px; }
+  body[data-view="threads"]:not(.q-on).tq-8 { --mw: 176px; --mh: 99px; --cw: 58px; --ch: 58px; --when: 120.5px; }
+  body[data-view="threads"]:not(.q-on).tq-9 { --mw: 99px; --mh: 99px; --cw: 58px; --ch: 43px; --when: 120.5px; }
+  body[data-view="threads"]:not(.q-on).tq-10 { --mw: 176px; --mh: 176px; --cw: 58px; --ch: 43px; --when: 197.5px; }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-head { grid-template-columns: var(--mw) 1fr; }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-head .thumb { aspect-ratio: auto; height: var(--mh); }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .tracks { padding-left: calc(var(--mw) + 16px); }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .track { grid-template-columns: var(--cw) 1fr auto; }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .track .chip { width: var(--cw); height: var(--ch); object-fit: cover; }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .t-when { top: var(--when); width: var(--mw); }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-more { top: calc(var(--mh) + 56px); width: calc(var(--mw) - 8px); }
+  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-foot { padding-left: calc(var(--mw) + 24px); }
+}
