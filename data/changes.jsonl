@@ -2487,3 +2487,5 @@
 {"action": "tag", "ids": ["t2206268436056535_0"], "add": ["minimalism"], "remove": [], "ts": 1795547533}
 {"action": "tag", "ids": ["t2206268436056535_0"], "add": [], "remove": ["duplicate"], "ts": 1795547538}
 {"action": "tag", "ids": ["t2206254616057917_0"], "add": ["ambient"], "remove": [], "ts": 1795547562}
+{"action": "tag", "ids": ["t2206254616057917_0"], "add": ["synth theme"], "remove": ["ambient"], "ts": 1795547574}
+{"action": "tag", "ids": ["t2212316415451737_0"], "add": ["new age"], "remove": [], "ts": 1795547596}
