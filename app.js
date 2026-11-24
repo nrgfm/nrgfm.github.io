@@ -3100,13 +3100,15 @@ function movePanel(formOf, edit) {
     list.replaceChildren();
     if (!terms.length) { hide(); return; }
     list.hidden = false;
-    const found = [];
+    const found = [], all = new Set(); // (matched as the main search does, with every part of a track searched; best match first)
     for (const t of threads) {
       if (t === edit.t || t.kind === "tag") continue;
       const byName = t.name && terms.every((w) => fold(t.name).includes(w));
-      const k = byName ? 0 : t.tracks.findIndex((tr) => { const h = haystack(tr); return terms.every((w) => h.includes(w)); });
-      if (k > -1) found.push({ t, k });
+      let k = byName ? 0 : -1, rank = byName ? 0 : 99;
+      if (!byName) t.tracks.forEach((tr, i) => { if (matches(tr, terms, all)) { const r = matchRank(tr, terms); if (r < rank) { rank = r; k = i; } } });
+      if (k > -1) found.push({ t, k, rank });
     }
+    found.sort((a, b) => Math.floor(a.rank) - Math.floor(b.rank) || (b.k === 0) - (a.k === 0) || a.rank - b.rank || activity(b.t) - activity(a.t));
     if (!found.length) { list.appendChild(el("li", { class: "move-none hint" }, "No other thread has a track like that.")); place(); return; }
     for (const { t, k } of found) {
       const x = info(t.tracks[k]);

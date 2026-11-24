@@ -46,7 +46,7 @@ button, input { font: inherit; color: inherit; }
   background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm);
 }
 .move-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.move-pop { position: fixed; z-index: 40; padding: 4px; max-height: 158px; overflow-y: auto; overscroll-behavior: contain;
+.move-pop { position: fixed; z-index: 40; padding: 4px; max-height: 296px; /* (5 results: 5 × 56 + gaps + padding) */ overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 8px 24px #0008; }
 .move-pop[hidden] { display: none; }
 .move-pop .move-none { padding: 6px 8px; }
@@ -1720,7 +1720,7 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
   .tagged-thread .tr-title { font-size: 15.5px; font-weight: 400; line-height: 1.33; } /* (halfway between 16 and 15) */
 }
 /* the side list of opened posts: a soft fade at the bottom when there is more below */
-.browse-panel .tp-p-list { -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--fe, 100%) - 22px), transparent var(--fe, 100%)); mask-image: linear-gradient(to bottom, #000 calc(var(--fe, 100%) - 22px), transparent var(--fe, 100%)); }
+.browse-panel .tp-p-list { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent); } /* (a short fade: the next one shows a little) */
 .browse-panel .tp-p-list.at-end { -webkit-mask-image: none; mask-image: none; }
 /* Archive (and a tag's page): the date starts where the thumbnail picture starts (the row's highlight box is 8px further out) */
 @media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 4px; } } /* (halfway to the picture) */
@@ -1846,3 +1846,9 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .browse-text .browse-date { color: color-mix(in srgb, var(--muted) 90%, var(--bg)); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 /* the player's title: semi-bold, drawn in the thin mode, a little dimmer than the text */
 #nowTitle { font-weight: 600; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
+
+/* the side space while editing tags (a tag's tracks): titles as in the other side panels; the tag's name in the
+   colour of a tag's name on its own page */
+.side .side-name { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
+.side .side-row.playing .side-name { color: var(--jade); }
+.side .side-title { color: var(--jade); }
