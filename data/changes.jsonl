@@ -2463,3 +2463,6 @@
 {"action": "tag", "ids": ["t1522387081111344_0"], "add": ["fusion"], "remove": [], "ts": 1795546011}
 {"action": "tag", "ids": ["t1522387081111344_0"], "add": ["jazz-fusion"], "remove": ["fusion"], "ts": 1795546019}
 {"action": "tag", "ids": ["t1614873611862690_0"], "add": ["jazz"], "remove": [], "ts": 1795546196}
+{"action": "tag", "ids": ["t1614873611862690_0"], "add": ["minimalism"], "remove": [], "ts": 1795546213}
+{"action": "tag", "ids": ["t1614873611862690_0"], "add": ["piano"], "remove": [], "ts": 1795546220}
+{"action": "tag", "ids": ["t1614873611862690_0"], "add": ["relaxing"], "remove": ["minimalism"], "ts": 1795546231}
