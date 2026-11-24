@@ -2375,3 +2375,4 @@
 {"action": "delete", "thread": "p1407717525911634", "id": "t1438598872823499_0", "ts": 1795477040, "url": "https://www.youtube.com/watch?v=xJPguqnl8sU", "title": "David Moufang - Sergio Leone's Wet Dream"}
 {"action": "tag", "ids": ["t1547011778648874_0"], "add": ["ambient"], "remove": ["duplicate"], "ts": 1795477062}
 {"action": "tag", "ids": ["t1827777780572271_0"], "add": ["gothic"], "remove": [], "ts": 1795525468}
+{"action": "tag", "ids": ["t1821615024521880_0"], "add": ["jungle"], "remove": [], "ts": 1795525524}
