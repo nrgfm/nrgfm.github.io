@@ -2524,3 +2524,4 @@
 {"action": "tag", "ids": ["t3458951387454894_0"], "add": ["indie", "ballad"], "remove": [], "ts": 1795548806}
 {"action": "tag", "ids": ["t3474045925945440_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795548826, "auto": "player"}
 {"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Herbert – Rose", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": [], "ts": 1795548854}
+{"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Herbert – Rose [Wishmountain Is Dead] (2015)", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": ["idm", "leftfield"], "ts": 1795548931}
