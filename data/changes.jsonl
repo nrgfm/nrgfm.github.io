@@ -2419,3 +2419,5 @@
 {"action": "delete", "thread": "p2442371405779569", "id": "t2527343930615649_0", "ts": 1795530279, "url": "https://www.youtube.com/watch?v=o7US1Wwv-fc", "title": "Perfect Sync  - Man Song (1996)"}
 {"action": "tag", "ids": ["t2462573257092717_0"], "add": ["night drive", "electro"], "remove": [], "ts": 1795530347}
 {"action": "tag", "ids": ["t2462573257092717_0"], "add": [], "remove": ["electro"], "ts": 1795530358}
+{"action": "tag", "ids": ["t2462567663759943_0"], "add": ["steamy", "downtempo"], "remove": [], "ts": 1795530404}
+{"action": "delete", "thread": "p2546082662075109", "id": "t2557750647574977_0", "ts": 1795530408, "url": "https://www.youtube.com/watch?v=i2UdnTb2PW8", "title": "(FE-001) Analog~1 - Drift"}
