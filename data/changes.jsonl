@@ -2515,3 +2515,5 @@
 {"action": "edit", "thread": "p3405924839424216", "id": "t3415323148484385_0", "title": "µ-Ziq – Weakling Paradinas", "url": "https://www.youtube.com/watch?v=1gu0E7054qA", "tags": [], "ts": 1795548315}
 {"action": "tag", "ids": ["t3415323148484385_0"], "add": ["emotional", "leftfield"], "remove": [], "ts": 1795548341}
 {"action": "tag", "ids": ["t3425412577475442_0"], "add": ["vgm", "deus ex"], "remove": [], "ts": 1795548365}
+{"action": "tag", "ids": ["t3425412577475442_0"], "add": ["synth theme"], "remove": [], "ts": 1795548374}
+{"action": "edit", "thread": "p3405924839424216", "id": "t3425412577475442_0", "title": "Mellow Curves - Ridge Racers 2 (2006)", "url": "https://www.youtube.com/watch?v=OJTsHtXGmnY", "tags": ["vgm", "deus ex", "synth theme"], "ts": 1795548404}
