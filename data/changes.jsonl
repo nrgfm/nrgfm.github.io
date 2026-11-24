@@ -2399,3 +2399,5 @@
 {"action": "tag", "ids": ["t2125690124114367_0"], "add": ["uk garage"], "remove": [], "ts": 1795527466}
 {"action": "edit", "thread": "p2095568000459913", "id": "t2113002862049760_0", "title": "BARBEE BOYS - chibi (1989)", "url": "https://www.youtube.com/watch?v=TBu2-DQHYEk", "tags": [], "ts": 1795528965}
 {"action": "tag", "ids": ["t2095593650457348_0"], "add": ["japanese", "eclectic 80s"], "remove": [], "ts": 1795528996}
+{"action": "tag", "ids": ["t2095593717124008_0"], "add": ["eclectic 80s"], "remove": [], "ts": 1795529021}
+{"action": "tag", "ids": ["t2095596720457041_0"], "add": ["eclectic 80s", "japanese"], "remove": [], "ts": 1795529032}
