@@ -2534,3 +2534,4 @@
 {"action": "edit", "thread": "p3405924839424216", "id": "t3523800210970011_0", "title": "Modula Green - Evening Cloud (1995)", "url": "https://www.youtube.com/watch?v=P1KDyYZoIH8", "tags": ["downtempo", "emotional", "ambient"], "ts": 1795549187}
 {"action": "edit", "thread": "p3405924839424216", "id": "t3527153847301314_0", "title": "Ric Y Martin - Sini Est [Perlon ‎– PERL 13] (1999)", "url": "https://www.youtube.com/watch?v=tjbaAJbeVoM", "tags": [], "ts": 1795549261}
 {"action": "tag", "ids": ["t3527153847301314_0"], "add": ["leftfield", "atmospheric"], "remove": [], "ts": 1795549292}
+{"action": "tag", "ids": ["t3523800210970011_0"], "add": ["atmospheric"], "remove": ["emotional"], "ts": 1795549299}
