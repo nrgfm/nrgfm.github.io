@@ -2504,3 +2504,5 @@
 {"action": "tag", "ids": ["t3485928798090486_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795547917, "auto": "player"}
 {"action": "edit", "thread": "p3401768076506559", "id": "t3485928798090486_0", "title": "µ-Ziq – Houzz 10 (2013)", "url": "https://www.youtube.com/watch?v=0iPpuCGzbbI", "tags": ["euphoric", "house", "abstract"], "ts": 1795547991}
 {"action": "tag", "ids": ["t3527615903921775_0"], "add": ["ethereal", "steamy", "downtempo"], "remove": [], "ts": 1795548043}
+{"action": "tag", "ids": ["t3527615903921775_0"], "add": ["ambient hits"], "remove": [], "ts": 1795548052}
+{"action": "tag", "ids": ["t3527615903921775_0"], "add": ["choir"], "remove": [], "ts": 1795548063}
