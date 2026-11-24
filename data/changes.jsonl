@@ -2481,3 +2481,5 @@
 {"action": "tag", "ids": ["t4055225674494126_0"], "add": ["downtempo"], "remove": [], "ts": 1795547300}
 {"action": "tag", "ids": ["t4057953414221352_0"], "add": ["synth theme", "ambient hits"], "remove": [], "ts": 1795547388}
 {"action": "delete", "thread": "p3602063236477041", "id": "t3656590687690962_0", "ts": 1795547398, "url": "https://www.youtube.com/watch?v=slr21kdmd9A", "title": "Air Liquide - If There Was No Gravity"}
+{"action": "tag", "ids": ["t3656640324352665_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795547412, "auto": "player"}
+{"action": "tag", "ids": ["t3656640324352665_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795547413, "auto": "player"}
