@@ -1658,43 +1658,47 @@ function setPlayState(isPlaying) {
 }
 let lastTime = 0;
 /* The position bar answers at once too, as Play/Pause does: a drag (or a click on a time, or ←/→) is a request. The knob
-   stays where it was put, and the player is sent there as soon as it can go: once the track has really started
-   (YouTube ignores a jump before that). While the length isn't known yet the bar uses the length we know from
-   before (or, without one, the request is kept as a part of the track: half way stays half way). The request ends
-   when the player reports being there; after 6 s without that it is sent once more, then dropped. A new track, an
-   error or closing the player drops it. */
-let pendingSeek = null, durKnown = false; // pendingSeek: { t: seconds, frac: share of the length or null, sent: time sent or 0, tries, held: when it got there }
+   stays where it was put until the player is there, then simply follows the player again (no waiting).
+   While the track loads, the bar keeps the length we know from before (expectDur), so a drag to the middle means the
+   middle; without a known length the request is kept as a share of the track (half way stays half way).
+   Sending: before a YouTube track has started, it is loaded again from that spot (one reload for a burst of drags);
+   once it plays, it jumps. If the player is somewhere else on a tick (it ignored the jump, or went back to the start a
+   moment after arriving), the jump is sent again. Ends when the player is there and moving on from it; dropped by a
+   new track, an error, the end, closing the player, or after a few tries. */
+let pendingSeek = null, durKnown = false, expectDur = 0, reloadTimer = 0, seekGuard = null; // seekGuard: a jump that just arrived, watched for 4 s in case YouTube goes back to the start
+// pendingSeek: { t, frac, sent, tries, at (the player was there: time), from (player time then) }
 function requestSeek(t) {
   if (!adapter || !adapter.controllable) return;
-  const max = +seekEl.max || 0;
+  const max = durKnown ? +seekEl.max : expectDur;
   t = Math.max(0, t);
-  pendingSeek = { t, frac: !durKnown && max > 1 ? t / max : null, sent: 0, tries: 0 };
-  showSeek(t, max);
-  if (!startedOnce && adapter.restartAt && max > 1) { // not started yet: YouTube ignores (or later undoes) a jump; loading it again from there is certain
+  seekGuard = null;
+  pendingSeek = { t, frac: !max ? Math.min(1, t / (+seekEl.max || 1)) : null, sent: 0, tries: 0, at: 0, from: 0 };
+  showSeek(pendingSeek.frac != null ? pendingSeek.frac : t, max || +seekEl.max || 1);
+  if (!startedOnce && adapter.restartAt && max > 1) { // not started yet: load it from there (a jump now is ignored, or undone when it starts)
     const at = Math.min(t, Math.max(0, max - 1));
-    pendingSeek.t = at; pendingSeek.frac = null; pendingSeek.sent = Date.now(); pendingSeek.tries = 1;
-    try { adapter.restartAt(at); } catch {}
+    pendingSeek.t = at; pendingSeek.sent = Date.now(); pendingSeek.tries = 1;
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => { if (pendingSeek && !startedOnce) try { adapter.restartAt(pendingSeek.t); } catch {} }, 250); // (several drags in a row: one reload, to the last spot)
     return;
   }
-  trySeek(lastTime, durKnown ? max : 0);
+  trySeek(lastTime, durKnown ? max : 0, true);
 }
-function trySeek(cur, dur) {
+function trySeek(cur, dur, now) {
   const q = pendingSeek;
   if (!q || !adapter) return;
   if (!startedOnce || !(dur > 0)) return; // (not ready yet: wait)
   if (q.frac != null) { q.t = q.frac * dur; q.frac = null; } // (the real length is known now)
   q.t = Math.min(q.t, Math.max(0, dur - 1)); // (never right onto the end: that would end the track)
-  if (q.sent && Math.abs(cur - q.t) < 1.5 && !q.held) q.held = Date.now(); // there: watch a moment that it stays
-  if (q.held) {
-    if (cur < q.t - 3) { q.held = 0; q.sent = 0; } // (YouTube went back to the start after all: send it again)
-    else if (Date.now() - q.held > 2500 && cur >= q.t) { pendingSeek = null; return; } // (it stayed and plays on from there)
-    else return;
+  if (Math.abs(cur - q.t) < 2) { // the player is there
+    if (!q.at) { q.at = Date.now(); q.from = cur; }
+    if (cur - q.from > 0.6 || (!soundOn && Date.now() - q.at > 1500)) { pendingSeek = null; seekGuard = { t: q.t, until: Date.now() + 4000 }; } // and plays on from there (or is there, paused)
+    return;
   }
-  if (!q.sent || (Date.now() - q.sent > 6000)) {
-    if (q.tries >= 4) { pendingSeek = null; return; } // (it won't go: give up, the bar follows the player again)
-    q.sent = Date.now(); q.tries++;
-    try { adapter.seek(q.t); } catch {}
-  }
+  if (q.at && cur < q.t - 2) { q.at = 0; q.sent = 0; } // (it went back after all)
+  if (!now && q.sent && Date.now() - q.sent < 700) return; // (give a jump a moment to take effect)
+  if (q.tries >= 6) { pendingSeek = null; return; } // (it won't go: the bar follows the player again)
+  q.sent = Date.now(); q.tries++;
+  try { adapter.seek(q.t); } catch {}
 }
 function showSeek(cur, dur) {
   $("#tCur").textContent = fmtTime(cur);
@@ -1707,14 +1711,18 @@ function setTime(cur, dur) {
   logTick(cur, dur);
   lastTime = cur || 0;
   if (dur > 0 && adapter) durKnown = true;
-  if (pendingSeek) { trySeek(cur, dur); if (pendingSeek) { if (!seeking) showSeek(pendingSeek.frac != null ? pendingSeek.frac * (dur > 0 ? dur : +seekEl.max) : pendingSeek.t, dur > 0 ? dur : +seekEl.max); return; } }
+  const len = dur > 0 ? dur : expectDur; // (still loading: the length we know from before)
+  if (!pendingSeek && seekGuard) { // (arrived a moment ago, and now back near the start: YouTube undid it; send it again)
+    if (Date.now() > seekGuard.until) seekGuard = null;
+    else if (cur < 3 && seekGuard.t > 5) { pendingSeek = { t: seekGuard.t, frac: null, sent: 0, tries: 0, at: 0, from: 0 }; seekGuard = null; }
+  }
+  if (pendingSeek) {
+    trySeek(cur, dur);
+    const q = pendingSeek;
+    if (q && !q.at) { if (!seeking) showSeek(q.frac != null ? q.frac * (len || 1) : q.t, len || +seekEl.max); return; } // (not there yet: the knob stays)
+  }
   if (seeking) return;
-  $("#tCur").textContent = fmtTime(cur);
-  $("#tDur").textContent = fmtTime(dur);
-  const seek = $("#seek");
-  seek.max = dur > 0 ? dur : 1;
-  seek.value = Math.min(cur, seek.max);
-  seek.style.setProperty("--p", (dur > 0 ? (cur / dur) * 100 : 0) + "%");
+  showSeek(cur, len);
 }
 /* autoplay goes to the next track that can play, skipping deleted links and ones that only play on YouTube */
 function playable(tr) { const x = info(tr); return !x.dead && !x.noEmbed && !x.nolink; }
@@ -1902,7 +1910,7 @@ function play(t, i) {
   fitTitle();
   $("#prevBtn").disabled = i === 0;
   $("#nextBtn").disabled = i === t.tracks.length - 1;
-  wantPlay = null; startedOnce = false; pendingSeek = null; durKnown = false; seeking = false; setPlayState(false); setTime(0, lenOf(tr) || 0); durKnown = false; requestPlay(true); setLoading(true); // (the bar has the length we know already, so a drag while loading means something) // (a new track: the button shows Pause at once, its ring turns until it plays)
+  wantPlay = null; startedOnce = false; pendingSeek = null; durKnown = false; seeking = false; setPlayState(false); expectDur = lenOf(tr) || 0; seekGuard = null; clearTimeout(reloadTimer); setTime(0, expectDur); durKnown = false; requestPlay(true); setLoading(true); // (the bar has the length we know already, so a drag while loading means something) // (a new track: the button shows Pause at once, its ring turns until it plays)
   section = (tr.start || tr.end) && ["youtube", "soundcloud", "vimeo"].includes(tr.platform)
     ? { s: tr.start || 0, e: tr.end || 0, live: false, started: false, done: false } : null;
 
@@ -2133,7 +2141,7 @@ function idleDock() {
   d.hidden = false; d.classList.add("idle"); d.classList.remove("wide", "no-transport");
   $("#media").dataset.kind = "";
   $("#nowTitle").textContent = ""; closeThread();
-  wantPlay = null; clearTimeout(wantTimer); pendingSeek = null; durKnown = false; setPlayState(false); setLoading(false); setTime(0, 0);
+  wantPlay = null; clearTimeout(wantTimer); pendingSeek = null; seekGuard = null; durKnown = false; expectDur = 0; clearTimeout(reloadTimer); setPlayState(false); setLoading(false); setTime(0, 0);
   for (const b of ["#prevBtn", "#playBtn", "#nextBtn", "#seek", "#infoBtn", "#copyBtn"]) $(b).disabled = true;
   $("#volBtn").disabled = false;
   if (!lockPlayerWidths.done) { lockPlayerWidths(); lockPlayerWidths.done = true; }
