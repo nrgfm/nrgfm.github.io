@@ -2452,3 +2452,5 @@
 {"action": "tag", "ids": ["t2764559760227397_0"], "add": ["soul", "euphoric", "j-pop"], "remove": [], "ts": 1795531557}
 {"action": "edit", "thread": "p2693967317286642", "id": "t2764559760227397_0", "title": "Key of Life (feat.GAKU&Yuki Mori) - ASAYAKEの中で [PV] (1995)", "url": "https://www.youtube.com/watch?v=oCh_EY8E87k", "tags": ["japanese characters", "soul", "euphoric", "j-pop"], "ts": 1795531568}
 {"action": "tag", "ids": ["t2901332093216829_0"], "add": ["soul", "proto house"], "remove": [], "ts": 1795531629}
+{"action": "tag", "ids": ["t2693565417326832_0"], "add": ["emo"], "remove": [], "ts": 1795531688}
+{"action": "tag", "ids": ["t2968944556455582_0"], "add": ["jazz-fusion"], "remove": [], "ts": 1795531700}
