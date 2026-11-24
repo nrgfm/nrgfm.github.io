@@ -1655,9 +1655,46 @@ function setPlayState(isPlaying) {
   showPlayBtn();
 }
 let lastTime = 0;
+/* The position bar answers at once too, as Play/Pause does: a drag (or a click on a time, or ←/→) is a request. The knob
+   stays where it was put, and the player is sent there as soon as it can go: once the track has really started
+   (YouTube ignores a jump before that). While the length isn't known yet the bar uses the length we know from
+   before (or, without one, the request is kept as a part of the track: half way stays half way). The request ends
+   when the player reports being there; after 6 s without that it is sent once more, then dropped. A new track, an
+   error or closing the player drops it. */
+let pendingSeek = null, durKnown = false; // pendingSeek: { t: seconds, frac: share of the length or null, sent: time sent or 0, tries }
+function requestSeek(t) {
+  if (!adapter || !adapter.controllable) return;
+  const max = +seekEl.max || 0;
+  t = Math.max(0, t);
+  pendingSeek = { t, frac: !durKnown && max > 1 ? t / max : null, sent: 0, tries: 0 };
+  showSeek(t, max);
+  trySeek(lastTime, durKnown ? max : 0);
+}
+function trySeek(cur, dur) {
+  const q = pendingSeek;
+  if (!q || !adapter) return;
+  if (!startedOnce || !(dur > 0)) return; // (not ready yet: wait)
+  if (q.frac != null) { q.t = q.frac * dur; q.frac = null; } // (the real length is known now)
+  q.t = Math.min(q.t, Math.max(0, dur - 1)); // (never right onto the end: that would end the track)
+  if (q.sent && Math.abs(cur - q.t) < 1.5) { pendingSeek = null; return; } // there
+  if (!q.sent || (Date.now() - q.sent > 6000)) {
+    if (q.tries >= 2) { pendingSeek = null; return; } // (it won't go: give up, the bar follows the player again)
+    q.sent = Date.now(); q.tries++;
+    try { adapter.seek(q.t); } catch {}
+  }
+}
+function showSeek(cur, dur) {
+  $("#tCur").textContent = fmtTime(cur);
+  if (dur > 0) $("#tDur").textContent = fmtTime(dur);
+  seekEl.max = dur > 0 ? dur : 1;
+  seekEl.value = Math.min(cur, seekEl.max);
+  seekEl.style.setProperty("--p", (dur > 0 ? (cur / dur) * 100 : 0) + "%");
+}
 function setTime(cur, dur) {
   logTick(cur, dur);
   lastTime = cur || 0;
+  if (dur > 0 && adapter) durKnown = true;
+  if (pendingSeek) { trySeek(cur, dur); if (pendingSeek) { if (!seeking) showSeek(pendingSeek.frac != null ? pendingSeek.frac * (dur > 0 ? dur : +seekEl.max) : pendingSeek.t, dur > 0 ? dur : +seekEl.max); return; } }
   if (seeking) return;
   $("#tCur").textContent = fmtTime(cur);
   $("#tDur").textContent = fmtTime(dur);
@@ -1679,13 +1716,13 @@ function autoNext() {
   }
   for (let k = i + 1; k < t.tracks.length; k++) if (playable(t.tracks[k])) { play(t, k); return; }
 }
-function onEnded() { setLoading(false); wantPlay = null; clearTimeout(wantTimer); setPlayState(false); autoNext(); }
+function onEnded() { setLoading(false); pendingSeek = null; wantPlay = null; clearTimeout(wantTimer); setPlayState(false); autoNext(); }
 const YT_ONLY = "plays on youtube only";
 /* YouTube's player said no: 101/150 = it can't play on other sites (the owner's choice, or age-restricted). The track gets
    the tag "plays on youtube only" (with the key, or a level 2 login: saved; otherwise only for now), so autoplay skips it
    and a backup link plays instead when it has one. Then on to the next track. */
 function onError(code) {
-  setPlayState(false);
+  pendingSeek = null; setPlayState(false);
   const tr = playing && playing.thread.tracks[playing.index];
   if (tr && (code === 101 || code === 150) && !(tr.tags && tr.tags[YT_ONLY])) {
     tr._ytOnly = true; tr._hay = null;
@@ -1850,7 +1887,7 @@ function play(t, i) {
   fitTitle();
   $("#prevBtn").disabled = i === 0;
   $("#nextBtn").disabled = i === t.tracks.length - 1;
-  wantPlay = null; startedOnce = false; setPlayState(false); setTime(0, 0); requestPlay(true); setLoading(true); // (a new track: the button shows Pause at once, its ring turns until it plays)
+  wantPlay = null; startedOnce = false; pendingSeek = null; durKnown = false; seeking = false; setPlayState(false); setTime(0, lenOf(tr) || 0); durKnown = false; requestPlay(true); setLoading(true); // (the bar has the length we know already, so a drag while loading means something) // (a new track: the button shows Pause at once, its ring turns until it plays)
   section = (tr.start || tr.end) && ["youtube", "soundcloud", "vimeo"].includes(tr.platform)
     ? { s: tr.start || 0, e: tr.end || 0, live: false, started: false, done: false } : null;
 
@@ -1932,12 +1969,12 @@ seekEl.addEventListener("input", () => {
   $("#tCur").textContent = fmtTime(+seekEl.value);
   seekEl.style.setProperty("--p", (seekEl.value / seekEl.max) * 100 + "%");
 });
-seekEl.addEventListener("change", () => { seeking = false; adapter && adapter.seek(+seekEl.value); seekEl.blur(); });
+seekEl.addEventListener("change", () => { seeking = false; requestSeek(+seekEl.value); seekEl.blur(); });
 /* clicking the time on the left goes back 5 seconds, the length on the right forward 5 (they light up a moment) */
 for (const [id, step] of [["#tCur", -5], ["#tDur", 5]]) $(id).addEventListener("click", () => {
   if (!adapter || !adapter.controllable) return; // (phone and computer)
-  const to = Math.max(0, Math.min(+seekEl.max || 0, lastTime + step));
-  adapter.seek(to); setTime(to, +seekEl.max || 0);
+  const from = pendingSeek ? pendingSeek.t : lastTime; // (pressed again before the player got there: from where it was asked to go)
+  requestSeek(Math.max(0, Math.min(+seekEl.max || 0, from + step)));
   $(id).classList.add("tapped"); setTimeout(() => $(id).classList.remove("tapped"), 250);
 });
 /* iPhone: the first touch also unmutes a YouTube video the browser started muted */
@@ -2080,7 +2117,7 @@ function idleDock() {
   d.hidden = false; d.classList.add("idle"); d.classList.remove("wide", "no-transport");
   $("#media").dataset.kind = "";
   $("#nowTitle").textContent = ""; closeThread();
-  wantPlay = null; clearTimeout(wantTimer); setPlayState(false); setLoading(false); setTime(0, 0);
+  wantPlay = null; clearTimeout(wantTimer); pendingSeek = null; durKnown = false; setPlayState(false); setLoading(false); setTime(0, 0);
   for (const b of ["#prevBtn", "#playBtn", "#nextBtn", "#seek", "#infoBtn", "#copyBtn"]) $(b).disabled = true;
   $("#volBtn").disabled = false;
   if (!lockPlayerWidths.done) { lockPlayerWidths(); lockPlayerWidths.done = true; }
@@ -4201,7 +4238,7 @@ document.addEventListener("keydown", (e) => {
   }
   else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && adapter && adapter.controllable) {
     e.preventDefault();
-    adapter.seek(Math.max(0, lastTime + (e.key === "ArrowRight" ? 5 : -5))); flashBtn($(e.key === "ArrowRight" ? "#tDur" : "#tCur"), "tapped", 900); // (that side's time lights up, as clicking it does)
+    requestSeek(Math.max(0, Math.min(+seekEl.max || Infinity, (pendingSeek ? pendingSeek.t : lastTime) + (e.key === "ArrowRight" ? 5 : -5)))); flashBtn($(e.key === "ArrowRight" ? "#tDur" : "#tCur"), "tapped", 900); // (that side's time lights up, as clicking it does)
   }
 });
 
