@@ -1837,3 +1837,15 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 
 /* (Prev's and Next's fills run on under Play; Play sits on top of them) */
 .ctl.play { z-index: 1; }
+
+/* (temporary) 10 versions of the side list's text to compare, chosen with ?sv=N in the address
+   (sv-1 is today's: thin Mac rendering, Facebook's white, 13.5px) */
+body.sv-2 .browse-row:not(.here) .side-name { color: var(--text); }
+body.sv-3 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; }
+body.sv-4 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-4 .browse-row:not(.here) .side-name { color: var(--text); }
+body.sv-5 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-5 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 85%, var(--bg)); }
+body.sv-6 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-6 .browse-row:not(.here) .side-name { color: var(--text); font-size: 14px; }
+body.sv-7 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 82%, var(--bg)); }
+body.sv-8 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 90%, var(--bg)); font-weight: 500; }
+body.sv-9 .browse-text { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; } body.sv-9 .browse-row:not(.here) .side-name { color: color-mix(in srgb, var(--text) 75%, var(--bg)); font-size: 14px; }
+body.sv-10 .t-title, body.sv-10 .tr-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; } /* the other way round: the page's titles as crisp as the side list */
