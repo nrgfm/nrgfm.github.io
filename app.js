@@ -390,6 +390,8 @@ const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 
 const SIZE_KEYS = { threads: "nrgfm-th-size2", tagged: "nrgfm-ar-size" }; // (Threads and Archive each keep their own; the middle step is the default)
 const readSize = (k) => { try { const v = localStorage.getItem(k); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } };
 const sizes = { threads: readSize(SIZE_KEYS.threads), tagged: readSize(SIZE_KEYS.tagged) };
+/* (temporary) the player's title, 10 ways to compare: ?pv=1 … ?pv=10 in the address */
+{ const v = +new URLSearchParams(location.search).get("pv"); if (v >= 1 && v <= 10) document.body.classList.add("pv-" + v); }
 function applyThSize() {
   let lv4 = false; try { lv4 = level() > 3; } catch {} // (without a password: always the middle size; at the very start the level isn't known yet)
   for (const k of [0, 1, 2]) {
@@ -773,7 +775,14 @@ function drawBrowse() {
     else if (Math.abs(was - now) > 1) r.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 260, easing: "ease-out" }); // the others are pushed down
   }
 }
-function fadeEnd(list) { list.classList.toggle("at-end", list.scrollTop + list.clientHeight >= list.scrollHeight - 2); }
+function fadeEnd(list) {
+  list.classList.toggle("at-end", list.scrollTop + list.clientHeight >= list.scrollHeight - 2);
+  // the fade ends exactly where the first row that doesn't fit (scrolled to the top) begins: that row can't be seen at all
+  const box = list.getBoundingClientRect(), pad = parseFloat(getComputedStyle(list).paddingTop) || 0;
+  const at = (r) => r.getBoundingClientRect().top - box.top + list.scrollTop; // a row's place in the list, scrolled to the top
+  const cut = [...list.children].find((r) => at(r) + r.offsetHeight > list.clientHeight + 0.5);
+  if (cut) list.style.setProperty("--fe", Math.max(30, at(cut) - pad / 2) + "px");
+}
 addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
   const [y, mo] = t.month.split("-");
