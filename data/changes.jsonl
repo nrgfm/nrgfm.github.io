@@ -2468,3 +2468,4 @@
 {"action": "tag", "ids": ["t1614873611862690_0"], "add": ["relaxing"], "remove": ["minimalism"], "ts": 1795546231}
 {"url": "https://www.youtube.com/watch?v=6XHL5uLD8vs", "title": "Jan Hammer Group - Don't You Know (1977)", "thread": "xt1739654619384588_0", "tags": ["soul", "funk"], "ts": 1795546636}
 {"action": "promote", "thread": "xt1739654619384588_0", "id": "t1795546636_0", "to": "original", "ts": 1795546644}
+{"action": "tag", "ids": ["t3653783097971721_0"], "add": ["soul"], "remove": [], "ts": 1795546726}
