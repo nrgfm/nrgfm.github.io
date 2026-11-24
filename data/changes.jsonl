@@ -2519,3 +2519,4 @@
 {"action": "edit", "thread": "p3405924839424216", "id": "t3425412577475442_0", "title": "Mellow Curves - Ridge Racers 2 (2006)", "url": "https://www.youtube.com/watch?v=OJTsHtXGmnY", "tags": ["vgm", "deus ex", "synth theme"], "ts": 1795548404}
 {"action": "tag", "ids": ["t3436685953014771_0"], "add": ["anime theme"], "remove": [], "ts": 1795548415}
 {"action": "tag", "ids": ["t3447186748631358_0"], "add": ["anime theme"], "remove": [], "ts": 1795548457}
+{"action": "tag", "ids": ["t3453289331354433_0"], "add": ["choir", "experimental"], "remove": [], "ts": 1795548701}
