@@ -390,8 +390,6 @@ const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 
 const SIZE_KEYS = { threads: "nrgfm-th-size2", tagged: "nrgfm-ar-size" }; // (Threads and Archive each keep their own; the middle step is the default)
 const readSize = (k) => { try { const v = localStorage.getItem(k); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } };
 const sizes = { threads: readSize(SIZE_KEYS.threads), tagged: readSize(SIZE_KEYS.tagged) };
-/* (temporary) square thumbnails on Threads, 10 ways to compare: ?tq=1 … ?tq=10 in the address */
-{ const v = +new URLSearchParams(location.search).get("tq"); if (v >= 1 && v <= 10) document.body.classList.add("tq-" + v); }
 function applyThSize() {
   let lv4 = false; try { lv4 = level() > 3; } catch {} // (without a password: always the middle size; at the very start the level isn't known yet)
   for (const k of [0, 1, 2]) {
@@ -1663,7 +1661,7 @@ let lastTime = 0;
    before (or, without one, the request is kept as a part of the track: half way stays half way). The request ends
    when the player reports being there; after 6 s without that it is sent once more, then dropped. A new track, an
    error or closing the player drops it. */
-let pendingSeek = null, durKnown = false; // pendingSeek: { t: seconds, frac: share of the length or null, sent: time sent or 0, tries }
+let pendingSeek = null, durKnown = false; // pendingSeek: { t: seconds, frac: share of the length or null, sent: time sent or 0, tries, held: when it got there }
 function requestSeek(t) {
   if (!adapter || !adapter.controllable) return;
   const max = +seekEl.max || 0;
@@ -1678,9 +1676,14 @@ function trySeek(cur, dur) {
   if (!startedOnce || !(dur > 0)) return; // (not ready yet: wait)
   if (q.frac != null) { q.t = q.frac * dur; q.frac = null; } // (the real length is known now)
   q.t = Math.min(q.t, Math.max(0, dur - 1)); // (never right onto the end: that would end the track)
-  if (q.sent && Math.abs(cur - q.t) < 1.5) { pendingSeek = null; return; } // there
+  if (q.sent && Math.abs(cur - q.t) < 1.5 && !q.held) q.held = Date.now(); // there: watch a moment that it stays
+  if (q.held) {
+    if (cur < q.t - 3) { q.held = 0; q.sent = 0; } // (YouTube went back to the start after all: send it again)
+    else if (Date.now() - q.held > 2500 && cur >= q.t) { pendingSeek = null; return; } // (it stayed and plays on from there)
+    else return;
+  }
   if (!q.sent || (Date.now() - q.sent > 6000)) {
-    if (q.tries >= 2) { pendingSeek = null; return; } // (it won't go: give up, the bar follows the player again)
+    if (q.tries >= 4) { pendingSeek = null; return; } // (it won't go: give up, the bar follows the player again)
     q.sent = Date.now(); q.tries++;
     try { adapter.seek(q.t); } catch {}
   }

@@ -1674,8 +1674,8 @@ body[data-view="threads"] .tr-title, body[data-view="threads"] .t-title { font-w
    th-s1 halfway (176×99, 58×43), th-s0 the original (160×90, 48×36: no rules). Search results always at the original size.
    What sits under or beside the pictures moves along; the text stays. */
 @media (min-width: 641px) {
-  body[data-view="threads"]:not(.q-on).th-s2 { --mw: 192px; --mh: 108px; --cw: 67px; --ch: 50px; --when: 130.5px; }
-  body[data-view="threads"]:not(.q-on).th-s1 { --mw: 176px; --mh: 99px; --cw: 58px; --ch: 43px; --when: 120.25px; }
+  body[data-view="threads"]:not(.q-on).th-s2 { --mw: 192px; --mh: 108px; --cw: 67px; --ch: 67px; --when: 130.5px; }
+  body[data-view="threads"]:not(.q-on).th-s1 { --mw: 176px; --mh: 99px; --cw: 58px; --ch: 58px; --when: 120.25px; }
   body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .thread-head { grid-template-columns: var(--mw) 1fr; }
   body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .tracks { padding-left: calc(var(--mw) + 16px); }
   body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track { grid-template-columns: var(--cw) 1fr auto; }
@@ -1852,24 +1852,19 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .side .side-row.playing .side-name { color: var(--jade); }
 .side .side-title { color: var(--jade); }
 
-/* (temporary) 10 ways of square thumbnails on Threads, chosen with ?tq=N (main w×h, tracks w×h) */
+
+/* square thumbnails for the tracks under a post (the post's own stays 16:9): Threads' smallest step and search results
+   48×48 (cut to fill, the sides trimmed) */
 @media (min-width: 641px) {
-  body[data-view="threads"]:not(.q-on).tq-1 { --mw: 99px; --mh: 99px; --cw: 43px; --ch: 43px; --when: 120.5px; }
-  body[data-view="threads"]:not(.q-on).tq-2 { --mw: 176px; --mh: 176px; --cw: 58px; --ch: 58px; --when: 197.5px; }
-  body[data-view="threads"]:not(.q-on).tq-3 { --mw: 132px; --mh: 132px; --cw: 50px; --ch: 50px; --when: 153.5px; }
-  body[data-view="threads"]:not(.q-on).tq-4 { --mw: 120px; --mh: 120px; --cw: 58px; --ch: 58px; --when: 141.5px; }
-  body[data-view="threads"]:not(.q-on).tq-5 { --mw: 150px; --mh: 150px; --cw: 64px; --ch: 64px; --when: 171.5px; }
-  body[data-view="threads"]:not(.q-on).tq-6 { --mw: 110px; --mh: 110px; --cw: 50px; --ch: 50px; --when: 131.5px; }
-  body[data-view="threads"]:not(.q-on).tq-7 { --mw: 176px; --mh: 99px; --cw: 43px; --ch: 43px; --when: 120.5px; }
-  body[data-view="threads"]:not(.q-on).tq-8 { --mw: 176px; --mh: 99px; --cw: 58px; --ch: 58px; --when: 120.5px; }
-  body[data-view="threads"]:not(.q-on).tq-9 { --mw: 99px; --mh: 99px; --cw: 58px; --ch: 43px; --when: 120.5px; }
-  body[data-view="threads"]:not(.q-on).tq-10 { --mw: 176px; --mh: 176px; --cw: 58px; --ch: 43px; --when: 197.5px; }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-head { grid-template-columns: var(--mw) 1fr; }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-head .thumb { aspect-ratio: auto; height: var(--mh); }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .tracks { padding-left: calc(var(--mw) + 16px); }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .track { grid-template-columns: var(--cw) 1fr auto; }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .track .chip { width: var(--cw); height: var(--ch); object-fit: cover; }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .t-when { top: var(--when); width: var(--mw); }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-more { top: calc(var(--mh) + 56px); width: calc(var(--mw) - 8px); }
-  body[data-view="threads"]:not(.q-on):is(.tq-1, .tq-2, .tq-3, .tq-4, .tq-5, .tq-6, .tq-7, .tq-8, .tq-9, .tq-10) .thread-foot { padding-left: calc(var(--mw) + 24px); }
+  body[data-view="threads"] .track .chip { height: 48px; object-fit: cover; }
+  body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track .chip { height: var(--ch); }
+  /* Archive: square, 132×132 in the middle step (110 the smallest, 158 the biggest); a tag's page too (the middle) */
+  .tagged-thread .track { grid-template-columns: 132px 1fr auto; }
+  .tagged-thread .track .chip { width: 132px; height: 132px; object-fit: cover; }
+  body[data-view="tagged"].ar-s0 .tagged-thread .track { grid-template-columns: 110px 1fr auto; }
+  body[data-view="tagged"].ar-s0 .tagged-thread .track .chip { width: 110px; height: 110px; }
+  body[data-view="tagged"].ar-s2 .tagged-thread .track { grid-template-columns: 158px 1fr auto; }
+  body[data-view="tagged"].ar-s2 .tagged-thread .track .chip { width: 158px; height: 158px; }
+  body.q-on[data-view] .tagged-thread .track { grid-template-columns: 160px 1fr auto; }
+  body.q-on[data-view] .tagged-thread .track .chip { width: 160px; height: 90px; }
 }
