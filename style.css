@@ -1844,14 +1844,5 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .tag-panel .side-name { font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
 .tag-panel .side-row.here .side-name { color: var(--jade); }
 .browse-text .browse-date { color: color-mix(in srgb, var(--muted) 90%, var(--bg)); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-/* (temporary) 10 versions of the player's title to compare, chosen with ?pv=N (pv-1 is today's: bold 700) */
-body.pv-2 #nowTitle { font-weight: 600; }
-body.pv-3 #nowTitle { font-weight: 600; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body.pv-4 #nowTitle { font-weight: 500; }
-body.pv-5 #nowTitle { font-weight: 500; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body.pv-6 #nowTitle { font-weight: 400; }
-body.pv-7 #nowTitle { font-weight: 400; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body.pv-8 #nowTitle { font-weight: 500; font-size: 17px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body.pv-9 #nowTitle { font-weight: 400; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
-body.pv-10 #nowTitle { font-weight: 600; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
+/* the player's title: semi-bold, drawn in the thin mode, a little dimmer than the text */
+#nowTitle { font-weight: 600; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
