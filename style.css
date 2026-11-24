@@ -1860,3 +1860,5 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   body[data-view="threads"]:not(.q-on):is(.th-s1, .th-s2) .track .chip { height: var(--ch); }
 }
 .track.row-plays { cursor: pointer; }
+/* Genres: the tracks' titles as on Threads (regular, 15px; San Francisco, thin mode as everywhere) */
+.genre-mix .tr-title, .gm-list .tr-title { font-weight: 400; font-size: 15px; line-height: 1.33; }
