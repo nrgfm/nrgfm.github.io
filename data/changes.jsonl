@@ -2460,3 +2460,5 @@
 {"action": "edit", "thread": "p2670658009617573", "id": "t2771203246229715_0", "title": "Dj Disciple - ten steps to heaven", "url": "https://www.youtube.com/watch?v=7qrfAlvmV4U", "tags": [], "ts": 1795531967}
 {"action": "delete", "thread": "p2670658009617573", "id": "t2771203246229715_0", "ts": 1795531991, "url": "https://www.youtube.com/watch?v=7qrfAlvmV4U", "title": "Dj Disciple - ten steps to heaven"}
 {"action": "tag", "ids": ["t1793034259_0"], "add": ["soul", "slow jam"], "remove": [], "ts": 1795532310, "via": "password"}
+{"action": "tag", "ids": ["t1522387081111344_0"], "add": ["fusion"], "remove": [], "ts": 1795546011}
+{"action": "tag", "ids": ["t1522387081111344_0"], "add": ["jazz-fusion"], "remove": ["fusion"], "ts": 1795546019}
