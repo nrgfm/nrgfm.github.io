@@ -2528,3 +2528,5 @@
 {"action": "edit", "thread": "p3405924839424216", "id": "t3474045925945440_0", "title": "Wishmountain - Rose [Wishmountainisdead] 1998", "url": "https://www.youtube.com/watch?v=2HZlTgy1PyE", "tags": ["leftfield", "experimental"], "ts": 1795548987}
 {"action": "tag", "ids": ["t3498759523474080_0"], "add": ["synth theme", "emotional"], "remove": [], "ts": 1795549109}
 {"action": "tag", "ids": ["t3498759523474080_0"], "add": ["new age"], "remove": [], "ts": 1795549113}
+{"action": "tag", "ids": ["t3498759523474080_0"], "add": ["downtempo"], "remove": [], "ts": 1795549128}
+{"action": "edit", "thread": "p3405924839424216", "id": "t3498759523474080_0", "title": "Dreadzone - A Canterbury Tale (1995)", "url": "https://www.youtube.com/watch?v=OxQMinTxckE", "tags": ["synth theme", "emotional", "new age", "downtempo"], "ts": 1795549151}
