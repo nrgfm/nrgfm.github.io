@@ -2484,3 +2484,6 @@
 {"action": "tag", "ids": ["t3656640324352665_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795547412, "auto": "player"}
 {"action": "tag", "ids": ["t3656640324352665_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795547413, "auto": "player"}
 {"action": "delete", "thread": "p3401768076506559", "id": "t3601898999826798_0", "ts": 1795547523, "url": "https://www.youtube.com/watch?v=RlqXlz8d0FI", "title": "Jason Kolàr - The Layout of Failure"}
+{"action": "tag", "ids": ["t2206268436056535_0"], "add": ["minimalism"], "remove": [], "ts": 1795547533}
+{"action": "tag", "ids": ["t2206268436056535_0"], "add": [], "remove": ["duplicate"], "ts": 1795547538}
+{"action": "tag", "ids": ["t2206254616057917_0"], "add": ["ambient"], "remove": [], "ts": 1795547562}
