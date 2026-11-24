@@ -2443,3 +2443,12 @@
 {"action": "tag", "ids": ["t2620767127939995_0"], "add": ["score"], "remove": [], "ts": 1795531265}
 {"action": "tag", "ids": ["t2622163974466977_0"], "add": ["celtic", "80s", "ballad"], "remove": [], "ts": 1795531340}
 {"action": "tag", "ids": ["t2622163974466977_0"], "add": ["celtic", "80s", "ballad"], "remove": [], "ts": 1795531340}
+{"action": "tag", "ids": ["t2622324484450926_0"], "add": ["80s synth pop", "ballad"], "remove": [], "ts": 1795531367}
+{"action": "tag", "ids": ["t2639278229422218_0"], "add": ["leftfield"], "remove": [], "ts": 1795531403}
+{"action": "tag", "ids": ["t2639390182744356_0"], "add": ["atmospheric jungle"], "remove": [], "ts": 1795531414}
+{"action": "tag", "ids": ["t2639390182744356_0"], "add": ["steamy"], "remove": [], "ts": 1795531419}
+{"action": "tag", "ids": ["t2627567503926624_0"], "add": ["indie"], "remove": [], "ts": 1795531429}
+{"action": "tag", "ids": ["t2701976973152343_0"], "add": ["downtempo"], "remove": [], "ts": 1795531491}
+{"action": "tag", "ids": ["t2764559760227397_0"], "add": ["soul", "euphoric", "j-pop"], "remove": [], "ts": 1795531557}
+{"action": "edit", "thread": "p2693967317286642", "id": "t2764559760227397_0", "title": "Key of Life (feat.GAKU&Yuki Mori) - ASAYAKEの中で [PV] (1995)", "url": "https://www.youtube.com/watch?v=oCh_EY8E87k", "tags": ["japanese characters", "soul", "euphoric", "j-pop"], "ts": 1795531568}
+{"action": "tag", "ids": ["t2901332093216829_0"], "add": ["soul", "proto house"], "remove": [], "ts": 1795531629}
