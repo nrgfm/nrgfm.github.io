@@ -2424,3 +2424,5 @@
 {"action": "tag", "ids": ["t2557705260912849_0"], "add": ["downtempo"], "remove": [], "ts": 1795530486}
 {"action": "tag", "ids": ["t2556194947730547_0"], "add": ["ballad"], "remove": [], "ts": 1795530554}
 {"action": "delete", "thread": "p2556194947730547", "id": "t2622167874466587_0", "ts": 1795530572, "url": "https://www.youtube.com/watch?v=i7fiLZlQYMU", "title": "Holm CPU- Fotspor"}
+{"action": "tag", "ids": ["t2602838096399565_0"], "add": ["soul"], "remove": [], "ts": 1795530751}
+{"action": "tag", "ids": ["t2602838096399565_0"], "add": ["ballad"], "remove": [], "ts": 1795530758}
