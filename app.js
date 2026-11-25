@@ -1085,7 +1085,7 @@ function trackRow(t, tr, i, hits) {
     onclick: wholeRow ? (e) => { if (e.target.closest("button, a, input, .tag, .chip, .edit-wrap, form")) return; play(t, i); } : null },
     chip,
     el("button", { class: "play", onclick: () => play(t, i), "aria-label": `Play ${x.title}` },
-      el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged") && !query && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
+      el("span", { class: "tr-title" }, x.title, (view === "tag" || view === "tagged" || view === "threads") && !query && lenOf(tr) ? el("span", { class: "tr-len" }, fmtTime(lenOf(tr))) : null),
       el("span", { class: "tr-sub" }, tagLine(tr, x.recovered ? RECOVERED : null, t.mix ? genresOf(tr) : null))),
     rowLinks(t, i, x));
 }
@@ -1498,7 +1498,7 @@ function threadNode({ t, hits, one }) {
       el("button", { class: "thread-head", onclick: () => play(t, 0), "aria-label": `Play ${hi.title}` },
         el("span", { class: "thumb" }, img(hi.thumb, "thumb-img"), hi.thumb ? null : el("span", { class: "ph" }, PLATFORM[head.platform] || "")),
         el("span", { class: "thread-main" },
-          el("span", { class: "t-title" }, hi.title),
+          el("span", { class: "t-title" }, hi.title, view === "threads" && !hits && lenOf(head) ? el("span", { class: "tr-len" }, fmtTime(lenOf(head))) : null), // (its length, as in Archive)
           el("span", { class: "t-sub t-tags" }, tagLine(head)),
           el("span", { class: "t-sub t-date" + (hi.recovered ? "" : " only-date") },
             hits ? null : el("span", { class: "t-date-phone" }, el("span", { class: "when-link", role: "link", "data-thread": t.id,
