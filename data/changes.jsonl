@@ -2602,3 +2602,5 @@
 {"action": "tag", "ids": ["t8552498788100103_0"], "add": ["folk", "psychedelic", "zoinked"], "remove": [], "ts": 1795629695}
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552514048098577_0", "title": "The Cranberries – Dreams (1992)", "url": "https://www.youtube.com/watch?v=SezuFrHm8f0", "tags": ["celtic", "alt rock", "pop rock"], "ts": 1795629730}
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552299468120035_0", "title": "Keane - Somewhere Only We Know (2004)", "url": "https://www.youtube.com/watch?v=3u0RCUSPq8I", "tags": ["2000s pop"], "ts": 1795629756}
+{"action": "tag", "ids": ["t8552299468120035_0"], "add": ["britpop"], "remove": [], "ts": 1795629769}
+{"action": "tag", "ids": ["t8552299468120035_0"], "add": [], "remove": ["britpop"], "ts": 1795629774}
