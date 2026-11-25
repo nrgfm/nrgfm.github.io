@@ -2566,3 +2566,5 @@
 {"action": "tag", "ids": ["t25022117570711631_0"], "add": ["lento"], "remove": [], "ts": 1795620888}
 {"action": "tag", "ids": ["t25266127816310604_0"], "add": ["ear candy"], "remove": [], "ts": 1795620927}
 {"action": "tag", "ids": ["t25266127816310604_0"], "add": ["experimental", "emotional"], "remove": [], "ts": 1795620957}
+{"action": "tag", "ids": ["t25266127816310604_0"], "add": ["downtempo", "ambient"], "remove": [], "ts": 1795620972}
+{"action": "edit", "thread": "p24857778527145537", "id": "t25266127816310604_0", "title": "Yosi Horikawa - Bubbles (2012)", "url": "https://www.youtube.com/watch?v=4CuJqtNdcJU", "tags": ["ear candy", "experimental", "emotional", "downtempo", "ambient"], "ts": 1795620985}
