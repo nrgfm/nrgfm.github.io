@@ -115,7 +115,7 @@ function haystack(t) {
       uploader: j([m.author_name, channelArtist(m.author_name), m.wb_author, x.by, ...countryList(x.co)]),
     };
     // each title on its own (for ranking: a title that is just the words searched comes first)
-    t._titles = [t.title, m.title, m.wb_title].filter(Boolean).map((s) => [fold(s), fold(s.split(/\s[-–—]\s/).pop())]);
+    t._titles = [t.title, m.title, m.wb_title, info(t).title].filter(Boolean).map((s) => [fold(s), fold(s.split(/\s[-–—]\s/).pop())]); // (also the title as shown)
     t._hay = Object.values(t._f).join(" ");
   }
   return t._hay;
@@ -133,6 +133,9 @@ function matchRank(tr, terms) {
   const any = on.findIndex(([k]) => terms.some((w) => has(f[k], w)));
   return any > -1 ? any + 0.5 : 99;
 }
+/* how well, in 3 steps, before anything else is weighed: the words as whole words (or the title exactly) 0; at a word's
+   start or spread out 1; only found by joining two words ("mew" in "me why") 2 */
+const fit = (rank) => { const f = rank - Math.floor(rank); return f < 0.2 ? 0 : f < 0.45 ? 1 : 2; };
 /* among titles holding all the words: the song title being exactly the words searched (0), the whole title being them,
    the words together in that order (0.1), in that order at a word start (0.2), anywhere (0.3); shorter titles first within each */
 function titleCloseness(tr, terms) {
@@ -270,12 +273,12 @@ function runSearch() {
     // best matches first: by where the words were found (title, then notes, tags…); within each, a found track with tags
     // of its own first (whoever is looking), then one that is the main track of its post, then the closest match, then
     // the newest; or simply newest first
-    shown.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || activity(y.t) - activity(x.t));
+    shown.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || fit(x.rank) - fit(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || activity(y.t) - activity(x.t));
     const tagHits = shown.filter((s) => s.tag).length, trackThreads = shown.length - tagHits;
     if (resultList) { // one item per found track, best first by the same rules (where found, tags, main track, closeness), or newest
       const flat = [];
       for (const s of shown) for (const i of s.hits) { const tr = s.t.tracks[i]; flat.push({ t: s.t, hits: new Set([i]), one: i, rank: forcedRank(s, tr, terms), tagged: userTagged(tr), main: i === 0 }); }
-      flat.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || (y.t.tracks[y.one].ts || 0) - (x.t.tracks[x.one].ts || 0));
+      flat.sort((x, y) => (byNewest ? 0 : Math.floor(x.rank) - Math.floor(y.rank) || fit(x.rank) - fit(y.rank) || y.tagged - x.tagged || y.main - x.main || x.rank - y.rank) || (y.t.tracks[y.one].ts || 0) - (x.t.tracks[x.one].ts || 0));
       shown = flat;
     }
     const n = shown.reduce((a, s) => a + (s.hits ? s.hits.size : 0), 0);
@@ -338,7 +341,9 @@ function showWhy(row) {
   const [id, i] = row.dataset.k.split(":"), t = threads.find((x) => x.id === id), tr = t && t.tracks[+i];
   if (!tr) return;
   const terms = query.split(" ").filter(Boolean), f = fieldsOf(tr), m = meta[tr.url] || {}, x = extra[tr.url] || {};
-  const hit = (s) => terms.some((w) => has(" " + fold(s), w));
+  const joined = (s) => { const f = fold(s), w = f.split(" "); let out = " " + f; for (let k = 0; k + 1 < w.length; k++) out += " " + w[k] + w[k + 1]; return out; };
+  const hit = (s) => s != null && terms.some((w) => has(joined(String(s)), w)); // (as the search found it: also "mew" in "me why")
+  const pick = (list) => { const l = list.filter(Boolean); const h = l.filter(hit); return (h.length ? h : l).join(", "); }; // (never an empty line)
   const cut = (s, n = 70) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
   const note = () => { // the part of the notes around the first word found
     const n = tr.notes || "", k = Math.max(0, fold(n).indexOf(terms.find((w) => fold(n).includes(w)) || "") - 20);
@@ -347,10 +352,10 @@ function showWhy(row) {
   const say = {
     title: () => "Title: " + ([tr.title, m.title, m.wb_title].filter(Boolean).find(hit) || info(tr).title),
     notes: () => "Notes: " + note(),
-    tags: () => "Tags: " + shownTags(tr).filter(hit).join(", "),
-    genres: () => "Genres: " + (x.g || []).filter(hit).join(", "),
+    tags: () => "Tags: " + pick(shownTags(tr)),
+    genres: () => "Genres: " + pick(x.g || []),
     year: () => "Year: " + x.y + " (" + decadeOf(x.y) + ")",
-    release: () => "Release: " + cut((tr.release || x.rl || []).filter(hit).join(", ")),
+    release: () => "Release: " + cut(pick([].concat(tr.release || x.rl || []))),
     uploader: () => { const c = countryList(x.co).find(hit); return c && ![m.author_name, m.wb_author, x.by].filter(Boolean).some(hit) ? "Country: " + c : "Uploader: " + ([m.author_name, m.wb_author, x.by].filter(Boolean).find(hit) || m.author_name || x.by); },
   };
   const lines = FIELDS.filter(([k]) => !searchOff.has(k) && terms.some((w) => has(f[k], w))).map(([k]) => say[k]());
@@ -3170,7 +3175,7 @@ function movePanel(formOf, edit) {
       if (!byName) t.tracks.forEach((tr, i) => { if (matches(tr, terms, all)) { const r = matchRank(tr, terms); if (r < rank) { rank = r; k = i; } } });
       if (k > -1) found.push({ t, k, rank });
     }
-    found.sort((a, b) => Math.floor(a.rank) - Math.floor(b.rank) || (b.k === 0) - (a.k === 0) || a.rank - b.rank || activity(b.t) - activity(a.t));
+    found.sort((a, b) => Math.floor(a.rank) - Math.floor(b.rank) || fit(a.rank) - fit(b.rank) || (b.k === 0) - (a.k === 0) || a.rank - b.rank || activity(b.t) - activity(a.t));
     if (!found.length) { list.appendChild(el("li", { class: "move-none hint" }, "No other thread has a track like that.")); place(); return; }
     for (const { t, k } of found) {
       const x = info(t.tracks[k]);
