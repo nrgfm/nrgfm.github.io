@@ -2620,3 +2620,5 @@
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["duplicate"], "ts": 1795630192}
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": ["pop-punk"], "remove": [], "ts": 1795630210}
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["pop-punk"], "ts": 1795630215}
+{"action": "tag", "ids": ["t25523947137195336_0"], "add": ["nu-metal"], "remove": [], "ts": 1795630260}
+{"action": "tag", "ids": ["t25523947137195336_0"], "add": ["emo"], "remove": [], "ts": 1795630263}
