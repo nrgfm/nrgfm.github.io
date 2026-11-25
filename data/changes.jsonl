@@ -2618,3 +2618,5 @@
 {"action": "delete", "thread": "p2373588989324478", "id": "t2373588989324478_0", "ts": 1795630154, "url": "https://www.youtube.com/watch?v=1yODuPldGzE", "title": "Island In The Sun"}
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": ["indie rock"], "remove": [], "ts": 1795630188}
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["duplicate"], "ts": 1795630192}
+{"action": "tag", "ids": ["t8552550068094975_0"], "add": ["pop-punk"], "remove": [], "ts": 1795630210}
+{"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["pop-punk"], "ts": 1795630215}
