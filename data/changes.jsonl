@@ -2570,3 +2570,5 @@
 {"action": "edit", "thread": "p24857778527145537", "id": "t25266127816310604_0", "title": "Yosi Horikawa - Bubbles (2012)", "url": "https://www.youtube.com/watch?v=4CuJqtNdcJU", "tags": ["ear candy", "experimental", "emotional", "downtempo", "ambient"], "ts": 1795620985}
 {"action": "edit", "thread": "p24857778527145537", "id": "t25146678838255503_0", "title": "Justin Chodzko - Inheritance (A-Side) (2000)", "url": "https://www.youtube.com/watch?v=F1LzuhYUkOs", "tags": [], "ts": 1795621170}
 {"action": "tag", "ids": ["t25146678838255503_0"], "add": ["deep house"], "remove": [], "ts": 1795621272}
+{"action": "tag", "ids": ["t8208006599215992_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795623789, "auto": "player"}
+{"action": "tag", "ids": ["t8208006599215992_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795623791, "auto": "player"}
