@@ -2616,3 +2616,5 @@
 {"action": "edit", "thread": "p2373588989324478", "id": "t2401974843152559_0", "title": "Divinity (feat. Amy Millan) by Porter Robinson", "url": "https://www.youtube.com/watch?v=si81bIoZRJQ", "tags": [], "ts": 1795630136}
 {"action": "edit", "thread": "p2373588989324478", "id": "t2401974843152559_0", "title": "Porter Robinson - Divinity ft. Amy Millan", "url": "https://www.youtube.com/watch?v=si81bIoZRJQ", "tags": [], "ts": 1795630146}
 {"action": "delete", "thread": "p2373588989324478", "id": "t2373588989324478_0", "ts": 1795630154, "url": "https://www.youtube.com/watch?v=1yODuPldGzE", "title": "Island In The Sun"}
+{"action": "tag", "ids": ["t8552550068094975_0"], "add": ["indie rock"], "remove": [], "ts": 1795630188}
+{"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["duplicate"], "ts": 1795630192}
