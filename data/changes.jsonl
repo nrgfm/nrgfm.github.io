@@ -2577,3 +2577,4 @@
 {"action": "edit", "thread": "p23980691428187589", "id": "t24940076675582388_0", "title": "Ultravox! – Vienna (1981)", "url": "https://www.youtube.com/watch?v=EoVBjYpxhF0", "tags": ["ballad", "80s synth pop"], "ts": 1795623931}
 {"action": "tag", "ids": ["t24940054202251302_0"], "add": ["new wave"], "remove": [], "ts": 1795623955}
 {"action": "edit", "thread": "p23980691428187589", "id": "t24940054202251302_0", "title": "Blancmange - Waves (1983)", "url": "https://www.youtube.com/watch?v=bq9cnJGd9RA", "tags": ["new wave"], "ts": 1795623971}
+{"action": "tag", "ids": ["t25432360053020712_0"], "add": ["pop rock"], "remove": [], "ts": 1795624005}
