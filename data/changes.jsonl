@@ -2592,3 +2592,4 @@
 {"action": "tag", "ids": ["t26882355474687822_0"], "add": ["shoegaze"], "remove": [], "ts": 1795624404}
 {"action": "tag", "ids": ["t29810884405168233_0"], "add": ["night drive", "dub techno"], "remove": [], "ts": 1795624480}
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552509801432335_0", "title": "Sixpence None The Richer – Kiss Me (1998)", "url": "https://www.youtube.com/watch?v=CAC-onWPMB0", "tags": ["2000s pop"], "ts": 1795629516}
+{"action": "tag", "ids": ["t8552498788100103_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795629542, "auto": "player"}
