@@ -2607,3 +2607,7 @@
 {"action": "edit", "thread": "p8552138541469461", "id": "t8553014508048531_0", "title": "Gwen Stefani – Cool (2004)", "url": "https://www.youtube.com/watch?v=F0_U_UJuYqg", "tags": ["2000s pop"], "ts": 1795629846}
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552565498093432_0", "title": "Travis – Sing (2001)", "url": "https://www.youtube.com/watch?v=EfO2v2Zi3Bo", "tags": ["2000s pop"], "ts": 1795629869}
 {"action": "delete", "thread": "p5802638666419476", "id": "t5812061915477151_0", "ts": 1795629913, "url": "https://www.youtube.com/watch?v=saz95lOkfv0", "title": "Are You In?"}
+{"action": "edit", "thread": "p8552138541469461", "id": "t8552547631428552_0", "title": "Incubus – Are You In? (2002)", "url": "https://www.youtube.com/watch?v=saz95lOkfv0", "tags": ["duplicate"], "ts": 1795629926}
+{"action": "tag", "ids": ["t8552547631428552_0"], "add": ["nu-metal"], "remove": [], "ts": 1795629931}
+{"action": "tag", "ids": ["t8552547631428552_0"], "add": ["alt rock"], "remove": ["duplicate"], "ts": 1795629943}
+{"action": "tag", "ids": ["t8552547631428552_0"], "add": [], "remove": ["nu-metal"], "ts": 1795629952}
