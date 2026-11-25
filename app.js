@@ -371,6 +371,7 @@ function showWhy(row) {
    The logo opens the menu. Search always looks through everything; clearing it returns to the page you were on. */
 let view = "threads";
 const VIEW_NAMES = { threads: "Threads", tags: "Tags", mixes: "Mixes", genres: "Genres", history: "History", activity: "Activity", lookup: "Lookup", tagged: "Archive", genreboxes: "Genres (one box each)", tagsold: "Tags (Oct 2026)", tagsrows: "Tags (Nov 2026)", tag: "Tag", threadsold: "Threads (Oct 2026)" };
+const HASH_OF = { tagged: "archive" }, VIEW_OF = { archive: "tagged" }; // (Archive's address is #/archive; the old #/tagged still opens it)
 const slug = (g) => fold(g).replace(/ /g, "-");
 const newestFirst = (a, b) => b.ts - a.ts;
 function viewItems() {
@@ -928,7 +929,7 @@ function setView(v, keepHash) {
   }
   if (!tagsView()) hideTagPanel();
   tp.focused = false; // (opening Tags puts the cursor in its search field)
-  if (!keepHash) history.replaceState(null, "", view === "threads" ? location.pathname : view === "tag" ? "#/tag/" + encodeURIComponent(tagPageName) : "#/" + view);
+  if (!keepHash) history.replaceState(null, "", view === "threads" ? location.pathname : view === "tag" ? "#/tag/" + encodeURIComponent(tagPageName) : "#/" + (HASH_OF[view] || view));
   document.querySelectorAll("#menu [data-view]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.view === view || (view === "lookup" && b.dataset.view === "activity"))));
   preSearch = null; $("#q").value = ""; syncClear();
   runSearch(); pageScrollTo(0);
@@ -942,8 +943,8 @@ function toggleMenu(open = $("#menu").hidden) {
 addEventListener("hashchange", () => { // back/forward and links between pages
   const tg = location.hash.match(/^#\/tag\/(.+)$/);
   if (tg) { tagPageName = decodeURIComponent(tg[1]); setView("tag", true); return; }
-  const page = location.hash.match(/^#\/(\w+)/);
-  if (page && VIEW_NAMES[page[1]] && page[1] !== view) setView(page[1], true);
+  const page = location.hash.match(/^#\/(\w+)/), pv = page && (VIEW_OF[page[1]] || page[1]);
+  if (page && VIEW_NAMES[pv] && pv !== view) setView(pv, true);
   else if (!location.hash && view !== "threads") setView("threads", true);
 });
 $("#menu").addEventListener("click", (e) => {
@@ -4678,8 +4679,9 @@ document.addEventListener("click", (e) => {
   const deepT = deep && threads.find((t) => t.id === decodeURIComponent(deep[1])); // a post's address: the feed opens at that post
   const tagHash = location.hash.match(/^#\/tag\/(.+)$/);
   if (tagHash) tagPageName = decodeURIComponent(tagHash[1]); // a tag's own page
-  const page = location.hash.match(/^#\/(\w+)/);
-  if (page && VIEW_NAMES[page[1]]) view = page[1];
+  const page = location.hash.match(/^#\/(\w+)/), pv = page && (VIEW_OF[page[1]] || page[1]);
+  if (page && VIEW_NAMES[pv]) view = pv;
+  if (page && HASH_OF[page[1]]) history.replaceState(null, "", location.hash.replace("#/" + page[1], "#/" + HASH_OF[page[1]])); // (an old #/tagged link: shown as #/archive)
   if (page && page[1] === "random") setTimeout(() => setView("random"), 0); // Random opened in a new tab
   const gq = location.hash.match(/^#\/genres\?g=(.+)$/);
   if (gq) gSel = gq[1].split(",").map(decodeURIComponent).filter(Boolean);
