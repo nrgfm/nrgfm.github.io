@@ -2622,3 +2622,4 @@
 {"action": "tag", "ids": ["t8552550068094975_0"], "add": [], "remove": ["pop-punk"], "ts": 1795630215}
 {"action": "tag", "ids": ["t25523947137195336_0"], "add": ["nu-metal"], "remove": [], "ts": 1795630260}
 {"action": "tag", "ids": ["t25523947137195336_0"], "add": ["emo"], "remove": [], "ts": 1795630263}
+{"action": "tagrename", "from": "nu-metal", "to": "nu metal", "ts": 1795630306}
