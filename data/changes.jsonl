@@ -2594,3 +2594,5 @@
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552509801432335_0", "title": "Sixpence None The Richer – Kiss Me (1998)", "url": "https://www.youtube.com/watch?v=CAC-onWPMB0", "tags": ["2000s pop"], "ts": 1795629516}
 {"action": "tag", "ids": ["t8552498788100103_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795629542, "auto": "player"}
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552498788100103_0", "title": "The Brian Jonestown Massacre – Anemone (1996)", "url": "https://www.youtube.com/watch?v=jgL4JrF8xLA", "tags": [], "ts": 1795629585}
+{"action": "tag", "ids": ["t8552498788100103_0"], "add": ["folk", "psychedelic"], "remove": [], "ts": 1795629604}
+{"action": "tag", "ids": ["t8552498788100103_0"], "add": ["zoinked"], "remove": [], "ts": 1795629609}
