@@ -2574,3 +2574,4 @@
 {"action": "tag", "ids": ["t8208006599215992_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795623791, "auto": "player"}
 {"action": "edit", "thread": "p7597438136939511", "id": "t8208006599215992_0", "title": "Supermode – Tell Me Why (Maddix Extended Remix)", "url": "https://www.youtube.com/watch?v=wfGuzLIdvXM", "tags": [], "ts": 1795623819}
 {"action": "tag", "ids": ["t25932842069639172_0"], "add": ["curio"], "remove": [], "ts": 1795623864}
+{"action": "edit", "thread": "p23980691428187589", "id": "t24940076675582388_0", "title": "Ultravox! – Vienna (1981)", "url": "https://www.youtube.com/watch?v=EoVBjYpxhF0", "tags": ["ballad", "80s synth pop"], "ts": 1795623931}
