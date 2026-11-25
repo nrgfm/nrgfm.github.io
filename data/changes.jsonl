@@ -2596,3 +2596,5 @@
 {"action": "edit", "thread": "p8552138541469461", "id": "t8552498788100103_0", "title": "The Brian Jonestown Massacre – Anemone (1996)", "url": "https://www.youtube.com/watch?v=jgL4JrF8xLA", "tags": [], "ts": 1795629585}
 {"action": "tag", "ids": ["t8552498788100103_0"], "add": ["folk", "psychedelic"], "remove": [], "ts": 1795629604}
 {"action": "tag", "ids": ["t8552498788100103_0"], "add": ["zoinked"], "remove": [], "ts": 1795629609}
+{"action": "edit", "thread": "p8552138541469461", "id": "t8552306698119312_0", "title": "Avril Lavigne - Complicated (2002)", "url": "https://www.youtube.com/watch?v=5eGbnVlRcRg", "tags": ["2000s pop"], "ts": 1795629636}
+{"action": "tag", "ids": ["t8552306698119312_0"], "add": ["pop-punk"], "remove": [], "ts": 1795629649}
