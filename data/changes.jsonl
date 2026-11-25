@@ -2578,3 +2578,5 @@
 {"action": "tag", "ids": ["t24940054202251302_0"], "add": ["new wave"], "remove": [], "ts": 1795623955}
 {"action": "edit", "thread": "p23980691428187589", "id": "t24940054202251302_0", "title": "Blancmange - Waves (1983)", "url": "https://www.youtube.com/watch?v=bq9cnJGd9RA", "tags": ["new wave"], "ts": 1795623971}
 {"action": "tag", "ids": ["t25432360053020712_0"], "add": ["pop rock"], "remove": [], "ts": 1795624005}
+{"action": "tag", "ids": ["t23906859258904140_0"], "add": ["latin", "funk"], "remove": [], "ts": 1795624032}
+{"action": "tag", "ids": ["t10042292765787357_0"], "add": ["art pop"], "remove": [], "ts": 1795624057}
