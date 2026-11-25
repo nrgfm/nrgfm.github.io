@@ -944,6 +944,7 @@ addEventListener("hashchange", () => { // back/forward and links between pages
   const tg = location.hash.match(/^#\/tag\/(.+)$/);
   if (tg) { tagPageName = decodeURIComponent(tg[1]); setView("tag", true); return; }
   const page = location.hash.match(/^#\/(\w+)/), pv = page && (VIEW_OF[page[1]] || page[1]);
+  if (page && HASH_OF[page[1]]) history.replaceState(null, "", location.hash.replace("#/" + page[1], "#/" + HASH_OF[page[1]])); // (an old #/tagged link: shown as #/archive)
   if (page && VIEW_NAMES[pv] && pv !== view) setView(pv, true);
   else if (!location.hash && view !== "threads") setView("threads", true);
 });
