@@ -2653,3 +2653,5 @@
 {"action": "edit", "thread": "p1629586363724748", "id": "t1647787278571323_0", "title": "David Axelrod - The Human Abstract (1969)", "url": "https://www.youtube.com/watch?v=5nurl0YewBA", "tags": ["psychedelic", "prog rock", "jazz rock"], "ts": 1795686502}
 {"action": "edit", "thread": "p1629586363724748", "id": "t1671576422859075_0", "title": "Wim Overgaauw - Without You (1971)", "url": "https://www.youtube.com/watch?v=EeHd_b4ndyA", "tags": ["jazz", "smooth", "easy listening"], "ts": 1795686532}
 {"action": "edit", "thread": "p1629586363724748", "id": "t1671576422859075_0", "title": "Wim Overgaauw - Without You (1971)", "url": "https://www.youtube.com/watch?v=EeHd_b4ndyA", "tags": ["jazz", "smooth", "easy listening", "theme"], "ts": 1795686544}
+{"action": "tag", "ids": ["t1671576422859075_0"], "add": [], "remove": ["smooth"], "ts": 1795686568}
+{"action": "tag", "ids": ["t1671576422859075_0"], "add": ["relaxing"], "remove": [], "ts": 1795686572}
