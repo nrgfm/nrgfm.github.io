@@ -2646,3 +2646,4 @@
 {"action": "tag", "ids": ["t1792953001_0"], "add": ["baroque pop"], "remove": [], "ts": 1795685898}
 {"action": "edit", "thread": "p29810229921900348", "id": "t29810229921900348_0", "title": "10cc - I'm Not in Love (1975)", "url": "https://www.youtube.com/watch?v=fXjzloT4y-0", "tags": ["evergreens", "#elena"], "ts": 1795685951}
 {"action": "tag", "ids": ["t29810229921900348_0"], "add": ["prog pop"], "remove": [], "ts": 1795685977}
+{"action": "delete", "thread": "p1629586363724748", "id": "t1648007835215934_0", "ts": 1795686382, "url": "https://www.youtube.com/watch?v=6ig4mOBOhII", "title": "Nuno Canavarro - Blu Terra"}
