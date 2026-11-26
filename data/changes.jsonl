@@ -2678,3 +2678,6 @@
 {"action": "tag", "ids": ["t6669057769777557_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795701875, "auto": "player"}
 {"action": "edit", "thread": "p6372652196084784", "id": "t6669057769777557_0", "title": "Eagles Prey – Tonto's Drum (Darren Emerson 1992 Remix)", "url": "https://www.youtube.com/watch?v=Cn1asZSQIEg", "tags": [], "ts": 1795701899}
 {"action": "edit", "thread": "p6372652196084784", "id": "t6669057769777557_0", "title": "Eagles Prey – Tonto's Drum (Darren Emerson 1992 Remix)", "url": "https://www.youtube.com/watch?v=Cn1asZSQIEg", "tags": [], "ts": 1795701922}
+{"action": "tag", "ids": ["t1208420109174711_0"], "add": ["proto house"], "remove": [], "ts": 1795701966}
+{"action": "edit", "thread": "p1201545779862144", "id": "t1208420109174711_0", "title": "Flash - Boom Boom (1989)", "url": "https://www.youtube.com/watch?v=9S8qwaMao-o", "tags": ["proto house", "new beat"], "ts": 1795701979}
+{"action": "edit", "thread": "p1201545779862144", "id": "t1208420109174711_0", "title": "Flash - Boom Boom (1989)", "url": "https://www.youtube.com/watch?v=9S8qwaMao-o", "tags": ["proto house", "new beat"], "ts": 1795701980}
