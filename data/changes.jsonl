@@ -2633,3 +2633,4 @@
 {"action": "edit", "thread": "p1217356064947782", "id": "t1217356121614443_0", "title": "Ryo Kawasaki - Hawaiian Caravan (1982)", "url": "https://www.youtube.com/watch?v=-2WfYYBuBgs", "tags": ["fusion", "instrumental"], "ts": 1795685017}
 {"action": "tag", "ids": ["t1217356121614443_0"], "add": ["eclectic 80s"], "remove": [], "ts": 1795685055}
 {"action": "edit", "thread": "p3412728762077157", "id": "t3415253575158009_0", "title": "Ice Choir - Everything Is Spoilt By Use (2012)", "url": "https://www.youtube.com/watch?v=6WiOy32L_lw", "tags": [], "ts": 1795685148}
+{"action": "tag", "ids": ["t3415253575158009_0"], "add": ["indie"], "remove": [], "ts": 1795685171}
