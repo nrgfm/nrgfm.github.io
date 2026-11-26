@@ -1862,3 +1862,12 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .track.row-plays { cursor: pointer; }
 /* Genres: the tracks' titles as on Threads (regular, 15px; San Francisco, thin mode as everywhere) */
 .genre-mix .tr-title, .gm-list .tr-title { font-weight: 400; font-size: 15px; line-height: 1.33; }
+/* the lock stays where it is when the Add-track card opens below the header (it was centred on the whole header) */
+@media (min-width: 641px) { .lock { top: 32px; } }
+/* the "1 of 44" list: titles as on Threads, square thumbnails */
+#threadList .tr-title { font-size: 15px; font-weight: 400; line-height: 1.33; }
+#threadList .chip { width: 48px; height: 48px; object-fit: cover; }
+/* the player's volume, Autoplay, Copy info, Copy link at rest: the same colour as the track's title beside them */
+@media (min-width: 641px) { #volBtn, #autoBtn:not([aria-pressed="true"]), #infoBtn:not(.done), #copyBtn:not(.done) { color: color-mix(in srgb, var(--text) 88%, var(--bg)); } }
+/* the side list of opened posts: square thumbnails */
+.browse-row .side-thumb { width: 40px; height: 40px; object-fit: cover; }

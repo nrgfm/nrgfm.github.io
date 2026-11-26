@@ -372,6 +372,10 @@ function showWhy(row) {
 let view = "threads";
 const VIEW_NAMES = { threads: "Threads", tags: "Tags", mixes: "Mixes", genres: "Genres", history: "History", activity: "Activity", lookup: "Lookup", tagged: "Archive", genreboxes: "Genres (one box each)", tagsold: "Tags (Oct 2026)", tagsrows: "Tags (Nov 2026)", tag: "Tag", threadsold: "Threads (Oct 2026)" };
 const HASH_OF = { tagged: "archive" }, VIEW_OF = { archive: "tagged" }; // (Archive's address is #/archive; the old #/tagged still opens it)
+/* tags offered for what's typed, best fit first: the name exactly, then names starting with it (the shorter, with fewer
+   words, first: "atmospheric" before "atmospheric jungle"), then names with a word starting with it; then the most used */
+const tagFit = (g, q) => { const f = fold(g); return f === q ? 0 : f.startsWith(q) ? 1 + f.split(" ").length / 10 + f.length / 1000 : 3; };
+const byTagFit = (q, n = (g) => 0) => (a, b) => tagFit(a, q) - tagFit(b, q) || n(b) - n(a);
 const slug = (g) => fold(g).replace(/ /g, "-");
 const newestFirst = (a, b) => b.ts - a.ts;
 function viewItems() {
@@ -552,7 +556,7 @@ function genrePicker(keepFocus) {
   let opts = [], active = 0;
   const drawDrop = () => {
     const q = fold(input.value);
-    opts = q ? counts.filter(([g]) => fold(g).split(" ").some((w) => w.startsWith(q)) || fold(g).startsWith(q)).slice(0, 8) : [];
+    opts = q ? counts.filter(([g]) => fold(g).split(" ").some((w) => w.startsWith(q)) || fold(g).startsWith(q)).sort((a, b) => tagFit(a[0], q) - tagFit(b[0], q)).slice(0, 8) : []; // (stable: the most used first among equals)
     active = 0;
     drop.replaceChildren(el("ul", { class: "drop-list" }, opts.map(([g, n], k) => el("li", { class: k === active ? "on" : "",
       onmousedown: (e) => { e.preventDefault(); setGenres([...gSel, g]); } }, g, el("span", { class: "gi-n" }, n)))));
@@ -1082,7 +1086,7 @@ const RECOVERED = "title recovered from Internet Archive";
 function trackRow(t, tr, i, hits) {
   const x = info(tr);
   const chip = img(x.thumb, "chip"); chip.addEventListener("click", () => play(t, i)); chip.style.cursor = "pointer"; // (the thumbnail plays it too)
-  const wholeRow = view === "threads" && !phone(); // Threads (computer): anywhere on the row plays it, as on the post's own row (not its buttons, links or tags)
+  const wholeRow = (view === "threads" || view === "tagged" || view === "tag") && !phone(); // Threads, Archive, a tag's page (computer): anywhere on the row plays it (not its buttons, links or tags)
   return el("li", { class: ["track", x.dead && "dead", hits && hits.has(i) && "hit", wholeRow && "row-plays"].filter(Boolean).join(" "), "data-k": `${t.id}:${i}`,
     onclick: wholeRow ? (e) => { if (e.target.closest("button, a, input, .tag, .chip, .edit-wrap, form")) return; play(t, i); } : null },
     chip,
@@ -1892,9 +1896,17 @@ function makePlain(box, src, title) {
   return { controllable: false, ready: Promise.resolve(), play() {}, pause() {}, seek() {}, setVolume() {}, destroy() {} };
 }
 
+/* Archive shows only a post's tracks with a tag of their own: played from there, "1 of 4" counts those, Prev/Next and the
+   list go through those, and autoplay goes on to the next such track (across posts, as before) */
+function archiveScope(t, i) {
+  if (view !== "tagged" || t.shuffle || t.kind !== "thread") return null;
+  const sc = []; t.tracks.forEach((tr, k) => { if (userTagged(tr) || k === i) sc.push(k); });
+  return sc.length < t.tracks.length ? sc : null;
+}
 function play(t, i) {
   if (i < 0 || i >= t.tracks.length) return;
-  playing = { thread: t, index: i };
+  const keep = playing && playing.thread === t && playing.scope && playing.scope.includes(i); // (Prev/Next or the list inside the same Archive post)
+  playing = { thread: t, index: i, scope: keep ? playing.scope : archiveScope(t, i) };
   if ((t.mix || t.shuffle || (t.kind === "tag" && view === "tag")) && !autoplay) { autoplay = true; $("#autoBtn").setAttribute("aria-pressed", "true"); $("#autoBtn").textContent = "Autoplay on"; } // a Genres playlist plays on
   const pn = document.getElementById("th-" + t.id);
   // the thread you play from gets the selected frame (in search results only the ones that scroll)
@@ -1912,11 +1924,12 @@ function play(t, i) {
   startPlayLog(tr0, x);
   $("#dock").classList.remove("wide"); // a new track: the buttons come back
   showFlag();
-  $("#threadBtn").textContent = `${i + 1} of ${t.tracks.length}` + (phone() ? "" : t.shuffle ? " in shuffle" : t.kind === "tag" ? " in this tag" : " in this thread");
+  const sc = playing.scope, pos = sc ? sc.indexOf(i) : i, len = sc ? sc.length : t.tracks.length;
+  $("#threadBtn").textContent = `${pos + 1} of ${len}` + (phone() ? "" : t.shuffle ? " in shuffle" : t.kind === "tag" ? " in this tag" : " in this thread");
   closeThread();
   fitTitle();
-  $("#prevBtn").disabled = i === 0;
-  $("#nextBtn").disabled = i === t.tracks.length - 1;
+  $("#prevBtn").disabled = pos === 0;
+  $("#nextBtn").disabled = pos === len - 1 && !sc; // (in Archive the last one goes on to the next post's, as autoplay does)
   wantPlay = null; startedOnce = false; pendingSeek = null; durKnown = false; seeking = false; setPlayState(false); expectDur = lenOf(tr) || 0; seekGuard = null; clearTimeout(reloadTimer); setTime(0, expectDur); durKnown = false; requestPlay(true); setLoading(true); // (the bar has the length we know already, so a drag while loading means something) // (a new track: the button shows Pause at once, its ring turns until it plays)
   section = (tr.start || tr.end) && ["youtube", "soundcloud", "vimeo"].includes(tr.platform)
     ? { s: tr.start || 0, e: tr.end || 0, live: false, started: false, done: false } : null;
@@ -1985,8 +1998,15 @@ function freezeScrolledResult(t) {
 
 /* a button that was used flashes once, filled like Play (Prev/Next, also from Cmd+Left/Right); the volume lights up */
 function flashBtn(b, cls = "flash", ms = 260) { if (!b) return; b.classList.remove(cls); void b.offsetWidth; b.classList.add(cls); clearTimeout(b._fl); b._fl = setTimeout(() => b.classList.remove(cls), ms); }
-$("#prevBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); play(playing.thread, playing.index - 1); };
-$("#nextBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); play(playing.thread, playing.index + 1); };
+function stepTrack(d) {
+  const { thread: t, index: i, scope: sc } = playing;
+  if (!sc) { play(t, i + d); return; }
+  const at = sc.indexOf(i) + d;
+  if (at >= 0 && at < sc.length) play(t, sc[at]);
+  else if (d > 0) { const a = autoplay; autoplay = true; autoNext(); autoplay = a; } // (Archive: on to the next post's tracks)
+}
+$("#prevBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); stepTrack(-1); };
+$("#nextBtn").onclick = (e) => { if (!playing) return; flashBtn(e.currentTarget); stepTrack(1); };
 $("#playBtn").onclick = () => {
   if (!adapter) return;
   const on = $("#playBtn").textContent !== "Pause"; // what the button asks for now
@@ -2017,8 +2037,9 @@ for (const s of [seekEl, $("#vol")]) s.addEventListener("pointerup", () => setTi
 function closeThread() { $("#threadPop").hidden = true; $("#threadBtn").setAttribute("aria-expanded", "false"); }
 function openThread() {
   if (!playing) return;
-  const t = playing.thread;
+  const t = playing.thread, only = playing.scope;
   $("#threadList").replaceChildren(...t.tracks.map((tr, i) => {
+    if (only && !only.includes(i)) return null; // (from Archive: only the tracks it shows)
     const x = info(tr);
     return el("li", {},
       el("button", { class: "tl-item" + (i === playing.index ? " current" : "") + (x.dead ? " dead" : ""), onclick: () => play(t, i), "aria-current": i === playing.index ? "true" : null },
@@ -2026,7 +2047,7 @@ function openThread() {
         el("span", { class: "tl-text" },
           el("span", { class: "tr-title" }, x.title),
           el("span", { class: "tr-sub" }, shownTags(tr).filter((g) => g !== "duplicate" || !phone()).join(", ")))));
-  }));
+  }).filter(Boolean));
   const room = $(".bar").getBoundingClientRect().top - headerBottom() - 16;
   $("#threadPop").style.maxHeight = phone() ? Math.max(120, room) + "px" : "";
   $("#threadPop").hidden = false; $("#threadBtn").setAttribute("aria-expanded", "true");
@@ -2372,7 +2393,7 @@ function tagEditor(initial, suggested = []) {
     const q = fold(input.value);
     const sug = suggested.filter((g) => !chosen.includes(g) && (!q || fold(g).includes(q)));
     opts = q ? allTags().filter((g) => !isAutoTag(g) && !chosen.includes(g) && !sug.includes(g) && fold(g).includes(q)) // (no automatic tags)
-      .sort((a, b) => fold(b).startsWith(q) - fold(a).startsWith(q)).slice(0, 6) : [];
+      .sort(byTagFit(q)).slice(0, 6) : [];
     active = 0;
     const parts = [];
     if (sug.length) parts.push(el("div", { class: "drop-sug" }, sug.map((g) => el("button", { type: "button", class: "tag-chip suggest", title: "Use this tag",
@@ -3627,7 +3648,7 @@ function tagSearchField() {
   };
   const drawDrop = () => {
     const q = input.value.trim();
-    opts = q ? threads.filter((t) => t.kind === "tag" && tagMatches(t.name, q) && !tp.terms.includes(t.name)).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 8) : [];
+    opts = q ? threads.filter((t) => t.kind === "tag" && tagMatches(t.name, q) && !tp.terms.includes(t.name)).sort((a, b) => tagFit(a.name, q) - tagFit(b.name, q) || b.tracks.length - a.tracks.length).slice(0, 8) : [];
     active = -1;
     drop.replaceChildren(el("ul", { class: "drop-list" }, opts.map((t, k) => el("li", { onmousedown: (e) => { e.preventDefault(); pick(t.name); } },
       t.name, el("span", { class: "gi-n" }, t.tracks.length)))));
@@ -3839,8 +3860,8 @@ function drawTagPanel(show, page) {
     const parts = [el("div", { class: "tpg-row1" }, head, slider ? el("div", { class: "tpg-years" }, slider) : null), descBox,
       el("div", { class: "tp-btns tpg-row2" }, orderBtn("newest", "Newest added"), orderBtn("oldest", "Oldest added"), orderBtn("shuffle", "Shuffle"),
         longBtns.length ? el("span", { class: "tpg-long" }, longBtns) : null,
-        key && !phone() ? el("span", { class: "tpg-edit" }, el("button", { class: "when-link", onclick: editDesc }, desc ? "Edit description" : "Add description"),
-          !isAutoTag(g) ? el("button", { class: "when-link", onclick: rename }, "Rename") : null) : null)].filter(Boolean);
+        key && !phone() && (desc || level() === 1) ? el("span", { class: "tpg-edit" }, desc ? el("button", { class: "when-link", onclick: editDesc }, "Edit description") : null, // (no "Add description"; one already written can still be edited)
+          !isAutoTag(g) && level() === 1 ? el("button", { class: "when-link", onclick: rename }, "Rename") : null) : null)].filter(Boolean); // (Rename: only with the key)
     if (desc) descBox.addEventListener("dblclick", () => key && editDesc());
     return parts;
   }
