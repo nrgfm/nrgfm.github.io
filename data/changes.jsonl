@@ -2649,3 +2649,4 @@
 {"action": "delete", "thread": "p1629586363724748", "id": "t1648007835215934_0", "ts": 1795686382, "url": "https://www.youtube.com/watch?v=6ig4mOBOhII", "title": "Nuno Canavarro - Blu Terra"}
 {"action": "tag", "ids": ["t1651656158184435_0"], "add": ["curio"], "remove": [], "ts": 1795686399}
 {"action": "edit", "thread": "p1629586363724748", "id": "t1647787278571323_0", "title": "David Axelrod - The Human Abstract (1969)", "url": "https://www.youtube.com/watch?v=5nurl0YewBA", "tags": [], "ts": 1795686430}
+{"action": "edit", "thread": "p1629586363724748", "id": "t1647787278571323_0", "title": "David Axelrod - The Human Abstract (1969)", "url": "https://www.youtube.com/watch?v=5nurl0YewBA", "tags": ["psychedelic", "prog rock"], "ts": 1795686482}
