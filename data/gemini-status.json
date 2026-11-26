@@ -1,11 +1,11 @@
 {
- "date": "2026-11-26 10:58",
- "asked": 18,
- "done": 4065,
+ "date": "2026-11-26 23:01",
+ "asked": 15,
+ "done": 4066,
  "month": {
   "searches": 1160,
-  "cost": 2.309
+  "cost": 2.316
  },
  "state": "ok",
- "model": "gemini-3.8-flash"
+ "model": "gemini-3.5-flash-lite"
 }
