@@ -1905,3 +1905,13 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   .vol-wrap:hover, .vol-wrap.open, .vol-wrap.lit { border-color: transparent; background: color-mix(in srgb, var(--surface-2) 97%, var(--text)); }
   .vol-wrap:has(#volBtn:active) { border-color: var(--muted); background: color-mix(in srgb, var(--surface-2) 94%, var(--text)); transition: none; }
 }
+
+/* the player's × (computer): its fill at rest as before, the × in the player title's colour; under the pointer the
+   fill lights up as on the buttons beside it, no outline; pressing: the outline and the brighter fill at once, both
+   fading out after letting go */
+@media (min-width: 641px) {
+  #closeBtn { color: color-mix(in srgb, var(--text) 88%, var(--bg)); border-color: transparent; background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+    transition: color .15s ease, border-color .31s ease, background-color .31s ease; }
+  #closeBtn:hover { color: var(--text); border-color: transparent; background: color-mix(in srgb, var(--surface-2) 97%, var(--text)); }
+  #closeBtn:active { color: var(--text); border-color: var(--muted); background: color-mix(in srgb, var(--surface-2) 94%, var(--text)); transition: none; }
+}
