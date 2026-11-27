@@ -782,16 +782,17 @@ function drawBrowse() {
     else if (Math.abs(was - now) > 1) r.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 260, easing: "ease-out" }); // the others are pushed down
   }
 }
-function fadeEnd(list) { // (the side list: the gap between rows so that exactly 9 fit when it's scrolled to the top, no row cut off)
+function fadeEnd(list) { // (the side list: exactly 9 rows fit when it's scrolled to the top, none cut off; the room left over
+  // goes into each row's own box, above and below its content, so the boxes nearly touch, as the rows on Threads)
   const rows = [...list.children];
   if (!rows.length) return;
+  list.style.setProperty("--bp", "0px");
   const panel = list.parentElement, max = parseFloat(panel.style.maxHeight) || panel.offsetHeight;
-  const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height;
+  const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height, gap = 2;
   const room = max - (panel.offsetHeight - list.clientHeight) - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0); // (the most the list can be)
-  const want = +new URLSearchParams(location.search).get("sl") === 10 ? 10 : 9; // (temporary: ?sl=10 to compare with 10)
-  const n = Math.max(2, Math.min(want, Math.floor((room + 2) / (h + 2)))); // (9, or as many whole rows as a short window has room for)
-  const gap = Math.max(2, (room - n * h) / (n - 1));
-  list.style.setProperty("--bg-gap", gap.toFixed(2) + "px");
+  const n = Math.max(2, Math.min(9, Math.floor((room + gap) / (h + gap)))); // (9, or as many whole rows as a short window has room for)
+  const extra = Math.max(0, (room - n * h - (n - 1) * gap) / n);
+  list.style.setProperty("--bp", (extra / 2).toFixed(2) + "px");
 }
 addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
