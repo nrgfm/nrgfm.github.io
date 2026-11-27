@@ -1872,3 +1872,12 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 @media (min-width: 641px) { #volBtn, #autoBtn:not([aria-pressed="true"]), #infoBtn:not(.done), #copyBtn:not(.done) { color: color-mix(in srgb, var(--text) 88%, var(--bg)); } }
 /* the side list of opened posts: square thumbnails */
 .browse-row .side-thumb { width: 32px; height: 32px; object-fit: cover; } /* (square, as tall as before: room for the same number of rows) */
+
+/* the "1 of 44" list: the tags scaled down with the titles (15 → 14.5px) */
+#threadList .tag { font-size: 12.5px; }
+/* its hover and selected background: by default brighter than the list (as on Threads); ?tl=1 darker, ?tl=2 brighter */
+.tl-item:hover, .tl-item.current { background: color-mix(in srgb, var(--surface-2) 70%, var(--surface)); }
+body.tl-1 .tl-item:hover, body.tl-1 .tl-item.current { background: color-mix(in srgb, var(--surface) 55%, #000); }
+body.tl-2 .tl-item:hover, body.tl-2 .tl-item.current { background: color-mix(in srgb, var(--surface-2) 90%, var(--text)); }
+/* the note on what a search result matched: the player bar's colour */
+.why { background: var(--surface); }
