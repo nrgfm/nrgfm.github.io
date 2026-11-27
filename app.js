@@ -788,7 +788,8 @@ function fadeEnd(list) { // (the side list: the gap between rows so that exactly
   const panel = list.parentElement, max = parseFloat(panel.style.maxHeight) || panel.offsetHeight;
   const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height;
   const room = max - (panel.offsetHeight - list.clientHeight) - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0); // (the most the list can be)
-  const n = Math.max(2, Math.min(9, Math.floor((room + 2) / (h + 2)))); // (9, or as many whole rows as a short window has room for)
+  const want = +new URLSearchParams(location.search).get("sl") === 10 ? 10 : 9; // (temporary: ?sl=10 to compare with 10)
+  const n = Math.max(2, Math.min(want, Math.floor((room + 2) / (h + 2)))); // (9, or as many whole rows as a short window has room for)
   const gap = Math.max(2, (room - n * h) / (n - 1));
   list.style.setProperty("--bg-gap", gap.toFixed(2) + "px");
 }

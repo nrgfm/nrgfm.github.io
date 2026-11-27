@@ -1840,7 +1840,7 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .t-title, .tr-title, .side-name, .mh-title, .lk-title { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 /* titles in the side panels (Threads' side list, History's, the Tags panels): thin mode, a touch bolder, a little
    dimmer than the page's titles; the side list's dates dimmed to match */
-.tag-panel .side-name { font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
+.tag-panel .side-name { font-weight: 400; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
 .tag-panel .side-row.here .side-name { color: var(--jade); }
 .browse-text .browse-date { color: color-mix(in srgb, var(--muted) 90%, var(--bg)); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 /* the player's title: semi-bold, drawn in the thin mode, a little dimmer than the text */
@@ -1848,7 +1848,7 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 
 /* the side space while editing tags (a tag's tracks): titles as in the other side panels; the tag's name in the
    colour of a tag's name on its own page */
-.side .side-name { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-weight: 500; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
+.side .side-name { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-weight: 400; color: color-mix(in srgb, var(--text) 81%, var(--bg)); }
 .side .side-row.playing .side-name { color: var(--jade); }
 .side .side-title { color: var(--jade); }
 
