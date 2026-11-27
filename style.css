@@ -1882,3 +1882,23 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 .tl-item.current .tr-title { color: inherit; }
 /* the note on what a search result matched: the player bar's colour */
 .why { background: var(--surface); }
+
+/* Prev / Next: the text in the player title's colour until the pointer is on them; pressing shows the blue at once
+   (not only after letting go); under the pointer the fill also lights up a little (its fade towards Play kept) */
+#prevBtn:not(:disabled), #nextBtn:not(:disabled) { color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
+#prevBtn:hover:not(:disabled), #nextBtn:hover:not(:disabled) { color: var(--text); }
+#prevBtn:hover:not(:disabled)::after, #nextBtn:hover:not(:disabled)::after { background-color: color-mix(in srgb, var(--text) 7%, transparent); }
+#prevBtn:active:not(:disabled), #nextBtn:active:not(:disabled) { color: var(--jade-ink) !important; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; transition: none; }
+#prevBtn:active:not(:disabled)::after, #nextBtn:active:not(:disabled)::after { opacity: 1; transition: none;
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); background-color: color-mix(in srgb, color-mix(in srgb, var(--jade) 90%, #000) 88%, transparent); }
+
+/* the player's volume, Autoplay, Copy info, Copy link (computer): under the pointer the fill lights up (the ×'s fill),
+   no outline; pressing: the outline and a slightly brighter fill at once, both fading out after letting go */
+@media (min-width: 641px) {
+  #volBtn, #autoBtn, #infoBtn, #copyBtn, .vol-wrap { transition: color .15s ease, border-color .31s ease, background-color .31s ease; }
+  #autoBtn:hover:not(:disabled), #infoBtn:hover:not(:disabled), #copyBtn:hover:not(:disabled) { border-color: transparent; background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+  #autoBtn:active:not(:disabled), #infoBtn:active:not(:disabled), #copyBtn:active:not(:disabled) { border-color: var(--muted); background: color-mix(in srgb, var(--surface-2) 85%, transparent); transition: none; }
+  .vol-wrap #volBtn, .vol-wrap #volBtn:hover, .vol-wrap #volBtn:active { background: none; border-color: transparent; }
+  .vol-wrap:hover, .vol-wrap.open, .vol-wrap.lit { border-color: transparent; background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+  .vol-wrap:has(#volBtn:active) { border-color: var(--muted); background: color-mix(in srgb, var(--surface-2) 85%, transparent); transition: none; }
+}
