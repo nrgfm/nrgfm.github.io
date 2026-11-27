@@ -1875,12 +1875,10 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 
 /* the "1 of 44" list: the tags scaled down with the titles (15 → 14.5px) */
 #threadList .tag { font-size: 12.5px; }
-/* its hover and playing background. ?tl=2 (and by default): Threads' colours — playing as a playing row on Threads
-   (surface-2); hover between the list and that (Threads' own hover colour is the list's background here, so it
-   wouldn't show). ?tl=1: darker — playing in the page's background colour, hover a little less dark */
-.tl-item:hover { background: color-mix(in srgb, var(--surface) 50%, var(--surface-2)); }
-.tl-item.current, .tl-item.current:hover { background: var(--surface-2); }
-body.tl-1 .tl-item:hover { background: color-mix(in srgb, var(--bg) 55%, var(--surface)); }
-body.tl-1 .tl-item.current, body.tl-1 .tl-item.current:hover { background: var(--bg); }
+/* its hover and playing background: darker than the list — playing in the page's background colour, hover a little
+   less dark; the playing title keeps its colour (no blue) */
+.tl-item:hover { background: color-mix(in srgb, var(--bg) 55%, var(--surface)); }
+.tl-item.current, .tl-item.current:hover { background: var(--bg); }
+.tl-item.current .tr-title { color: inherit; }
 /* the note on what a search result matched: the player bar's colour */
 .why { background: var(--surface); }

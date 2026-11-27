@@ -400,8 +400,6 @@ const lastAdded = (t) => Math.max(activity(t), ...t.tracks.map((tr) => tr.ts || 
 const SIZE_KEYS = { threads: "nrgfm-th-size2", tagged: "nrgfm-ar-size" }; // (Threads and Archive each keep their own; the middle step is the default)
 const readSize = (k) => { try { const v = localStorage.getItem(k); return v === null ? 1 : Math.max(0, Math.min(2, +v || 0)); } catch { return 1; } };
 const sizes = { threads: readSize(SIZE_KEYS.threads), tagged: readSize(SIZE_KEYS.tagged) };
-/* (temporary) the "1 of 44" list's hover and selected background, 2 ways: ?tl=1 darker, ?tl=2 brighter */
-{ const v = +new URLSearchParams(location.search).get("tl"); if (v === 1 || v === 2) document.body.classList.add("tl-" + v); }
 function applyThSize() {
   let lv4 = false; try { lv4 = level() > 3; } catch {} // (without a password: always the middle size; at the very start the level isn't known yet)
   for (const k of [0, 1, 2]) {
