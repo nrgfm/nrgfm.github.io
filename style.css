@@ -1720,7 +1720,7 @@ body[data-view="threads"] .tr-title { font-size: 15px; line-height: 1.33; }
   .tagged-thread .tr-title { font-size: 15.5px; font-weight: 400; line-height: 1.33; } /* (halfway between 16 and 15) */
 }
 /* the side list of opened posts: a soft fade at the bottom when there is more below */
-.browse-panel .tp-p-list { display: flex; flex-direction: column; gap: 2px; }
+.browse-panel .tp-p-list { display: flex; flex-direction: column; gap: 2px; margin-top: calc(-1 * var(--bp, 0px)); margin-bottom: calc(-1 * var(--bp, 0px)); }
 .browse-panel .browse-row { padding-top: calc(5px + var(--bp, 0px)); padding-bottom: calc(5px + var(--bp, 0px)); } /* (taller boxes: exactly 9 fit, see fadeEnd) */
 /* Archive (and a tag's page): the date starts where the thumbnail picture starts (the row's highlight box is 8px further out) */
 @media (min-width: 641px) { .tagged-thread .tg-when { padding-left: 4px; } } /* (halfway to the picture) */

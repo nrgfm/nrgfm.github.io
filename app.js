@@ -791,8 +791,10 @@ function fadeEnd(list) { // (the side list: exactly 9 rows fit when it's scrolle
   const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height, gap = 2;
   const room = max - (panel.offsetHeight - list.clientHeight) - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0); // (the most the list can be)
   const n = Math.max(2, Math.min(9, Math.floor((room + gap) / (h + gap)))); // (9, or as many whole rows as a short window has room for)
-  const extra = Math.max(0, (room - n * h - (n - 1) * gap) / n);
-  list.style.setProperty("--bp", (extra / 2).toFixed(2) + "px");
+  // (the list is pulled out by the same amount above and below, so the first and last tracks sit as close to the panel's
+  // edges as before and the bigger boxes take that edge space: n(h + 2bp) + (n - 1)gap = room + 2bp)
+  const bp = Math.max(0, (room - n * h - (n - 1) * gap) / (2 * (n - 1)));
+  list.style.setProperty("--bp", bp.toFixed(2) + "px");
 }
 addEventListener("resize", () => drawBrowse());
 function monthNode({ t }) {
