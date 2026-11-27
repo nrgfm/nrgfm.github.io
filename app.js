@@ -782,13 +782,13 @@ function drawBrowse() {
     else if (Math.abs(was - now) > 1) r.animate([{ transform: `translateY(${was - now}px)` }, { transform: "none" }], { duration: 260, easing: "ease-out" }); // the others are pushed down
   }
 }
-function fadeEnd(list) { // (the side list: the gap between rows so that exactly 11 fit when it's scrolled to the top, no row cut off)
+function fadeEnd(list) { // (the side list: the gap between rows so that exactly 9 fit when it's scrolled to the top, no row cut off)
   const rows = [...list.children];
   if (!rows.length) return;
   const panel = list.parentElement, max = parseFloat(panel.style.maxHeight) || panel.offsetHeight;
   const cs = getComputedStyle(list), h = rows[0].getBoundingClientRect().height;
   const room = max - (panel.offsetHeight - list.clientHeight) - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0); // (the most the list can be)
-  const n = Math.max(2, Math.min(11, Math.floor((room + 2) / (h + 2)))); // (11, or as many whole rows as a short window has room for)
+  const n = Math.max(2, Math.min(9, Math.floor((room + 2) / (h + 2)))); // (9, or as many whole rows as a short window has room for)
   const gap = Math.max(2, (room - n * h) / (n - 1));
   list.style.setProperty("--bg-gap", gap.toFixed(2) + "px");
 }

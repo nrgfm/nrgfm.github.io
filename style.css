@@ -1871,7 +1871,6 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 /* the player's volume, Autoplay, Copy info, Copy link at rest: the same colour as the track's title beside them */
 @media (min-width: 641px) { #volBtn, #autoBtn:not([aria-pressed="true"]), #infoBtn:not(.done), #copyBtn:not(.done) { color: color-mix(in srgb, var(--text) 88%, var(--bg)); } }
 /* the side list of opened posts: square thumbnails */
-.browse-row .side-thumb { width: 32px; height: 32px; object-fit: cover; } /* (square, as tall as before: room for the same number of rows) */
 
 /* the "1 of 44" list: the tags scaled down with the titles (15 → 14.5px) */
 #threadList .tag { font-size: 12.5px; }
