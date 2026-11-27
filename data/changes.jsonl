@@ -2693,3 +2693,5 @@
 {"action": "edit", "thread": "p1401848279831892", "id": "t1439332639416789_0", "title": "GRIM — Klara´s Song～Heaven Knows (1987)", "url": "https://www.youtube.com/watch?v=mY1Z0sNJOvg", "tags": ["diy", "lofi", "experimental", "indie"], "ts": 1795720762}
 {"action": "tag", "ids": ["t1718235941526456_0"], "add": ["power pop"], "remove": [], "ts": 1795721070}
 {"action": "tag", "ids": ["t1792851893_0"], "add": ["dnb hits"], "remove": [], "ts": 1795767138}
+{"action": "tag", "ids": ["t29389762843947060_0"], "add": ["score"], "remove": ["minimalism"], "ts": 1795767865}
+{"action": "tag", "ids": ["t29389762843947060_0"], "add": ["minimalism"], "remove": [], "ts": 1795767870}
