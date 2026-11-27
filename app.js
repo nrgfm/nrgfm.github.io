@@ -2046,7 +2046,7 @@ function openThread() {
         img(x.thumb, "chip"),
         el("span", { class: "tl-text" },
           el("span", { class: "tr-title" }, x.title),
-          el("span", { class: "tr-sub" }, shownTags(tr).filter((g) => g !== "duplicate" || !phone()).join(", ")))));
+          el("span", { class: "tr-sub" }, tagLine(tr, null, shownTags(tr).filter((g) => !isPlaylist(g) && (g !== "duplicate" || !phone()))))))); // (tags as everywhere: dotted, no # playlists)
   }).filter(Boolean));
   const room = $(".bar").getBoundingClientRect().top - headerBottom() - 16;
   $("#threadPop").style.maxHeight = phone() ? Math.max(120, room) + "px" : "";
