@@ -2700,51 +2700,58 @@ function sectionFields(tr) {
 }
 const mixTags = (form) => form.tags.get(); // ("mix" is an ordinary tag: the Mixes page shows tracks tagged "mix")
 /* Edit card: a small button inside the field (right), searching the web for the title in the title field, in a new tab */
-/* Edit: after the title a greyed " (year)" with the cursor shown after "(" (only while the title doesn't already end in a
-   year). Typing there makes it real: " (" + what was typed + ")", the cursor before ")". Anything else (moving the
-   cursor, deleting, typing elsewhere) just drops it, and it's never part of what's saved. */
+/* Edit: after the title a greyed " ( )" with the cursor shown between the brackets (at first only while the title
+   doesn't already end in a year; → at the very end brings it back any time). Typing there makes it real: " (" + what
+   was typed + ")", the cursor before ")". Anything else (←, moving the cursor, deleting, typing elsewhere) drops it,
+   and it's never part of what's saved. It is drawn in a copy of the field's own text (hidden), in the field's own
+   font, so the brackets sit exactly where typed ones would. */
 function yearGhost(input) {
   const v0 = input.value.trim();
-  if (!v0 || /\(\s*\d{4}\s*\)\s*$/.test(v0)) return;
   input.value = v0;
   const box = input.parentElement;
-  const ghost = el("span", { class: "year-ghost", "aria-hidden": "true" }, "\u00a0(", el("span", { class: "yg-caret" }), ")");
+  const pad = el("span", { class: "yg-pad" }), tail = el("span", { class: "yg-tail" }, "\u00a0(", el("span", { class: "yg-caret" }), ")");
+  const inner = el("span", { class: "yg-inner" }, pad, tail);
+  const ghost = el("span", { class: "year-ghost", "aria-hidden": "true", hidden: true }, inner);
   box.append(ghost);
-  let on = true;
-  const ctx = document.createElement("canvas").getContext("2d");
+  let on = !!v0 && !/\(\s*\d{4}\s*\)\s*$/.test(v0);
   const atEnd = () => input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
   const place = () => {
-    if (!on) return;
+    if (!input.isConnected) return;
+    if (!on) { ghost.hidden = true; input.classList.remove("yg-on"); return; }
     const cs = getComputedStyle(input);
-    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-    const x = input.offsetLeft + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft) + ctx.measureText(input.value).width - input.scrollLeft;
-    ghost.style.left = x + "px";
-    ghost.style.font = ctx.font; ghost.hidden = false;
-    const room = input.offsetLeft + input.offsetWidth - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth);
-    const show = document.activeElement === input && atEnd() && x + ghost.offsetWidth <= room + 1;
+    for (const k of ["fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch", "letterSpacing", "wordSpacing", "fontKerning", "fontFeatureSettings", "fontVariationSettings", "textTransform", "webkitFontSmoothing"]) ghost.style[k] = cs[k];
+    const bl = parseFloat(cs.borderLeftWidth), bt = parseFloat(cs.borderTopWidth), pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight);
+    const h = input.clientHeight, w = input.clientWidth - pl - pr;
+    Object.assign(ghost.style, { left: input.offsetLeft + bl + pl + "px", top: input.offsetTop + bt + "px", height: h + "px", lineHeight: h + "px", width: w + "px" });
+    pad.textContent = input.value.replace(/\s+$/, "");
+    inner.style.marginLeft = -input.scrollLeft + "px";
+    ghost.hidden = false;
+    const show = document.activeElement === input && atEnd() && pad.offsetWidth - input.scrollLeft + tail.offsetWidth <= w + 1;
     ghost.hidden = !show; input.classList.toggle("yg-on", show);
   };
-  const off = () => { if (!on) return; on = false; ghost.remove(); input.classList.remove("yg-on"); };
+  const off = () => { if (!on) return; on = false; place(); };
+  const fill = (text) => { // the brackets made real around what was typed or pasted
+    const v = input.value.replace(/\s+$/, "") + " (" + text + ")";
+    input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
+    off(); input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
   input.addEventListener("beforeinput", (e) => {
     if (!on) return;
-    if ((e.inputType === "insertText" || e.inputType === "insertFromPaste") && e.data != null && atEnd() && e.data.trim()) {
-      e.preventDefault();
-      const v = input.value + " (" + e.data + ")";
-      input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
-      off(); input.dispatchEvent(new Event("input", { bubbles: true }));
-    } else off();
+    if ((e.inputType === "insertText" || e.inputType === "insertFromPaste") && e.data != null && atEnd() && e.data.trim()) { e.preventDefault(); fill(e.data); }
+    else off();
   });
-  input.addEventListener("keydown", (e) => { // ← while it shows: it goes away and the cursor stays right after the title's last letter
-    if (on && e.key === "ArrowLeft" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && atEnd() && !ghost.hidden) { e.preventDefault(); off(); }
+  input.addEventListener("keydown", (e) => {
+    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || !atEnd()) return;
+    // ← while it shows: it goes away and the cursor stays right after the title's last letter
+    if (e.key === "ArrowLeft" && on && !ghost.hidden) { e.preventDefault(); off(); }
+    // → at the very end: it comes (back)
+    else if (e.key === "ArrowRight" && !on && input.value.trim()) { e.preventDefault(); on = true; place(); }
   });
   input.addEventListener("paste", (e) => { // (some browsers give a paste no data in beforeinput)
     if (!on || !atEnd()) return;
     const t = (e.clipboardData && e.clipboardData.getData("text")) || "";
     if (!t.trim()) return;
-    e.preventDefault();
-    const v = input.value + " (" + t.trim() + ")";
-    input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
-    off(); input.dispatchEvent(new Event("input", { bubbles: true }));
+    e.preventDefault(); fill(t.trim());
   });
   for (const ev of ["focus", "blur", "select", "keyup", "mouseup", "scroll"]) input.addEventListener(ev, () => requestAnimationFrame(place));
   const sel = () => { if (!input.isConnected) { document.removeEventListener("selectionchange", sel); return; } if (on && document.activeElement === input) place(); };
