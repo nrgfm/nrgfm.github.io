@@ -1914,3 +1914,14 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
   #closeBtn:hover { color: var(--text); border-color: transparent; background: color-mix(in srgb, var(--surface-2) 97%, var(--text)); }
   #closeBtn:active { color: var(--bg); border-color: var(--jade); background: var(--jade); transition: none; } /* (pressing: blue, as before) */
 }
+
+/* Edit: the greyed " (year)" after the title, with a blinking cursor after "(" (the field's own cursor hidden meanwhile) */
+.year-ghost { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; white-space: pre; color: color-mix(in srgb, var(--text) 40%, transparent); }
+.year-ghost[hidden] { display: none; }
+.yg-caret { display: inline-block; width: 1px; height: 1.15em; margin: 0 1px 0 0; vertical-align: -0.2em; background: var(--text); animation: yg-blink 1s steps(1) infinite; }
+@keyframes yg-blink { 50% { opacity: 0; } }
+input.yg-on { caret-color: transparent; }
+
+/* Threads' side list: the track titles in the player title's colour */
+.browse-panel .side-name { color: color-mix(in srgb, var(--text) 88%, var(--bg)); }
+.browse-panel .browse-row.here .side-name { color: var(--jade); }

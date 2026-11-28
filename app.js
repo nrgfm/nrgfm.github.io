@@ -2500,6 +2500,7 @@ function addForm(thread, edit, row) {
     new ResizeObserver(() => { if (save.offsetWidth) form.style.setProperty("--save-w", save.offsetWidth + "px"); }).observe(save);
   }
   if (tr) { form.title.value = tr.title ? flipDotTitle(tr.title) : info(tr).title; form.url.value = tr.url; } // YouTube's "Title · Artist" shown as "Artist – Title", as on the page
+  if (edit) yearGhost(form.title);
   form.url.addEventListener("input", () => {
     form.url.setCustomValidity("");
     const clean = withoutPlaylist(form.url.value);
@@ -2699,6 +2700,56 @@ function sectionFields(tr) {
 }
 const mixTags = (form) => form.tags.get(); // ("mix" is an ordinary tag: the Mixes page shows tracks tagged "mix")
 /* Edit card: a small button inside the field (right), searching the web for the title in the title field, in a new tab */
+/* Edit: after the title a greyed " (year)" with the cursor shown after "(" (only while the title doesn't already end in a
+   year). Typing there makes it real: " (" + what was typed + ")", the cursor before ")". Anything else (moving the
+   cursor, deleting, typing elsewhere) just drops it, and it's never part of what's saved. */
+function yearGhost(input) {
+  const v0 = input.value.trim();
+  if (!v0 || /\(\s*\d{4}\s*\)\s*$/.test(v0)) return;
+  input.value = v0;
+  const box = input.parentElement;
+  const ghost = el("span", { class: "year-ghost", "aria-hidden": "true" }, "\u00a0(", el("span", { class: "yg-caret" }), "year)");
+  box.append(ghost);
+  let on = true;
+  const ctx = document.createElement("canvas").getContext("2d");
+  const atEnd = () => input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+  const place = () => {
+    if (!on) return;
+    const cs = getComputedStyle(input);
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const x = input.offsetLeft + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft) + ctx.measureText(input.value).width - input.scrollLeft;
+    ghost.style.left = x + "px";
+    ghost.style.font = ctx.font; ghost.hidden = false;
+    const room = input.offsetLeft + input.offsetWidth - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth);
+    const show = document.activeElement === input && atEnd() && x + ghost.offsetWidth <= room + 1;
+    ghost.hidden = !show; input.classList.toggle("yg-on", show);
+  };
+  const off = () => { if (!on) return; on = false; ghost.remove(); input.classList.remove("yg-on"); };
+  input.addEventListener("beforeinput", (e) => {
+    if (!on) return;
+    if ((e.inputType === "insertText" || e.inputType === "insertFromPaste") && e.data != null && atEnd() && e.data.trim()) {
+      e.preventDefault();
+      const v = input.value + " (" + e.data + ")";
+      input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
+      off(); input.dispatchEvent(new Event("input", { bubbles: true }));
+    } else off();
+  });
+  input.addEventListener("paste", (e) => { // (some browsers give a paste no data in beforeinput)
+    if (!on || !atEnd()) return;
+    const t = (e.clipboardData && e.clipboardData.getData("text")) || "";
+    if (!t.trim()) return;
+    e.preventDefault();
+    const v = input.value + " (" + t.trim() + ")";
+    input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
+    off(); input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  for (const ev of ["focus", "blur", "select", "keyup", "mouseup", "scroll"]) input.addEventListener(ev, () => requestAnimationFrame(place));
+  const sel = () => { if (!input.isConnected) { document.removeEventListener("selectionchange", sel); return; } if (on && document.activeElement === input) place(); };
+  document.addEventListener("selectionchange", sel);
+  input.addEventListener("focus", () => { if (on) { const n = input.value.length; input.setSelectionRange(n, n); } });
+  new ResizeObserver(place).observe(input);
+  requestAnimationFrame(place);
+}
 function inBtn(label, search, input) {
   if (!label) return input;
   return el("span", { class: "af-alt-box" }, input,
