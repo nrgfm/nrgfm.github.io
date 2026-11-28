@@ -2699,3 +2699,4 @@
 {"action": "tag", "ids": ["t1793211812_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795863315, "auto": "player"}
 {"action": "edit", "thread": "p29811169505139723", "id": "t1793211812_0", "title": "Desireless - Voyage, Voyage (1986)", "url": "https://www.youtube.com/watch?v=2KFtLUS_lb4", "tags": ["80s", "italo", "new wave"], "ts": 1795863349, "alt": "https://www.youtube.com/watch?v=dB_c7oZWo1g"}
 {"action": "tag", "ids": ["t1793211812_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795863361, "auto": "player"}
+{"action": "edit", "thread": "p29811169505139723", "id": "t1793211812_0", "title": "Desireless - Voyage, Voyage (1986)", "url": "https://www.youtube.com/watch?v=T7YJoGXs2i8", "tags": ["80s", "italo", "new wave"], "ts": 1795863452, "alt": "https://www.youtube.com/watch?v=2KFtLUS_lb4"}
