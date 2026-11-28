@@ -1918,7 +1918,7 @@ body[data-view="history"] .month-play .tr-title { font-size: 15px; line-height: 
 /* Edit: the greyed " (year)" after the title, with a blinking cursor after "(" (the field's own cursor hidden meanwhile) */
 .year-ghost { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; white-space: pre; color: color-mix(in srgb, var(--text) 40%, transparent); }
 .year-ghost[hidden] { display: none; }
-.yg-caret { display: inline-block; width: 1px; height: 1.15em; margin: 0 1px 0 0; vertical-align: -0.2em; background: var(--text); animation: yg-blink 1s steps(1) infinite; }
+.yg-caret { display: inline-block; width: 1px; height: 1.15em; margin: 0 2px; vertical-align: -0.2em; background: var(--text); animation: yg-blink 1s steps(1) infinite; }
 @keyframes yg-blink { 50% { opacity: 0; } }
 input.yg-on { caret-color: transparent; }
 

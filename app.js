@@ -2708,7 +2708,7 @@ function yearGhost(input) {
   if (!v0 || /\(\s*\d{4}\s*\)\s*$/.test(v0)) return;
   input.value = v0;
   const box = input.parentElement;
-  const ghost = el("span", { class: "year-ghost", "aria-hidden": "true" }, "\u00a0(", el("span", { class: "yg-caret" }), "year)");
+  const ghost = el("span", { class: "year-ghost", "aria-hidden": "true" }, "\u00a0(", el("span", { class: "yg-caret" }), ")");
   box.append(ghost);
   let on = true;
   const ctx = document.createElement("canvas").getContext("2d");
@@ -2733,6 +2733,9 @@ function yearGhost(input) {
       input.value = v; input.setSelectionRange(v.length - 1, v.length - 1);
       off(); input.dispatchEvent(new Event("input", { bubbles: true }));
     } else off();
+  });
+  input.addEventListener("keydown", (e) => { // ← while it shows: it goes away and the cursor stays right after the title's last letter
+    if (on && e.key === "ArrowLeft" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && atEnd() && !ghost.hidden) { e.preventDefault(); off(); }
   });
   input.addEventListener("paste", (e) => { // (some browsers give a paste no data in beforeinput)
     if (!on || !atEnd()) return;
