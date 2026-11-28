@@ -2760,12 +2760,32 @@ function yearGhost(input) {
   new ResizeObserver(place).observe(input);
   requestAnimationFrame(place);
 }
+/* the title for a Google search: the video site's extras taken off: years, "Official Audio", "Remastered", "Lyrics",
+   "Full Album", "HD", … in brackets ( ) [ ] 【 】 (a part of a bracket that says something else stays: "(7'' Mix; 2017
+   Remastered Version)" → "(7'' Mix)"), and the same words loose at the end ("… | HD", "… Full Album") */
+const JUNK_WORD = /^(?:(?:19|20)\d\d(?:'?s)?|'?\d0'?s|official|officiel|audio|video|videoclip|clip|music|musical|lyric|lyrics|with|below|re-?master(?:ed|ing)?|digital(?:ly)?|master(?:ed)?|version|edition|hd|hq|4k|1080p|720p|high|quality|full|album|free|download|visuali[sz]er|cd|explicit|new|the|and|&|\+|-|–)$/i;
+const JUNK_MUST = /(?:19|20)\d\d|official|audio|video|lyric|master|digital|\bhd\b|\bhq\b|4k|1080p|720p|full album|free download|visuali[sz]er|high quality/i; // (not just "version" or "the" on its own)
+const junkPart = (p) => { const w = p.trim().split(/\s+/).filter(Boolean); return w.length > 0 && w.every((x) => JUNK_WORD.test(x.replace(/[!.:]+$/, ""))) && JUNK_MUST.test(p); };
+function googleTitle(title) {
+  let t = String(title || "").trim();
+  t = t.replace(/\s*([(\[【])([^()\[\]【】]*)([)\]】])/g, (all, open, inside, close) => {
+    const parts = inside.split(/\s*[;,/|]\s*/), keep = parts.filter((p) => p.trim() && !junkPart(p));
+    if (keep.length === parts.length) return all;
+    return keep.length ? " " + open + keep.join("; ") + close : "";
+  });
+  const tail = /\s*(?:[|\-–—+:]\s*)?(?:official\s+(?:music\s+|lyric\s+)?(?:video|audio)|(?:music|lyric)\s+video|full\s+album|lyrics|hd|hq|4k|1080p|720p|visuali[sz]er|free\s+download|re-?mastered|remaster)\s*[!.]*$/i;
+  for (let k = 0; k < 6 && tail.test(t); k++) t = t.replace(tail, "");
+  t = t.replace(/\s*[|\-–—+:/·]\s*$/, "").replace(/\s{2,}/g, " ").trim();
+  return t || String(title || "").trim();
+}
 function inBtn(label, search, input) {
   if (!label) return input;
+  const google = label === "Google";
   return el("span", { class: "af-alt-box" }, input,
     el("button", { type: "button", class: "af-alt-copy", onclick: (e) => {
       e.preventDefault();
-      const q = e.currentTarget.closest("form").title.value.trim();
+      let q = e.currentTarget.closest("form").title.value.trim();
+      if (google && q) { q = googleTitle(q); if (e.metaKey || e.ctrlKey) q += " year"; } // (Cmd/Ctrl: the cleaned title + " year")
       if (q) open(search + encodeURIComponent(q), "_blank", "noopener");
     } }, label));
 }
