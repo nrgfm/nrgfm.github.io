@@ -2696,3 +2696,4 @@
 {"action": "tag", "ids": ["t29389762843947060_0"], "add": ["score"], "remove": ["minimalism"], "ts": 1795767865}
 {"action": "tag", "ids": ["t29389762843947060_0"], "add": ["minimalism"], "remove": [], "ts": 1795767870}
 {"url": "https://www.youtube.com/watch?v=aWuNzXttLVE", "title": "New Order - Vanishing Point (1989)", "thread": "p29811615345095139", "tags": [], "ts": 1795785516}
+{"action": "tag", "ids": ["t1793211812_0"], "add": ["plays on youtube only"], "remove": [], "ts": 1795863315, "auto": "player"}
