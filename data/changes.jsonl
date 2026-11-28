@@ -2738,3 +2738,4 @@
 {"action": "edit", "thread": "p29810260948563912", "id": "t29810698481853492_0", "title": "Todd Rundgren - Just One Victory (1973)", "url": "https://www.youtube.com/watch?v=XUw1O9pTiVM", "tags": [], "ts": 1795875247}
 {"url": "https://www.youtube.com/watch?v=0lagRQ0FzYU", "title": "Mai Yamane — 山根麻衣 = (You And Me Still Keep On) Fall In Love (1981)", "thread": "p1795376479", "tags": ["slow jam", "city pop"], "ts": 1795875858}
 {"url": "https://www.youtube.com/watch?v=W8x4m-qpmJ8", "title": "Fei Yu-ching - Yi Jian Mei (1983)", "thread": "", "tags": [], "ts": 1795898859, "via": "password"}
+{"action": "tag", "ids": ["t1795898859_0"], "add": ["#luca"], "remove": [], "ts": 1795898879, "via": "password"}
